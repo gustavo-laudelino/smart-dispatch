@@ -1,14 +1,15 @@
 package br.com.smartdispatch.model;
 
+import br.com.smartdispatch.enums.PerfilUsuario;
+
 public class Tecnico {
 
     private Long id;
-    private String nome;
-    private String telefone;
-    private String email;
 
+    private Usuario usuario;
     private Contrato contrato;
     private BaseOperacional baseOperacional;
+    private PerfilUsuario perfilUsuario;
 
     private boolean ativo;
 
@@ -23,28 +24,12 @@ public class Tecnico {
         this.id = id;
     }
 
-    public String getNome() {
-        return nome;
+    public Usuario getUsuario() {
+        return usuario;
     }
 
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
-
-    public String getTelefone() {
-        return telefone;
-    }
-
-    public void setTelefone(String telefone) {
-        this.telefone = telefone;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 
     public Contrato getContrato() {
@@ -61,6 +46,14 @@ public class Tecnico {
 
     public void setBaseOperacional(BaseOperacional baseOperacional) {
         this.baseOperacional = baseOperacional;
+    }
+
+    public PerfilUsuario getPerfilUsuario() {
+        return perfilUsuario;
+    }
+
+    public void setPerfilUsuario(PerfilUsuario perfilUsuario) {
+        this.perfilUsuario = perfilUsuario;
     }
 
     public boolean isAtivo() {
