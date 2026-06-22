@@ -1,0 +1,10 @@
+POST http://localhost:8080/chamados
+Content-Type: application/json
+
+{
+  "numeroChamado": "10200",
+  "tipo": "INCIDENTE",
+  "categoria": "COMPUTADOR_COM_DEFEITO",
+  "prioridade": "ALTA",
+  "descricao": "Computador não apresenta imagem."
+}
