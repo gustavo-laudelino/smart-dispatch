@@ -1,14 +1,22 @@
 package br.com.smartdispatch.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "contratos")
 public class Contrato {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private String cidade;
     private String secretarioResponsavel;
-
     private Integer slaHoras;
-
     private String linkPortalChamados;
 
     public Contrato() {
@@ -53,5 +61,4 @@ public class Contrato {
     public void setLinkPortalChamados(String linkPortalChamados) {
         this.linkPortalChamados = linkPortalChamados;
     }
-
 }
