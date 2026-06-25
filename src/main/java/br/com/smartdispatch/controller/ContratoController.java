@@ -25,4 +25,14 @@ public class ContratoController {
     public List<Contrato> listar() {
         return contratoService.listar();
     }
+
+    @GetMapping("/{id}")
+    public Contrato buscarPorId(@PathVariable Long id) {
+        return contratoService.buscarPorId(id);
+    }
+
+    @DeleteMapping("/{id}")
+    public void excluir(@PathVariable Long id) {
+        contratoService.excluir(id);
+    }
 }
