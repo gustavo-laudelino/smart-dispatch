@@ -1,16 +1,31 @@
 package br.com.smartdispatch.model;
 
-import br.com.smartdispatch.enums.PerfilUsuario;
+import jakarta.persistence.*;
 
+@Entity
+@Table(name = "tecnicos")
 public class Tecnico {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @OneToOne
+    @JoinColumn(
+            name = "usuario_id",
+            nullable = false,
+            unique = true
+    )
     private Usuario usuario;
-    private Contrato contrato;
-    private BaseOperacional baseOperacional;
-    private PerfilUsuario perfilUsuario;
 
+    @ManyToOne
+    @JoinColumn(
+            name = "base_operacional_id",
+            nullable = false
+    )
+    private BaseOperacional baseOperacional;
+
+    @Column(nullable = false)
     private boolean ativo;
 
     public Tecnico() {
@@ -32,28 +47,12 @@ public class Tecnico {
         this.usuario = usuario;
     }
 
-    public Contrato getContrato() {
-        return contrato;
-    }
-
-    public void setContrato(Contrato contrato) {
-        this.contrato = contrato;
-    }
-
     public BaseOperacional getBaseOperacional() {
         return baseOperacional;
     }
 
     public void setBaseOperacional(BaseOperacional baseOperacional) {
         this.baseOperacional = baseOperacional;
-    }
-
-    public PerfilUsuario getPerfilUsuario() {
-        return perfilUsuario;
-    }
-
-    public void setPerfilUsuario(PerfilUsuario perfilUsuario) {
-        this.perfilUsuario = perfilUsuario;
     }
 
     public boolean isAtivo() {

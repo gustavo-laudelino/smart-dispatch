@@ -1,13 +1,26 @@
 package br.com.smartdispatch.model;
 
 import br.com.smartdispatch.enums.PerfilUsuario;
+import jakarta.persistence.*;
 
+@Entity
+@Table(name = "usuarios")
 public class Usuario {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String nome;
+
+    @Column(unique = true)
     private String email;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private PerfilUsuario perfil;
+
     private String telefone;
 
     public Usuario() {

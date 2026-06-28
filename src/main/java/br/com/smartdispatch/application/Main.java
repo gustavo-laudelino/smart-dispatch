@@ -36,7 +36,6 @@ public class Main {
         Tecnico gustavo = new Tecnico();
         gustavo.setId(1L);
         gustavo.setUsuario(usuarioGustavo);
-        gustavo.setContrato(contratoCampinas);
         gustavo.setBaseOperacional(baseCentro);
         gustavo.setAtivo(true);
 

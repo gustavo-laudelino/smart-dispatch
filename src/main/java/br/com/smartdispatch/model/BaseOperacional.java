@@ -1,16 +1,36 @@
 package br.com.smartdispatch.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "bases_operacionais")
 public class BaseOperacional {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String nome;
     private String endereco;
+
+    @Column(length = 8)
+    private String cep;
+
     private String bairro;
     private String cidade;
 
     private Double latitude;
     private Double longitude;
 
+    @ManyToOne
+    @JoinColumn(name = "contrato_id", nullable = false)
     private Contrato contrato;
 
     public BaseOperacional() {
@@ -38,6 +58,14 @@ public class BaseOperacional {
 
     public void setEndereco(String endereco) {
         this.endereco = endereco;
+    }
+
+    public String getCep() {
+        return cep;
+    }
+
+    public void setCep(String cep) {
+        this.cep = cep;
     }
 
     public String getBairro() {
