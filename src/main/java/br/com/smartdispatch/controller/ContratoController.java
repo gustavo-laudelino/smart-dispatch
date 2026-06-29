@@ -35,4 +35,12 @@ public class ContratoController {
     public void excluir(@PathVariable Long id) {
         contratoService.excluir(id);
     }
+
+    @PutMapping("/{id}")
+    public Contrato atualizar(
+            @PathVariable Long id,
+            @RequestBody Contrato novosDados
+    ) {
+        return contratoService.atualizar(id, novosDados);
+    }
 }
