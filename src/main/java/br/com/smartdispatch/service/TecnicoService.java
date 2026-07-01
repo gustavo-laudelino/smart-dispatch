@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import br.com.smartdispatch.dto.AtualizarStatusTecnicoRequest;
 
 import java.util.List;
 
@@ -158,6 +159,43 @@ public class TecnicoService {
         usuarioRepository.save(usuario);
 
         return converterParaResponse(tecnico);
+    }
+
+    @Transactional
+    public TecnicoResponse atualizarStatus(
+            Long contratoId,
+            Long baseId,
+            Long tecnicoId,
+            AtualizarStatusTecnicoRequest request
+    ) {
+        baseOperacionalService.buscarPorId(
+                contratoId,
+                baseId
+        );
+
+        if (request.getAtivo() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "O campo ativo deve ser informado"
+            );
+        }
+
+        Tecnico tecnico = tecnicoRepository
+                .findByIdAndBaseOperacionalId(
+                        tecnicoId,
+                        baseId
+                )
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Técnico não encontrado nesta base operacional"
+                ));
+
+        tecnico.setAtivo(request.getAtivo());
+
+        Tecnico tecnicoAtualizado =
+                tecnicoRepository.save(tecnico);
+
+        return converterParaResponse(tecnicoAtualizado);
     }
 
     private TecnicoResponse converterParaResponse(

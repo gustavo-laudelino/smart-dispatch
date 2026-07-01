@@ -6,6 +6,7 @@ import br.com.smartdispatch.dto.TecnicoResponse;
 import br.com.smartdispatch.service.TecnicoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import br.com.smartdispatch.dto.AtualizarStatusTecnicoRequest;
 
 import java.util.List;
 
@@ -65,6 +66,21 @@ public class TecnicoController {
             @RequestBody AtualizarTecnicoRequest request
     ) {
         return tecnicoService.atualizar(
+                contratoId,
+                baseId,
+                tecnicoId,
+                request
+        );
+    }
+
+    @PatchMapping("/{tecnicoId}/status")
+    public TecnicoResponse atualizarStatus(
+            @PathVariable Long contratoId,
+            @PathVariable Long baseId,
+            @PathVariable Long tecnicoId,
+            @RequestBody AtualizarStatusTecnicoRequest request
+    ) {
+        return tecnicoService.atualizarStatus(
                 contratoId,
                 baseId,
                 tecnicoId,
