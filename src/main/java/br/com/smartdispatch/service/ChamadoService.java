@@ -137,7 +137,8 @@ public class ChamadoService {
         return converterParaResponse(chamadoAtualizado);
     }
 
-    private Chamado buscarEntidadePorId(
+    @Transactional(readOnly = true)
+    public Chamado buscarEntidadePorId(
             Long contratoId,
             Long chamadoId
     ) {

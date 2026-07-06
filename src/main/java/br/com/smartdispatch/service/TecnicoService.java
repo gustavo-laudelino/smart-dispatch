@@ -198,6 +198,31 @@ public class TecnicoService {
         return converterParaResponse(tecnicoAtualizado);
     }
 
+    @Transactional(readOnly = true)
+    public Tecnico buscarEntidadePorId(
+            Long contratoId,
+            Long tecnicoId
+    ) {
+        Tecnico tecnico = tecnicoRepository
+                .findByIdAndBaseOperacionalContratoId(
+                        tecnicoId,
+                        contratoId
+                )
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Técnico não encontrado neste contrato"
+                ));
+
+        if (!tecnico.isAtivo()) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Não é possível atribuir uma ordem de serviço a um técnico inativo"
+            );
+        }
+
+        return tecnico;
+    }
+
     private TecnicoResponse converterParaResponse(
             Tecnico tecnico
     ) {
