@@ -1,34 +1,63 @@
 package br.com.smartdispatch.controller;
 
-import br.com.smartdispatch.enums.CategoriaChamado;
-import br.com.smartdispatch.enums.Prioridade;
-import br.com.smartdispatch.enums.TipoChamado;
-import br.com.smartdispatch.model.Chamado;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import br.com.smartdispatch.dto.ChamadoRequest;
+import br.com.smartdispatch.dto.ChamadoResponse;
+import br.com.smartdispatch.service.ChamadoService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
-@RequestMapping("/chamados")
+@RequestMapping("/contratos/{contratoId}/chamados")
 public class ChamadoController {
 
-    @GetMapping("/exemplo")
-    public Chamado buscarExemplo() {
-        Chamado chamado = new Chamado();
+    private final ChamadoService chamadoService;
 
-        chamado.setId(1L);
-        chamado.setNumeroChamado("10179");
-        chamado.setTipo(TipoChamado.INCIDENTE);
-        chamado.setCategoria(CategoriaChamado.COMPUTADOR_COM_DEFEITO);
-        chamado.setPrioridade(Prioridade.MEDIA);
-        chamado.setDescricao("Computador da secretaria não liga.");
-
-        return chamado;
+    public ChamadoController(ChamadoService chamadoService) {
+        this.chamadoService = chamadoService;
     }
+
     @PostMapping
-    public Chamado criarChamado(@RequestBody Chamado chamado) {
-        return chamado;
+    @ResponseStatus(HttpStatus.CREATED)
+    public ChamadoResponse criar(
+            @PathVariable Long contratoId,
+            @RequestBody ChamadoRequest request
+    ) {
+        return chamadoService.criar(
+                contratoId,
+                request
+        );
+    }
+
+    @GetMapping
+    public List<ChamadoResponse> listarPorContrato(
+            @PathVariable Long contratoId
+    ) {
+        return chamadoService.listarPorContrato(contratoId);
+    }
+
+    @GetMapping("/{chamadoId}")
+    public ChamadoResponse buscarPorId(
+            @PathVariable Long contratoId,
+            @PathVariable Long chamadoId
+    ) {
+        return chamadoService.buscarPorId(
+                contratoId,
+                chamadoId
+        );
+    }
+
+    @PutMapping("/{chamadoId}")
+    public ChamadoResponse atualizar(
+            @PathVariable Long contratoId,
+            @PathVariable Long chamadoId,
+            @RequestBody ChamadoRequest request
+    ) {
+        return chamadoService.atualizar(
+                contratoId,
+                chamadoId,
+                request
+        );
     }
 }

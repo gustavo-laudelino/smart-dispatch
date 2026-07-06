@@ -1,11 +1,14 @@
 package br.com.smartdispatch.model;
 
+import jakarta.persistence.Embeddable;
+
+@Embeddable
 public class Solicitante {
 
     private String nome;
     private String email;
     private String telefone;
-    private String matriucula;
+    private String identificacao;
 
     public Solicitante() {
     }
@@ -34,11 +37,11 @@ public class Solicitante {
         this.telefone = telefone;
     }
 
-    public String getMatriucula() {
-        return matriucula;
+    public String getIdentificacao() {
+        return identificacao;
     }
 
-    public void setMatricula(String matriucula) {
-        this.matriucula = matriucula;
+    public void setIdentificacao(String identificacao) {
+        this.identificacao = identificacao;
     }
 }

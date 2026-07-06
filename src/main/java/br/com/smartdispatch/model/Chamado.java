@@ -1,35 +1,69 @@
 package br.com.smartdispatch.model;
+
 import br.com.smartdispatch.enums.CategoriaChamado;
-import br.com.smartdispatch.enums.Prioridade;
+import br.com.smartdispatch.enums.PrioridadeChamado;
 import br.com.smartdispatch.enums.StatusChamado;
 import br.com.smartdispatch.enums.TipoChamado;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(name = "chamados")
 public class Chamado {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String numeroChamado;
 
-    private LocalDateTime dataAbertura;
-    private LocalDateTime dataFinalizacao;
-    private LocalDateTime dataAtribuicao;
+    @Column(nullable = false, length = 1000)
+    private String linkChamadoOsti;
 
-    private Contrato contrato;
+    @ManyToOne
+    @JoinColumn(name = "unidade_id", nullable = false)
     private Unidade unidade;
-    private Solicitante solicitante;
-    private Patrimonio patrimonio;
-    private Tecnico tecnicoResponsavel;
 
+    @Embedded
+    private Solicitante solicitante;
+
+    private String numeroPatrimonio;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private TipoChamado tipo;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private CategoriaChamado categoria;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PrioridadeChamado prioridade;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private StatusChamado status;
 
-    private Prioridade prioridade;
-
+    @Column(nullable = false, length = 2000)
     private String descricao;
 
+    @Column(nullable = false)
+    private LocalDateTime dataAbertura;
 
+    private LocalDateTime dataFinalizacao;
 
     public Chamado() {
         this.status = StatusChamado.ABERTO;
@@ -52,29 +86,12 @@ public class Chamado {
         this.numeroChamado = numeroChamado;
     }
 
-    public LocalDateTime getDataAbertura() {
-        return dataAbertura;
+    public String getLinkChamadoOsti() {
+        return linkChamadoOsti;
     }
 
-    public void setDataAbertura(LocalDateTime dataAbertura) {
-        this.dataAbertura = dataAbertura;
-    }
-
-    public LocalDateTime getDataFinalizacao() { return dataFinalizacao; }
-
-    public void setDataFinalizacao(LocalDateTime dataFinalizacao) { this.dataFinalizacao = dataFinalizacao; }
-
-    public LocalDateTime getDataAtribuicao() { return dataAtribuicao; }
-
-    public void setDataAtribuicao(LocalDateTime dataAtribuicao) { this.dataAtribuicao = dataAtribuicao; }
-
-
-    public Contrato getContrato() {
-        return contrato;
-    }
-
-    public void setContrato(Contrato contrato) {
-        this.contrato = contrato;
+    public void setLinkChamadoOsti(String linkChamadoOsti) {
+        this.linkChamadoOsti = linkChamadoOsti;
     }
 
     public Unidade getUnidade() {
@@ -93,20 +110,12 @@ public class Chamado {
         this.solicitante = solicitante;
     }
 
-    public Patrimonio getPatrimonio() {
-        return patrimonio;
+    public String getNumeroPatrimonio() {
+        return numeroPatrimonio;
     }
 
-    public void setPatrimonio(Patrimonio patrimonio) {
-        this.patrimonio = patrimonio;
-    }
-
-    public Tecnico getTecnicoResponsavel() {
-        return tecnicoResponsavel;
-    }
-
-    public void setTecnicoResponsavel(Tecnico tecnicoResponsavel) {
-        this.tecnicoResponsavel = tecnicoResponsavel;
+    public void setNumeroPatrimonio(String numeroPatrimonio) {
+        this.numeroPatrimonio = numeroPatrimonio;
     }
 
     public TipoChamado getTipo() {
@@ -125,20 +134,20 @@ public class Chamado {
         this.categoria = categoria;
     }
 
+    public PrioridadeChamado getPrioridade() {
+        return prioridade;
+    }
+
+    public void setPrioridade(PrioridadeChamado prioridade) {
+        this.prioridade = prioridade;
+    }
+
     public StatusChamado getStatus() {
         return status;
     }
 
     public void setStatus(StatusChamado status) {
         this.status = status;
-    }
-
-    public Prioridade getPrioridade() {
-        return prioridade;
-    }
-
-    public void setPrioridade(Prioridade prioridade) {
-        this.prioridade = prioridade;
     }
 
     public String getDescricao() {
@@ -149,50 +158,19 @@ public class Chamado {
         this.descricao = descricao;
     }
 
-
-    public void atribuirTecnico(Tecnico tecnico) {
-        if (tecnico == null) {
-            throw new IllegalArgumentException("O técnico não pode ser nulo.");
-        }
-
-        this.dataAtribuicao = LocalDateTime.now();
-        this.tecnicoResponsavel = tecnico;
-        this.status = StatusChamado.ATRIBUIDO;
+    public LocalDateTime getDataAbertura() {
+        return dataAbertura;
     }
 
-    public void iniciarAtendimento() {
-        if (this.tecnicoResponsavel == null) {
-            throw new IllegalStateException(
-                    "Não é possível iniciar um atendimento sem técnico responsável."
-            );
-        }
-
-        this.status = StatusChamado.EM_ANDAMENTO;
+    public void setDataAbertura(LocalDateTime dataAbertura) {
+        this.dataAbertura = dataAbertura;
     }
 
-    public void aguardarPeca() {
-        this.status = StatusChamado.AGUARDANDO_PECA;
+    public LocalDateTime getDataFinalizacao() {
+        return dataFinalizacao;
     }
 
-    public void aguardarCliente() {
-        this.status = StatusChamado.AGUARDANDO_CLIENTE;
+    public void setDataFinalizacao(LocalDateTime dataFinalizacao) {
+        this.dataFinalizacao = dataFinalizacao;
     }
-
-    public void finalizar() {
-        // Um chamado só pode ser finalizado se tiver sido atribuído
-        // a um técnico. Chamados abertos por engano devem ser cancelados.
-        if (this.tecnicoResponsavel == null) {
-            throw new IllegalStateException(
-                    "Não é possível finalizar um chamado sem um técnico responsável."
-            );
-        }
-
-        this.status = StatusChamado.FINALIZADO;
-        this.dataFinalizacao = LocalDateTime.now();
-    }
-
-    public void cancelar() {
-        this.status = StatusChamado.CANCELADO;
-    }
-
 }

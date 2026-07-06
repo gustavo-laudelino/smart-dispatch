@@ -1,11 +1,13 @@
 package br.com.smartdispatch.enums;
 
 public enum StatusChamado {
+
     ABERTO,
     ATRIBUIDO,
-    AGENDADO,
-    EM_ANDAMENTO,
-    AGUARDANDO_PECA,
+    EM_ATENDIMENTO,
+    AGUARDANDO_ANALISE,
+    PRONTO_PARA_FINALIZAR,
+    PENDENTE,
     AGUARDANDO_CLIENTE,
     FINALIZADO,
     CANCELADO

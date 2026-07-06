@@ -1,108 +1,220 @@
 package br.com.smartdispatch.service;
 
-import br.com.smartdispatch.enums.StatusChamado;
-import br.com.smartdispatch.enums.TipoEventoHistorico;
+import br.com.smartdispatch.dto.ChamadoRequest;
+import br.com.smartdispatch.dto.ChamadoResponse;
 import br.com.smartdispatch.model.Chamado;
-import br.com.smartdispatch.model.HistoricoChamado;
-import br.com.smartdispatch.model.Tecnico;
-import br.com.smartdispatch.model.Usuario;
+import br.com.smartdispatch.model.Contrato;
+import br.com.smartdispatch.model.Unidade;
+import br.com.smartdispatch.repository.ChamadoRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.List;
 
+@Service
 public class ChamadoService {
 
-    private final List<HistoricoChamado> historicos = new ArrayList<>();
+    private final ChamadoRepository chamadoRepository;
+    private final UnidadeService unidadeService;
+    private final ContratoService contratoService;
 
-    public void registrarCriacao(Chamado chamado, Usuario usuario) {
-        registrarHistorico(
+    public ChamadoService(
+            ChamadoRepository chamadoRepository,
+            UnidadeService unidadeService,
+            ContratoService contratoService
+    ) {
+        this.chamadoRepository = chamadoRepository;
+        this.unidadeService = unidadeService;
+        this.contratoService = contratoService;
+    }
+
+    @Transactional
+    public ChamadoResponse criar(
+            Long contratoId,
+            ChamadoRequest request
+    ) {
+        Unidade unidade = unidadeService.buscarPorId(
+                contratoId,
+                request.getUnidadeId()
+        );
+
+        boolean numeroJaCadastrado =
+                chamadoRepository
+                        .existsByNumeroChamadoAndUnidadeContratoId(
+                                request.getNumeroChamado(),
+                                contratoId
+                        );
+
+        if (numeroJaCadastrado) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Já existe um chamado com este número neste contrato"
+            );
+        }
+
+        Chamado chamado = new Chamado();
+
+        aplicarDados(
                 chamado,
-                usuario,
-                TipoEventoHistorico.CHAMADO_CRIADO,
-                "Chamado criado no Smart Dispatch."
+                request,
+                unidade
+        );
+
+        Chamado chamadoSalvo =
+                chamadoRepository.save(chamado);
+
+        return converterParaResponse(chamadoSalvo);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChamadoResponse> listarPorContrato(
+            Long contratoId
+    ) {
+        contratoService.buscarPorId(contratoId);
+
+        return chamadoRepository
+                .findByUnidadeContratoId(contratoId)
+                .stream()
+                .map(this::converterParaResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ChamadoResponse buscarPorId(
+            Long contratoId,
+            Long chamadoId
+    ) {
+        Chamado chamado = buscarEntidadePorId(
+                contratoId,
+                chamadoId
+        );
+
+        return converterParaResponse(chamado);
+    }
+
+    @Transactional
+    public ChamadoResponse atualizar(
+            Long contratoId,
+            Long chamadoId,
+            ChamadoRequest request
+    ) {
+        Chamado chamado = buscarEntidadePorId(
+                contratoId,
+                chamadoId
+        );
+
+        Unidade unidade = unidadeService.buscarPorId(
+                contratoId,
+                request.getUnidadeId()
+        );
+
+        boolean numeroPertenceAOutroChamado =
+                chamadoRepository
+                        .existsByNumeroChamadoAndUnidadeContratoIdAndIdNot(
+                                request.getNumeroChamado(),
+                                contratoId,
+                                chamadoId
+                        );
+
+        if (numeroPertenceAOutroChamado) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Já existe outro chamado com este número neste contrato"
+            );
+        }
+
+        aplicarDados(
+                chamado,
+                request,
+                unidade
+        );
+
+        Chamado chamadoAtualizado =
+                chamadoRepository.save(chamado);
+
+        return converterParaResponse(chamadoAtualizado);
+    }
+
+    private Chamado buscarEntidadePorId(
+            Long contratoId,
+            Long chamadoId
+    ) {
+        return chamadoRepository
+                .findByIdAndUnidadeContratoId(
+                        chamadoId,
+                        contratoId
+                )
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Chamado não encontrado neste contrato"
+                ));
+    }
+
+    private void aplicarDados(
+            Chamado chamado,
+            ChamadoRequest request,
+            Unidade unidade
+    ) {
+        chamado.setNumeroChamado(
+                request.getNumeroChamado()
+        );
+
+        chamado.setLinkChamadoOsti(
+                request.getLinkChamadoOsti()
+        );
+
+        chamado.setUnidade(unidade);
+
+        chamado.setSolicitante(
+                request.getSolicitante()
+        );
+
+        chamado.setNumeroPatrimonio(
+                request.getNumeroPatrimonio()
+        );
+
+        chamado.setTipo(
+                request.getTipo()
+        );
+
+        chamado.setCategoria(
+                request.getCategoria()
+        );
+
+        chamado.setPrioridade(
+                request.getPrioridade()
+        );
+
+        chamado.setDescricao(
+                request.getDescricao()
         );
     }
 
-    public void atribuirTecnico(
-            Chamado chamado,
-            Tecnico tecnico,
-            Usuario usuarioResponsavel
+    private ChamadoResponse converterParaResponse(
+            Chamado chamado
     ) {
-        chamado.atribuirTecnico(tecnico);
+        Unidade unidade = chamado.getUnidade();
+        Contrato contrato = unidade.getContrato();
 
-        registrarHistorico(
-                chamado,
-                usuarioResponsavel,
-                TipoEventoHistorico.TECNICO_ATRIBUIDO,
-                "Técnico " + tecnico.getUsuario().getNome()
-                        + " atribuído ao chamado."
-        );
-    }
-
-    private void registrarHistorico(
-            Chamado chamado,
-            Usuario usuario,
-            TipoEventoHistorico tipoEvento,
-            String mensagem
-    ) {
-        HistoricoChamado historico = new HistoricoChamado(
-                chamado,
-                usuario,
-                tipoEvento,
-                mensagem
-        );
-
-        historicos.add(historico);
-    }
-
-    public List<HistoricoChamado> getHistoricos() {
-        return List.copyOf(historicos);
-    }
-
-    public void iniciarAtendimento(
-            Chamado chamado,
-            Usuario usuarioResponsavel
-    ) {
-        StatusChamado statusAnterior = chamado.getStatus();
-
-        chamado.iniciarAtendimento();
-
-        registrarAlteracaoStatus(
-                chamado,
-                usuarioResponsavel,
-                statusAnterior
-        );
-    }
-
-    public void finalizarAtendimento(
-            Chamado chamado,
-            Usuario usuarioResponsavel
-    ) {
-        StatusChamado statusAnterior = chamado.getStatus();
-
-        chamado.finalizar();
-
-        registrarAlteracaoStatus(
-                chamado,
-                usuarioResponsavel,
-                statusAnterior
-        );
-    }
-
-    private void registrarAlteracaoStatus(
-            Chamado chamado,
-            Usuario usuarioResponsavel,
-            StatusChamado statusAnterior
-    ) {
-        registrarHistorico(
-                chamado,
-                usuarioResponsavel,
-                TipoEventoHistorico.STATUS_ALTERADO,
-                "Status alterado de "
-                        + statusAnterior
-                        + " para "
-                        + chamado.getStatus()
-                        + "."
+        return new ChamadoResponse(
+                chamado.getId(),
+                chamado.getNumeroChamado(),
+                chamado.getLinkChamadoOsti(),
+                unidade.getId(),
+                unidade.getNome(),
+                contrato.getId(),
+                contrato.getCidade(),
+                chamado.getSolicitante(),
+                chamado.getNumeroPatrimonio(),
+                chamado.getTipo(),
+                chamado.getCategoria(),
+                chamado.getPrioridade(),
+                chamado.getStatus(),
+                chamado.getDescricao(),
+                chamado.getDataAbertura(),
+                chamado.getDataFinalizacao()
         );
     }
 }
