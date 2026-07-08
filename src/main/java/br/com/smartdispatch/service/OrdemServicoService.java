@@ -334,7 +334,8 @@ public class OrdemServicoService {
         return converterParaResponse(ordemServico);
     }
 
-    private OrdemServico buscarEntidadePorId(
+    @Transactional(readOnly = true)
+    public OrdemServico buscarEntidadePorId(
             Long contratoId,
             Long chamadoId,
             Long ordemServicoId
