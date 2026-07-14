@@ -415,24 +415,37 @@ public class OrdemServicoService {
                 ordemServicoAtiva
         );
 
-        Chamado chamadoAnterior =
-                ordemServicoAtiva.getChamado();
+        recalcularStatusOperacionalDoChamado(
+                ordemServicoAtiva.getChamado()
+        );
+    }
 
-        boolean existeOutroAtendimentoAtivo =
+    private void recalcularStatusOperacionalDoChamado(
+            Chamado chamado
+    ) {
+        boolean existeAtendimentoAtivo =
                 ordemServicoRepository
                         .existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                                chamadoAnterior.getId()
+                                chamado.getId()
                         );
 
-        if (existeOutroAtendimentoAtivo) {
-            chamadoAnterior.setStatus(
-                    StatusChamado.EM_ATENDIMENTO
-            );
-        } else {
-            chamadoAnterior.setStatus(
-                    StatusChamado.AGUARDANDO_ANALISE
-            );
+        if (existeAtendimentoAtivo) {
+            chamado.setStatus(StatusChamado.EM_ATENDIMENTO);
+            return;
         }
+
+        boolean existeOrdemNaoIniciada =
+                ordemServicoRepository
+                        .existsByChamadoIdAndDataCheckInIsNullAndDataCheckOutIsNull(
+                                chamado.getId()
+                        );
+
+        if (existeOrdemNaoIniciada) {
+            chamado.setStatus(StatusChamado.ATRIBUIDO);
+            return;
+        }
+
+        chamado.setStatus(StatusChamado.AGUARDANDO_ANALISE);
     }
 
     private OrdemServicoResponse converterParaResponse(

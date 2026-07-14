@@ -20,6 +20,10 @@ public interface OrdemServicoRepository
             Long chamadoId
     );
 
+    boolean existsByChamadoIdAndDataCheckInIsNullAndDataCheckOutIsNull(
+            Long chamadoId
+    );
+
     boolean existsByNumeroOrdemServico(
             String numeroOrdemServico
     );
