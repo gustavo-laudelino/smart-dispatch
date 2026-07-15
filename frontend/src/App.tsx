@@ -47,6 +47,17 @@ type OrdemServico = {
     dataCheckOut: string | null;
 };
 
+type ComentarioChamado = {
+    id: number;
+    chamadoId: number;
+    autorId: number;
+    autorNome: string;
+    ordemServicoId: number | null;
+    numeroOrdemServico: string | null;
+    texto: string;
+    dataCriacao: string;
+};
+
 type ErroResponse = {
     dataHora: string;
     status: number;
@@ -82,7 +93,9 @@ function App() {
     const [chamados, setChamados] = useState<Chamado[]>([]);
     const [chamadoSelecionado, setChamadoSelecionado] =
         useState<Chamado | null>(null);
+
     const [ordensServico, setOrdensServico] = useState<OrdemServico[]>([]);
+    const [comentarios, setComentarios] = useState<ComentarioChamado[]>([]);
 
     const [carregandoFeed, setCarregandoFeed] = useState(true);
     const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
@@ -118,6 +131,7 @@ function App() {
         if (limparDetalhe) {
             setChamadoSelecionado(null);
             setOrdensServico([]);
+            setComentarios([]);
         }
 
         const url =
@@ -155,8 +169,11 @@ function App() {
             fetch(
                 `${API_BASE_URL}/contratos/${chamado.contratoId}/chamados/${chamado.id}/ordens-servico`
             ),
+            fetch(
+                `${API_BASE_URL}/contratos/${chamado.contratoId}/chamados/${chamado.id}/comentarios`
+            ),
         ])
-            .then(([chamadoResponse, ordensResponse]) => {
+            .then(([chamadoResponse, ordensResponse, comentariosResponse]) => {
                 if (!chamadoResponse.ok) {
                     throw new Error("Erro ao buscar detalhes do chamado");
                 }
@@ -165,15 +182,27 @@ function App() {
                     throw new Error("Erro ao buscar ordens de serviço");
                 }
 
+                if (!comentariosResponse.ok) {
+                    throw new Error("Erro ao buscar comentários");
+                }
+
                 return Promise.all([
                     chamadoResponse.json(),
                     ordensResponse.json(),
+                    comentariosResponse.json(),
                 ]);
             })
-            .then(([chamadoData, ordensData]: [Chamado, OrdemServico[]]) => {
-                setChamadoSelecionado(chamadoData);
-                setOrdensServico(ordensData);
-            })
+            .then(
+                ([chamadoData, ordensData, comentariosData]: [
+                    Chamado,
+                    OrdemServico[],
+                    ComentarioChamado[]
+                ]) => {
+                    setChamadoSelecionado(chamadoData);
+                    setOrdensServico(ordensData);
+                    setComentarios(comentariosData);
+                }
+            )
             .catch((error) => {
                 setErro(error.message);
             })
@@ -401,8 +430,8 @@ function App() {
                                                     </div>
 
                                                     <span className="order-status">
-                            {definirStatusOrdemServico(ordemServico)}
-                          </span>
+                                                        {definirStatusOrdemServico(ordemServico)}
+                                                    </span>
                                                 </div>
 
                                                 <div className="grid">
@@ -412,26 +441,27 @@ function App() {
                                                     </div>
 
                                                     <div>
-                            <span className="label">
-                              Unidade de atendimento
-                            </span>
+                                                        <span className="label">
+                                                            Unidade de atendimento
+                                                        </span>
                                                         <p>{ordemServico.unidadeAtendimentoNome}</p>
                                                     </div>
 
                                                     <div>
-                            <span className="label">
-                              Início do atendimento
-                            </span>
+                                                        <span className="label">
+                                                            Início do atendimento
+                                                        </span>
                                                         <p>{formatarData(ordemServico.dataCheckIn)}</p>
                                                     </div>
 
                                                     <div>
-                            <span className="label">
-                              Finalização do atendimento
-                            </span>
+                                                        <span className="label">
+                                                            Finalização do atendimento
+                                                        </span>
                                                         <p>{formatarData(ordemServico.dataCheckOut)}</p>
                                                     </div>
                                                 </div>
+
                                                 {!ordemServico.dataCheckIn && !ordemServico.dataCheckOut && (
                                                     <div className="order-actions">
                                                         <button
@@ -453,6 +483,36 @@ function App() {
                                                         </button>
                                                     </div>
                                                 )}
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+
+                            <section className="card">
+                                <h2 className="section-title">Linha do tempo</h2>
+
+                                {comentarios.length === 0 ? (
+                                    <p>Nenhum comentário registrado.</p>
+                                ) : (
+                                    <div className="timeline">
+                                        {comentarios.map((comentario) => (
+                                            <article key={comentario.id} className="timeline-item">
+                                                <div className="timeline-header">
+                                                    <div>
+                                                        <strong>{comentario.autorNome}</strong>
+
+                                                        {comentario.numeroOrdemServico && (
+                                                            <span className="os-tag">
+                                                                OS {comentario.numeroOrdemServico}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    <span>{formatarData(comentario.dataCriacao)}</span>
+                                                </div>
+
+                                                <p>{comentario.texto}</p>
                                             </article>
                                         ))}
                                     </div>
