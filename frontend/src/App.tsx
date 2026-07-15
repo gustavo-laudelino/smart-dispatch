@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+const API_BASE_URL = "http://localhost:8080";
+
+type Contrato = {
+    id: number;
+    cidade: string;
+};
+
 type Solicitante = {
     nome: string;
     email: string | null;
@@ -61,19 +68,84 @@ function definirStatusOrdemServico(ordemServico: OrdemServico) {
 }
 
 function App() {
-    const [chamado, setChamado] = useState<Chamado | null>(null);
+    const [contratos, setContratos] = useState<Contrato[]>([]);
+    const [contratoSelecionado, setContratoSelecionado] = useState("todos");
+
+    const [chamados, setChamados] = useState<Chamado[]>([]);
+    const [chamadoSelecionado, setChamadoSelecionado] =
+        useState<Chamado | null>(null);
     const [ordensServico, setOrdensServico] = useState<OrdemServico[]>([]);
-    const [carregando, setCarregando] = useState(true);
+
+    const [carregandoFeed, setCarregandoFeed] = useState(true);
+    const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
     const [erro, setErro] = useState<string | null>(null);
 
     useEffect(() => {
+        fetch(`${API_BASE_URL}/contratos`)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Erro ao buscar contratos");
+                }
+
+                return response.json();
+            })
+            .then((data: Contrato[]) => {
+                setContratos(data);
+            })
+            .catch((error) => {
+                setErro(error.message);
+            });
+    }, []);
+
+    useEffect(() => {
+        carregarChamados();
+    }, [contratoSelecionado]);
+
+    function carregarChamados() {
+        setCarregandoFeed(true);
+        setErro(null);
+        setChamadoSelecionado(null);
+        setOrdensServico([]);
+
+        const url =
+            contratoSelecionado === "todos"
+                ? `${API_BASE_URL}/chamados`
+                : `${API_BASE_URL}/chamados?contratoId=${contratoSelecionado}`;
+
+        fetch(url)
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Erro ao buscar chamados");
+                }
+
+                return response.json();
+            })
+            .then((data: Chamado[]) => {
+                setChamados(data);
+            })
+            .catch((error) => {
+                setErro(error.message);
+            })
+            .finally(() => {
+                setCarregandoFeed(false);
+            });
+    }
+
+    function selecionarChamado(chamado: Chamado) {
+        setCarregandoDetalhe(true);
+        setErro(null);
+
         Promise.all([
-            fetch("http://localhost:8080/contratos/1/chamados/3"),
-            fetch("http://localhost:8080/contratos/1/chamados/3/ordens-servico"),
+            fetch(
+                `${API_BASE_URL}/contratos/${chamado.contratoId}/chamados/${chamado.id}`
+            ),
+            fetch(
+                `${API_BASE_URL}/contratos/${chamado.contratoId}/chamados/${chamado.id}/ordens-servico`
+            ),
         ])
             .then(([chamadoResponse, ordensResponse]) => {
                 if (!chamadoResponse.ok) {
-                    throw new Error("Erro ao buscar chamado");
+                    throw new Error("Erro ao buscar detalhes do chamado");
                 }
 
                 if (!ordensResponse.ok) {
@@ -86,134 +158,206 @@ function App() {
                 ]);
             })
             .then(([chamadoData, ordensData]: [Chamado, OrdemServico[]]) => {
-                setChamado(chamadoData);
+                setChamadoSelecionado(chamadoData);
                 setOrdensServico(ordensData);
             })
             .catch((error) => {
                 setErro(error.message);
             })
             .finally(() => {
-                setCarregando(false);
+                setCarregandoDetalhe(false);
             });
-    }, []);
-
-    if (carregando) {
-        return <p>Carregando chamado...</p>;
-    }
-
-    if (erro) {
-        return <p>Erro: {erro}</p>;
-    }
-
-    if (!chamado) {
-        return <p>Chamado não encontrado.</p>;
     }
 
     return (
         <main className="page">
-            <section className="card">
-                <header className="card-header">
-                    <div>
-                        <span className="label">Chamado OSTI</span>
-                        <h1>{chamado.numeroChamado}</h1>
-                    </div>
-
-                    <span className="status">{chamado.status}</span>
-                </header>
-
-                <div className="grid">
-                    <div>
-                        <span className="label">Unidade</span>
-                        <p>{chamado.unidadeNome}</p>
-                    </div>
-
-                    <div>
-                        <span className="label">Contrato</span>
-                        <p>{chamado.contratoCidade}</p>
-                    </div>
-
-                    <div>
-                        <span className="label">Solicitante</span>
-                        <p>{chamado.solicitante.nome}</p>
-                    </div>
-
-                    <div>
-                        <span className="label">Patrimônio</span>
-                        <p>{chamado.numeroPatrimonio ?? "Não informado"}</p>
-                    </div>
-
-                    <div>
-                        <span className="label">Tipo</span>
-                        <p>{chamado.tipo}</p>
-                    </div>
-
-                    <div>
-                        <span className="label">Prioridade</span>
-                        <p>{chamado.prioridade}</p>
-                    </div>
+            <header className="app-header">
+                <div>
+                    <span className="label">Smart Dispatch</span>
+                    <h1>Feed de chamados</h1>
                 </div>
 
-                <div className="description">
-                    <span className="label">Descrição</span>
-                    <p>{chamado.descricao}</p>
-                </div>
-
-                <a
-                    href={chamado.linkChamadoOsti}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="link"
+                <select
+                    className="select"
+                    value={contratoSelecionado}
+                    onChange={(event) => setContratoSelecionado(event.target.value)}
                 >
-                    Abrir chamado no OSTI
-                </a>
-            </section>
+                    <option value="todos">Todos os contratos</option>
 
-            <section className="card">
-                <h2 className="section-title">Ordens de serviço</h2>
+                    {contratos.map((contrato) => (
+                        <option key={contrato.id} value={contrato.id}>
+                            {contrato.cidade}
+                        </option>
+                    ))}
+                </select>
+            </header>
 
-                {ordensServico.length === 0 ? (
-                    <p>Nenhuma ordem de serviço criada.</p>
-                ) : (
-                    <div className="orders">
-                        {ordensServico.map((ordemServico) => (
-                            <article key={ordemServico.id} className="order-card">
-                                <div className="order-header">
+            {erro && <div className="error">{erro}</div>}
+
+            <div className="layout">
+                <section className="card feed-card">
+                    <h2 className="section-title">Chamados</h2>
+
+                    {carregandoFeed ? (
+                        <p>Carregando chamados...</p>
+                    ) : chamados.length === 0 ? (
+                        <p>Nenhum chamado encontrado.</p>
+                    ) : (
+                        <div className="ticket-list">
+                            {chamados.map((chamado) => (
+                                <button
+                                    key={chamado.id}
+                                    className={
+                                        chamadoSelecionado?.id === chamado.id
+                                            ? "ticket-item selected"
+                                            : "ticket-item"
+                                    }
+                                    onClick={() => selecionarChamado(chamado)}
+                                >
                                     <div>
-                                        <span className="label">Ordem de Serviço</span>
-                                        <h3>{ordemServico.numeroOrdemServico}</h3>
+                                        <strong>OSTI {chamado.numeroChamado}</strong>
+                                        <p>{chamado.unidadeNome}</p>
+                                        <small>{chamado.contratoCidade}</small>
                                     </div>
 
-                                    <span className="order-status">
-                    {definirStatusOrdemServico(ordemServico)}
-                  </span>
-                                </div>
+                                    <span className="status">{chamado.status}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </section>
+
+                <section className="detail-area">
+                    {carregandoDetalhe && (
+                        <section className="card">
+                            <p>Carregando detalhes do chamado...</p>
+                        </section>
+                    )}
+
+                    {!carregandoDetalhe && !chamadoSelecionado && (
+                        <section className="card empty-detail">
+                            <h2>Selecione um chamado</h2>
+                            <p>Escolha um chamado no feed para visualizar os detalhes.</p>
+                        </section>
+                    )}
+
+                    {!carregandoDetalhe && chamadoSelecionado && (
+                        <>
+                            <section className="card">
+                                <header className="card-header">
+                                    <div>
+                                        <span className="label">Chamado OSTI</span>
+                                        <h1>{chamadoSelecionado.numeroChamado}</h1>
+                                    </div>
+
+                                    <span className="status">{chamadoSelecionado.status}</span>
+                                </header>
 
                                 <div className="grid">
                                     <div>
-                                        <span className="label">Técnico</span>
-                                        <p>{ordemServico.tecnicoNome}</p>
+                                        <span className="label">Unidade</span>
+                                        <p>{chamadoSelecionado.unidadeNome}</p>
                                     </div>
 
                                     <div>
-                                        <span className="label">Unidade de atendimento</span>
-                                        <p>{ordemServico.unidadeAtendimentoNome}</p>
+                                        <span className="label">Contrato</span>
+                                        <p>{chamadoSelecionado.contratoCidade}</p>
                                     </div>
 
                                     <div>
-                                        <span className="label">Início do atendimento</span>
-                                        <p>{formatarData(ordemServico.dataCheckIn)}</p>
+                                        <span className="label">Solicitante</span>
+                                        <p>{chamadoSelecionado.solicitante.nome}</p>
                                     </div>
 
                                     <div>
-                                        <span className="label">Finalização do atendimento</span>
-                                        <p>{formatarData(ordemServico.dataCheckOut)}</p>
+                                        <span className="label">Patrimônio</span>
+                                        <p>
+                                            {chamadoSelecionado.numeroPatrimonio ?? "Não informado"}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <span className="label">Tipo</span>
+                                        <p>{chamadoSelecionado.tipo}</p>
+                                    </div>
+
+                                    <div>
+                                        <span className="label">Prioridade</span>
+                                        <p>{chamadoSelecionado.prioridade}</p>
                                     </div>
                                 </div>
-                            </article>
-                        ))}
-                    </div>
-                )}
-            </section>
+
+                                <div className="description">
+                                    <span className="label">Descrição</span>
+                                    <p>{chamadoSelecionado.descricao}</p>
+                                </div>
+
+                                <a
+                                    href={chamadoSelecionado.linkChamadoOsti}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="link"
+                                >
+                                    Abrir chamado no OSTI
+                                </a>
+                            </section>
+
+                            <section className="card">
+                                <h2 className="section-title">Ordens de serviço</h2>
+
+                                {ordensServico.length === 0 ? (
+                                    <p>Nenhuma ordem de serviço criada.</p>
+                                ) : (
+                                    <div className="orders">
+                                        {ordensServico.map((ordemServico) => (
+                                            <article key={ordemServico.id} className="order-card">
+                                                <div className="order-header">
+                                                    <div>
+                                                        <span className="label">Ordem de Serviço</span>
+                                                        <h3>{ordemServico.numeroOrdemServico}</h3>
+                                                    </div>
+
+                                                    <span className="order-status">
+                            {definirStatusOrdemServico(ordemServico)}
+                          </span>
+                                                </div>
+
+                                                <div className="grid">
+                                                    <div>
+                                                        <span className="label">Técnico</span>
+                                                        <p>{ordemServico.tecnicoNome}</p>
+                                                    </div>
+
+                                                    <div>
+                            <span className="label">
+                              Unidade de atendimento
+                            </span>
+                                                        <p>{ordemServico.unidadeAtendimentoNome}</p>
+                                                    </div>
+
+                                                    <div>
+                            <span className="label">
+                              Início do atendimento
+                            </span>
+                                                        <p>{formatarData(ordemServico.dataCheckIn)}</p>
+                                                    </div>
+
+                                                    <div>
+                            <span className="label">
+                              Finalização do atendimento
+                            </span>
+                                                        <p>{formatarData(ordemServico.dataCheckOut)}</p>
+                                                    </div>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                )}
+                            </section>
+                        </>
+                    )}
+                </section>
+            </div>
         </main>
     );
 }
