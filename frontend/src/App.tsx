@@ -47,6 +47,14 @@ type OrdemServico = {
     dataCheckOut: string | null;
 };
 
+type ErroResponse = {
+    dataHora: string;
+    status: number;
+    erro: string;
+    mensagem: string;
+    caminho: string;
+};
+
 function formatarData(data: string | null) {
     if (!data) {
         return "Não informado";
@@ -101,11 +109,16 @@ function App() {
         carregarChamados();
     }, [contratoSelecionado]);
 
-    function carregarChamados() {
+    function carregarChamados(
+        limparDetalhe = true
+    ) {
         setCarregandoFeed(true);
         setErro(null);
-        setChamadoSelecionado(null);
-        setOrdensServico([]);
+
+        if (limparDetalhe) {
+            setChamadoSelecionado(null);
+            setOrdensServico([]);
+        }
 
         const url =
             contratoSelecionado === "todos"
@@ -167,6 +180,76 @@ function App() {
             .finally(() => {
                 setCarregandoDetalhe(false);
             });
+    }
+
+    async function extrairMensagemErro(
+        response: Response
+    ) {
+        try {
+            const erroResponse: ErroResponse = await response.json();
+
+            return erroResponse.mensagem;
+        } catch {
+            return "Ocorreu um erro inesperado";
+        }
+    }
+
+    async function iniciarAtendimento(
+        ordemServico: OrdemServico
+    ) {
+        if (!chamadoSelecionado) {
+            return;
+        }
+
+        setErro(null);
+
+        const response = await fetch(
+            `${API_BASE_URL}/contratos/${chamadoSelecionado.contratoId}/chamados/${chamadoSelecionado.id}/ordens-servico/${ordemServico.id}/check-in`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    encerrarCheckInAnterior: false,
+                }),
+            }
+        );
+
+        if (!response.ok) {
+            const mensagemErro = await extrairMensagemErro(response);
+            setErro(mensagemErro);
+            return;
+        }
+
+        carregarChamados(false);
+        selecionarChamado(chamadoSelecionado);
+    }
+
+    async function finalizarAtendimento(
+        ordemServico: OrdemServico
+    ) {
+        if (!chamadoSelecionado) {
+            return;
+        }
+
+        setErro(null);
+
+        const response = await fetch(
+            `${API_BASE_URL}/contratos/${chamadoSelecionado.contratoId}/chamados/${chamadoSelecionado.id}/ordens-servico/${ordemServico.id}/check-out`,
+            {
+                method: "POST",
+            }
+        );
+
+        if (!response.ok) {
+            const mensagemErro = await extrairMensagemErro(response);
+            setErro(mensagemErro);
+            return;
+        }
+
+        carregarChamados(false);
+        selecionarChamado(chamadoSelecionado);
     }
 
     return (
@@ -349,6 +432,27 @@ function App() {
                                                         <p>{formatarData(ordemServico.dataCheckOut)}</p>
                                                     </div>
                                                 </div>
+                                                {!ordemServico.dataCheckIn && !ordemServico.dataCheckOut && (
+                                                    <div className="order-actions">
+                                                        <button
+                                                            className="primary-button"
+                                                            onClick={() => iniciarAtendimento(ordemServico)}
+                                                        >
+                                                            Iniciar atendimento
+                                                        </button>
+                                                    </div>
+                                                )}
+
+                                                {ordemServico.dataCheckIn && !ordemServico.dataCheckOut && (
+                                                    <div className="order-actions">
+                                                        <button
+                                                            className="danger-button"
+                                                            onClick={() => finalizarAtendimento(ordemServico)}
+                                                        >
+                                                            Finalizar atendimento
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </article>
                                         ))}
                                     </div>
