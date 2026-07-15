@@ -1,66 +1,68 @@
 import { useEffect, useState } from "react";
+
+import {
+    adicionarComentario as adicionarComentarioApi,
+    buscarChamados,
+    buscarComentarios,
+    buscarContratos,
+    buscarDetalhesChamado,
+    buscarOrdensServico,
+    finalizarAtendimento as finalizarAtendimentoApi,
+    iniciarAtendimento as iniciarAtendimentoApi,
+} from "./api";
+
+import CommentTimeline from "./components/CommentTimeline";
+import ServiceOrderList from "./components/ServiceOrderList";
+import TicketDetails from "./components/TicketDetails";
+import TicketFeed from "./components/TicketFeed";
+
 import type {
     Chamado,
     ComentarioChamado,
     Contrato,
-    ErroResponse,
     OrdemServico,
 } from "./types";
+
 import "./App.css";
-
-const API_BASE_URL = "http://localhost:8080";
-
-function formatarData(data: string | null) {
-    if (!data) {
-        return "Não informado";
-    }
-
-    return new Date(data).toLocaleString("pt-BR");
-}
-
-function definirStatusOrdemServico(ordemServico: OrdemServico) {
-    if (ordemServico.dataCheckIn && ordemServico.dataCheckOut) {
-        return "Encerrada";
-    }
-
-    if (ordemServico.dataCheckIn && !ordemServico.dataCheckOut) {
-        return "Em atendimento";
-    }
-
-    return "Aguardando início";
-}
 
 function App() {
     const [contratos, setContratos] = useState<Contrato[]>([]);
-    const [contratoSelecionado, setContratoSelecionado] = useState("todos");
+    const [contratoSelecionado, setContratoSelecionado] =
+        useState("todos");
 
     const [chamados, setChamados] = useState<Chamado[]>([]);
     const [chamadoSelecionado, setChamadoSelecionado] =
         useState<Chamado | null>(null);
 
-    const [ordensServico, setOrdensServico] = useState<OrdemServico[]>([]);
-    const [comentarios, setComentarios] = useState<ComentarioChamado[]>([]);
-    const [novoComentarioTexto, setNovoComentarioTexto] = useState("");
-    const [novaComentarioOrdemServicoId, setNovaComentarioOrdemServicoId] =
-        useState("sem-os");
+    const [ordensServico, setOrdensServico] =
+        useState<OrdemServico[]>([]);
 
-    const [carregandoFeed, setCarregandoFeed] = useState(true);
-    const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
-    const [erro, setErro] = useState<string | null>(null);
+    const [comentarios, setComentarios] =
+        useState<ComentarioChamado[]>([]);
+
+    const [novoComentarioTexto, setNovoComentarioTexto] =
+        useState("");
+
+    const [
+        novaComentarioOrdemServicoId,
+        setNovaComentarioOrdemServicoId,
+    ] = useState("sem-os");
+
+    const [carregandoFeed, setCarregandoFeed] =
+        useState(true);
+
+    const [carregandoDetalhe, setCarregandoDetalhe] =
+        useState(false);
+
+    const [erro, setErro] =
+        useState<string | null>(null);
 
     useEffect(() => {
-        fetch(`${API_BASE_URL}/contratos`)
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Erro ao buscar contratos");
-                }
-
-                return response.json();
-            })
-            .then((data: Contrato[]) => {
+        buscarContratos()
+            .then((data) => {
                 setContratos(data);
             })
-            .catch((error) => {
+            .catch((error: Error) => {
                 setErro(error.message);
             });
     }, []);
@@ -81,23 +83,11 @@ function App() {
             setComentarios([]);
         }
 
-        const url =
-            contratoSelecionado === "todos"
-                ? `${API_BASE_URL}/chamados`
-                : `${API_BASE_URL}/chamados?contratoId=${contratoSelecionado}`;
-
-        fetch(url)
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Erro ao buscar chamados");
-                }
-
-                return response.json();
-            })
-            .then((data: Chamado[]) => {
+        buscarChamados(contratoSelecionado)
+            .then((data) => {
                 setChamados(data);
             })
-            .catch((error) => {
+            .catch((error: Error) => {
                 setErro(error.message);
             })
             .finally(() => {
@@ -108,68 +98,41 @@ function App() {
     function selecionarChamado(chamado: Chamado) {
         setCarregandoDetalhe(true);
         setErro(null);
+
         setNovoComentarioTexto("");
         setNovaComentarioOrdemServicoId("sem-os");
 
         Promise.all([
-            fetch(
-                `${API_BASE_URL}/contratos/${chamado.contratoId}/chamados/${chamado.id}`
+            buscarDetalhesChamado(
+                chamado.contratoId,
+                chamado.id
             ),
-            fetch(
-                `${API_BASE_URL}/contratos/${chamado.contratoId}/chamados/${chamado.id}/ordens-servico`
+            buscarOrdensServico(
+                chamado.contratoId,
+                chamado.id
             ),
-            fetch(
-                `${API_BASE_URL}/contratos/${chamado.contratoId}/chamados/${chamado.id}/comentarios`
+            buscarComentarios(
+                chamado.contratoId,
+                chamado.id
             ),
         ])
-            .then(([chamadoResponse, ordensResponse, comentariosResponse]) => {
-                if (!chamadoResponse.ok) {
-                    throw new Error("Erro ao buscar detalhes do chamado");
-                }
-
-                if (!ordensResponse.ok) {
-                    throw new Error("Erro ao buscar ordens de serviço");
-                }
-
-                if (!comentariosResponse.ok) {
-                    throw new Error("Erro ao buscar comentários");
-                }
-
-                return Promise.all([
-                    chamadoResponse.json(),
-                    ordensResponse.json(),
-                    comentariosResponse.json(),
-                ]);
-            })
             .then(
-                ([chamadoData, ordensData, comentariosData]: [
-                    Chamado,
-                    OrdemServico[],
-                    ComentarioChamado[]
-                ]) => {
+                ([
+                     chamadoData,
+                     ordensServicoData,
+                     comentariosData,
+                 ]) => {
                     setChamadoSelecionado(chamadoData);
-                    setOrdensServico(ordensData);
+                    setOrdensServico(ordensServicoData);
                     setComentarios(comentariosData);
                 }
             )
-            .catch((error) => {
+            .catch((error: Error) => {
                 setErro(error.message);
             })
             .finally(() => {
                 setCarregandoDetalhe(false);
             });
-    }
-
-    async function extrairMensagemErro(
-        response: Response
-    ) {
-        try {
-            const erroResponse: ErroResponse = await response.json();
-
-            return erroResponse.mensagem;
-        } catch {
-            return "Ocorreu um erro inesperado";
-        }
     }
 
     async function iniciarAtendimento(
@@ -181,27 +144,23 @@ function App() {
 
         setErro(null);
 
-        const response = await fetch(
-            `${API_BASE_URL}/contratos/${chamadoSelecionado.contratoId}/chamados/${chamadoSelecionado.id}/ordens-servico/${ordemServico.id}/check-in`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    encerrarCheckInAnterior: false,
-                }),
+        try {
+            await iniciarAtendimentoApi(
+                chamadoSelecionado.contratoId,
+                chamadoSelecionado.id,
+                ordemServico.id
+            );
+
+            carregarChamados(false);
+            selecionarChamado(chamadoSelecionado);
+        } catch (error) {
+            if (error instanceof Error) {
+                setErro(error.message);
+                return;
             }
-        );
 
-        if (!response.ok) {
-            const mensagemErro = await extrairMensagemErro(response);
-            setErro(mensagemErro);
-            return;
+            setErro("Ocorreu um erro inesperado");
         }
-
-        carregarChamados(false);
-        selecionarChamado(chamadoSelecionado);
     }
 
     async function finalizarAtendimento(
@@ -213,21 +172,23 @@ function App() {
 
         setErro(null);
 
-        const response = await fetch(
-            `${API_BASE_URL}/contratos/${chamadoSelecionado.contratoId}/chamados/${chamadoSelecionado.id}/ordens-servico/${ordemServico.id}/check-out`,
-            {
-                method: "POST",
+        try {
+            await finalizarAtendimentoApi(
+                chamadoSelecionado.contratoId,
+                chamadoSelecionado.id,
+                ordemServico.id
+            );
+
+            carregarChamados(false);
+            selecionarChamado(chamadoSelecionado);
+        } catch (error) {
+            if (error instanceof Error) {
+                setErro(error.message);
+                return;
             }
-        );
 
-        if (!response.ok) {
-            const mensagemErro = await extrairMensagemErro(response);
-            setErro(mensagemErro);
-            return;
+            setErro("Ocorreu um erro inesperado");
         }
-
-        carregarChamados(false);
-        selecionarChamado(chamadoSelecionado);
     }
 
     async function adicionarComentario() {
@@ -235,7 +196,9 @@ function App() {
             return;
         }
 
-        if (!novoComentarioTexto.trim()) {
+        const texto = novoComentarioTexto.trim();
+
+        if (!texto) {
             setErro("O comentário não pode estar vazio");
             return;
         }
@@ -247,38 +210,37 @@ function App() {
                 ? null
                 : Number(novaComentarioOrdemServicoId);
 
-        const response = await fetch(
-            `${API_BASE_URL}/contratos/${chamadoSelecionado.contratoId}/chamados/${chamadoSelecionado.id}/comentarios`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    autorId: 1,
-                    ordemServicoId,
-                    texto: novoComentarioTexto.trim(),
-                }),
+        try {
+            await adicionarComentarioApi(
+                chamadoSelecionado.contratoId,
+                chamadoSelecionado.id,
+                1,
+                ordemServicoId,
+                texto
+            );
+
+            setNovoComentarioTexto("");
+            setNovaComentarioOrdemServicoId("sem-os");
+
+            selecionarChamado(chamadoSelecionado);
+        } catch (error) {
+            if (error instanceof Error) {
+                setErro(error.message);
+                return;
             }
-        );
 
-        if (!response.ok) {
-            const mensagemErro = await extrairMensagemErro(response);
-            setErro(mensagemErro);
-            return;
+            setErro("Ocorreu um erro inesperado");
         }
-
-        setNovoComentarioTexto("");
-        setNovaComentarioOrdemServicoId("sem-os");
-
-        selecionarChamado(chamadoSelecionado);
     }
 
     return (
         <main className="page">
             <header className="app-header">
                 <div>
-                    <span className="label">Smart Dispatch</span>
+                    <span className="label">
+                        Smart Dispatch
+                    </span>
+
                     <h1>Feed de chamados</h1>
                 </div>
 
@@ -286,403 +248,107 @@ function App() {
                     className="select"
                     value={contratoSelecionado}
                     onChange={(event) =>
-                        setContratoSelecionado(event.target.value)
+                        setContratoSelecionado(
+                            event.target.value
+                        )
                     }
                 >
-                    <option value="todos">Todos os contratos</option>
+                    <option value="todos">
+                        Todos os contratos
+                    </option>
 
                     {contratos.map((contrato) => (
-                        <option key={contrato.id} value={contrato.id}>
+                        <option
+                            key={contrato.id}
+                            value={contrato.id}
+                        >
                             {contrato.cidade}
                         </option>
                     ))}
                 </select>
             </header>
 
-            {erro && <div className="error">{erro}</div>}
+            {erro && (
+                <div className="error">
+                    {erro}
+                </div>
+            )}
 
             <div className="layout">
-                <section className="card feed-card">
-                    <h2 className="section-title">Chamados</h2>
-
-                    {carregandoFeed ? (
-                        <p>Carregando chamados...</p>
-                    ) : chamados.length === 0 ? (
-                        <p>Nenhum chamado encontrado.</p>
-                    ) : (
-                        <div className="ticket-list">
-                            {chamados.map((chamado) => (
-                                <button
-                                    key={chamado.id}
-                                    className={
-                                        chamadoSelecionado?.id === chamado.id
-                                            ? "ticket-item selected"
-                                            : "ticket-item"
-                                    }
-                                    onClick={() => selecionarChamado(chamado)}
-                                >
-                                    <div>
-                                        <strong>
-                                            OSTI {chamado.numeroChamado}
-                                        </strong>
-
-                                        <p>{chamado.unidadeNome}</p>
-
-                                        <small>
-                                            {chamado.contratoCidade}
-                                        </small>
-                                    </div>
-
-                                    <span className="status">
-                                        {chamado.status}
-                                    </span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                </section>
+                <TicketFeed
+                    chamados={chamados}
+                    chamadoSelecionado={chamadoSelecionado}
+                    carregando={carregandoFeed}
+                    aoSelecionarChamado={selecionarChamado}
+                />
 
                 <section className="detail-area">
                     {carregandoDetalhe && (
                         <section className="card">
-                            <p>Carregando detalhes do chamado...</p>
-                        </section>
-                    )}
-
-                    {!carregandoDetalhe && !chamadoSelecionado && (
-                        <section className="card empty-detail">
-                            <h2>Selecione um chamado</h2>
-
                             <p>
-                                Escolha um chamado no feed para visualizar os
-                                detalhes.
+                                Carregando detalhes do chamado...
                             </p>
                         </section>
                     )}
 
-                    {!carregandoDetalhe && chamadoSelecionado && (
-                        <>
-                            <section className="card">
-                                <header className="card-header">
-                                    <div>
-                                        <span className="label">
-                                            Chamado OSTI
-                                        </span>
-
-                                        <h1>
-                                            {chamadoSelecionado.numeroChamado}
-                                        </h1>
-                                    </div>
-
-                                    <span className="status">
-                                        {chamadoSelecionado.status}
-                                    </span>
-                                </header>
-
-                                <div className="grid">
-                                    <div>
-                                        <span className="label">Unidade</span>
-
-                                        <p>
-                                            {chamadoSelecionado.unidadeNome}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="label">Contrato</span>
-
-                                        <p>
-                                            {
-                                                chamadoSelecionado.contratoCidade
-                                            }
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="label">
-                                            Solicitante
-                                        </span>
-
-                                        <p>
-                                            {
-                                                chamadoSelecionado.solicitante
-                                                    .nome
-                                            }
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="label">
-                                            Patrimônio
-                                        </span>
-
-                                        <p>
-                                            {chamadoSelecionado.numeroPatrimonio ??
-                                                "Não informado"}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="label">Tipo</span>
-
-                                        <p>{chamadoSelecionado.tipo}</p>
-                                    </div>
-
-                                    <div>
-                                        <span className="label">
-                                            Prioridade
-                                        </span>
-
-                                        <p>
-                                            {chamadoSelecionado.prioridade}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div className="description">
-                                    <span className="label">Descrição</span>
-
-                                    <p>{chamadoSelecionado.descricao}</p>
-                                </div>
-
-                                <a
-                                    href={chamadoSelecionado.linkChamadoOsti}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="link"
-                                >
-                                    Abrir chamado no OSTI
-                                </a>
-                            </section>
-
-                            <section className="card">
-                                <h2 className="section-title">
-                                    Ordens de serviço
+                    {!carregandoDetalhe &&
+                        !chamadoSelecionado && (
+                            <section className="card empty-detail">
+                                <h2>
+                                    Selecione um chamado
                                 </h2>
 
-                                {ordensServico.length === 0 ? (
-                                    <p>
-                                        Nenhuma ordem de serviço criada.
-                                    </p>
-                                ) : (
-                                    <div className="orders">
-                                        {ordensServico.map((ordemServico) => (
-                                            <article
-                                                key={ordemServico.id}
-                                                className="order-card"
-                                            >
-                                                <div className="order-header">
-                                                    <div>
-                                                        <span className="label">
-                                                            Ordem de Serviço
-                                                        </span>
-
-                                                        <h3>
-                                                            {
-                                                                ordemServico.numeroOrdemServico
-                                                            }
-                                                        </h3>
-                                                    </div>
-
-                                                    <span className="order-status">
-                                                        {definirStatusOrdemServico(
-                                                            ordemServico
-                                                        )}
-                                                    </span>
-                                                </div>
-
-                                                <div className="grid">
-                                                    <div>
-                                                        <span className="label">
-                                                            Técnico
-                                                        </span>
-
-                                                        <p>
-                                                            {
-                                                                ordemServico.tecnicoNome
-                                                            }
-                                                        </p>
-                                                    </div>
-
-                                                    <div>
-                                                        <span className="label">
-                                                            Unidade de
-                                                            atendimento
-                                                        </span>
-
-                                                        <p>
-                                                            {
-                                                                ordemServico.unidadeAtendimentoNome
-                                                            }
-                                                        </p>
-                                                    </div>
-
-                                                    <div>
-                                                        <span className="label">
-                                                            Início do
-                                                            atendimento
-                                                        </span>
-
-                                                        <p>
-                                                            {formatarData(
-                                                                ordemServico.dataCheckIn
-                                                            )}
-                                                        </p>
-                                                    </div>
-
-                                                    <div>
-                                                        <span className="label">
-                                                            Finalização do
-                                                            atendimento
-                                                        </span>
-
-                                                        <p>
-                                                            {formatarData(
-                                                                ordemServico.dataCheckOut
-                                                            )}
-                                                        </p>
-                                                    </div>
-                                                </div>
-
-                                                {!ordemServico.dataCheckIn &&
-                                                    !ordemServico.dataCheckOut && (
-                                                        <div className="order-actions">
-                                                            <button
-                                                                className="primary-button"
-                                                                onClick={() =>
-                                                                    iniciarAtendimento(
-                                                                        ordemServico
-                                                                    )
-                                                                }
-                                                            >
-                                                                Iniciar
-                                                                atendimento
-                                                            </button>
-                                                        </div>
-                                                    )}
-
-                                                {ordemServico.dataCheckIn &&
-                                                    !ordemServico.dataCheckOut && (
-                                                        <div className="order-actions">
-                                                            <button
-                                                                className="danger-button"
-                                                                onClick={() =>
-                                                                    finalizarAtendimento(
-                                                                        ordemServico
-                                                                    )
-                                                                }
-                                                            >
-                                                                Finalizar
-                                                                atendimento
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                            </article>
-                                        ))}
-                                    </div>
-                                )}
+                                <p>
+                                    Escolha um chamado no feed
+                                    para visualizar os detalhes.
+                                </p>
                             </section>
+                        )}
 
-                            <section className="card">
-                                <h2 className="section-title">
-                                    Linha do tempo
-                                </h2>
+                    {!carregandoDetalhe &&
+                        chamadoSelecionado && (
+                            <>
+                                <TicketDetails
+                                    chamado={
+                                        chamadoSelecionado
+                                    }
+                                />
 
-                                <div className="comment-form">
-                                    <textarea
-                                        value={novoComentarioTexto}
-                                        onChange={(event) =>
-                                            setNovoComentarioTexto(
-                                                event.target.value
-                                            )
-                                        }
-                                        placeholder="Escreva um comentário sobre o chamado..."
-                                        rows={4}
-                                    />
+                                <ServiceOrderList
+                                    ordensServico={
+                                        ordensServico
+                                    }
+                                    aoIniciarAtendimento={
+                                        iniciarAtendimento
+                                    }
+                                    aoFinalizarAtendimento={
+                                        finalizarAtendimento
+                                    }
+                                />
 
-                                    <div className="comment-form-footer">
-                                        <select
-                                            value={
-                                                novaComentarioOrdemServicoId
-                                            }
-                                            onChange={(event) =>
-                                                setNovaComentarioOrdemServicoId(
-                                                    event.target.value
-                                                )
-                                            }
-                                        >
-                                            <option value="sem-os">
-                                                Comentário geral
-                                            </option>
-
-                                            {ordensServico.map(
-                                                (ordemServico) => (
-                                                    <option
-                                                        key={ordemServico.id}
-                                                        value={
-                                                            ordemServico.id
-                                                        }
-                                                    >
-                                                        OS{" "}
-                                                        {
-                                                            ordemServico.numeroOrdemServico
-                                                        }
-                                                    </option>
-                                                )
-                                            )}
-                                        </select>
-
-                                        <button
-                                            className="primary-button"
-                                            onClick={adicionarComentario}
-                                        >
-                                            Adicionar comentário
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {comentarios.length === 0 ? (
-                                    <p>Nenhum comentário registrado.</p>
-                                ) : (
-                                    <div className="timeline">
-                                        {comentarios.map((comentario) => (
-                                            <article
-                                                key={comentario.id}
-                                                className="timeline-item"
-                                            >
-                                                <div className="timeline-header">
-                                                    <div>
-                                                        <strong>
-                                                            {
-                                                                comentario.autorNome
-                                                            }
-                                                        </strong>
-
-                                                        {comentario.numeroOrdemServico && (
-                                                            <span className="os-tag">
-                                                                OS{" "}
-                                                                {
-                                                                    comentario.numeroOrdemServico
-                                                                }
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    <span>
-                                                        {formatarData(
-                                                            comentario.dataCriacao
-                                                        )}
-                                                    </span>
-                                                </div>
-
-                                                <p>{comentario.texto}</p>
-                                            </article>
-                                        ))}
-                                    </div>
-                                )}
-                            </section>
-                        </>
-                    )}
+                                <CommentTimeline
+                                    comentarios={comentarios}
+                                    ordensServico={
+                                        ordensServico
+                                    }
+                                    novoComentarioTexto={
+                                        novoComentarioTexto
+                                    }
+                                    novaComentarioOrdemServicoId={
+                                        novaComentarioOrdemServicoId
+                                    }
+                                    aoAlterarTexto={
+                                        setNovoComentarioTexto
+                                    }
+                                    aoAlterarOrdemServico={
+                                        setNovaComentarioOrdemServicoId
+                                    }
+                                    aoAdicionarComentario={
+                                        adicionarComentario
+                                    }
+                                />
+                            </>
+                        )}
                 </section>
             </div>
         </main>
