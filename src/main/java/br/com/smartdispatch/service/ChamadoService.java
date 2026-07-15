@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -77,6 +78,31 @@ public class ChamadoService {
         return chamadoRepository
                 .findByUnidadeContratoId(contratoId)
                 .stream()
+                .sorted(
+                        Comparator
+                                .comparing(Chamado::getDataAbertura)
+                                .reversed()
+                )
+                .map(this::converterParaResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<ChamadoResponse> listarFeed(
+            Long contratoId
+    ) {
+        if (contratoId != null) {
+            return listarPorContrato(contratoId);
+        }
+
+        return chamadoRepository
+                .findAll()
+                .stream()
+                .sorted(
+                        Comparator
+                                .comparing(Chamado::getDataAbertura)
+                                .reversed()
+                )
                 .map(this::converterParaResponse)
                 .toList();
     }
