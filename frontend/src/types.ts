@@ -60,3 +60,20 @@ export type ErroResponse = {
     mensagem: string;
     caminho: string;
 };
+
+export type Unidade = {
+    id: number;
+    nome: string;
+};
+
+export type ChamadoRequest = {
+    numeroChamado: string;
+    linkChamadoOsti: string;
+    unidadeId: number;
+    solicitante: Solicitante;
+    numeroPatrimonio: string | null;
+    tipo: string;
+    categoria: string;
+    prioridade: string;
+    descricao: string;
+};

@@ -1,9 +1,11 @@
 import type {
     Chamado,
+    ChamadoRequest,
     ComentarioChamado,
     Contrato,
     ErroResponse,
     OrdemServico,
+    Unidade,
 } from "./types";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -161,4 +163,42 @@ export async function adicionarComentario(
 
         throw new Error(mensagemErro);
     }
+}
+
+export async function buscarUnidades(
+    contratoId: number
+): Promise<Unidade[]> {
+    const response = await fetch(
+        `${API_BASE_URL}/contratos/${contratoId}/unidades`
+    );
+
+    if (!response.ok) {
+        throw new Error("Erro ao buscar unidades");
+    }
+
+    return response.json();
+}
+
+export async function criarChamado(
+    contratoId: number,
+    chamadoRequest: ChamadoRequest
+): Promise<Chamado> {
+    const response = await fetch(
+        `${API_BASE_URL}/contratos/${contratoId}/chamados`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(chamadoRequest),
+        }
+    );
+
+    if (!response.ok) {
+        const mensagemErro = await extrairMensagemErro(response);
+
+        throw new Error(mensagemErro);
+    }
+
+    return response.json();
 }

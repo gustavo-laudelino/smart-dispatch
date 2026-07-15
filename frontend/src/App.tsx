@@ -12,6 +12,7 @@ import {
 } from "./api";
 
 import CommentTimeline from "./components/CommentTimeline";
+import CreateTicketForm from "./components/CreateTicketForm";
 import ServiceOrderList from "./components/ServiceOrderList";
 import TicketDetails from "./components/TicketDetails";
 import TicketFeed from "./components/TicketFeed";
@@ -52,6 +53,9 @@ function App() {
         useState(true);
 
     const [carregandoDetalhe, setCarregandoDetalhe] =
+        useState(false);
+
+    const [criandoChamado, setCriandoChamado] =
         useState(false);
 
     const [erro, setErro] =
@@ -133,6 +137,23 @@ function App() {
             .finally(() => {
                 setCarregandoDetalhe(false);
             });
+    }
+
+    function chamadoCriado(chamado: Chamado) {
+        setCriandoChamado(false);
+
+        const contratoDoChamado =
+            String(chamado.contratoId);
+
+        if (
+            contratoSelecionado === "todos" ||
+            contratoSelecionado === contratoDoChamado
+        ) {
+            carregarChamados();
+            return;
+        }
+
+        setContratoSelecionado(contratoDoChamado);
     }
 
     async function iniciarAtendimento(
@@ -244,28 +265,45 @@ function App() {
                     <h1>Feed de chamados</h1>
                 </div>
 
-                <select
-                    className="select"
-                    value={contratoSelecionado}
-                    onChange={(event) =>
-                        setContratoSelecionado(
-                            event.target.value
-                        )
-                    }
-                >
-                    <option value="todos">
-                        Todos os contratos
-                    </option>
+                <div className="header-actions">
+                    {!criandoChamado && (
+                        <>
+                            <select
+                                className="select"
+                                value={contratoSelecionado}
+                                onChange={(event) =>
+                                    setContratoSelecionado(
+                                        event.target.value
+                                    )
+                                }
+                            >
+                                <option value="todos">
+                                    Todos os contratos
+                                </option>
 
-                    {contratos.map((contrato) => (
-                        <option
-                            key={contrato.id}
-                            value={contrato.id}
-                        >
-                            {contrato.cidade}
-                        </option>
-                    ))}
-                </select>
+                                {contratos.map((contrato) => (
+                                    <option
+                                        key={contrato.id}
+                                        value={contrato.id}
+                                    >
+                                        {contrato.cidade}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <button
+                                type="button"
+                                className="primary-button"
+                                onClick={() => {
+                                    setErro(null);
+                                    setCriandoChamado(true);
+                                }}
+                            >
+                                Novo chamado
+                            </button>
+                        </>
+                    )}
+                </div>
             </header>
 
             {erro && (
@@ -274,83 +312,102 @@ function App() {
                 </div>
             )}
 
-            <div className="layout">
-                <TicketFeed
-                    chamados={chamados}
-                    chamadoSelecionado={chamadoSelecionado}
-                    carregando={carregandoFeed}
-                    aoSelecionarChamado={selecionarChamado}
-                />
+            {criandoChamado ? (
+                <div className="create-ticket-area">
+                    <CreateTicketForm
+                        contratos={contratos}
+                        aoCancelar={() =>
+                            setCriandoChamado(false)
+                        }
+                        aoChamadoCriado={chamadoCriado}
+                    />
+                </div>
+            ) : (
+                <div className="layout">
+                    <TicketFeed
+                        chamados={chamados}
+                        chamadoSelecionado={
+                            chamadoSelecionado
+                        }
+                        carregando={carregandoFeed}
+                        aoSelecionarChamado={
+                            selecionarChamado
+                        }
+                    />
 
-                <section className="detail-area">
-                    {carregandoDetalhe && (
-                        <section className="card">
-                            <p>
-                                Carregando detalhes do chamado...
-                            </p>
-                        </section>
-                    )}
-
-                    {!carregandoDetalhe &&
-                        !chamadoSelecionado && (
-                            <section className="card empty-detail">
-                                <h2>
-                                    Selecione um chamado
-                                </h2>
-
+                    <section className="detail-area">
+                        {carregandoDetalhe && (
+                            <section className="card">
                                 <p>
-                                    Escolha um chamado no feed
-                                    para visualizar os detalhes.
+                                    Carregando detalhes do chamado...
                                 </p>
                             </section>
                         )}
 
-                    {!carregandoDetalhe &&
-                        chamadoSelecionado && (
-                            <>
-                                <TicketDetails
-                                    chamado={
-                                        chamadoSelecionado
-                                    }
-                                />
+                        {!carregandoDetalhe &&
+                            !chamadoSelecionado && (
+                                <section className="card empty-detail">
+                                    <h2>
+                                        Selecione um chamado
+                                    </h2>
 
-                                <ServiceOrderList
-                                    ordensServico={
-                                        ordensServico
-                                    }
-                                    aoIniciarAtendimento={
-                                        iniciarAtendimento
-                                    }
-                                    aoFinalizarAtendimento={
-                                        finalizarAtendimento
-                                    }
-                                />
+                                    <p>
+                                        Escolha um chamado no
+                                        feed para visualizar os
+                                        detalhes.
+                                    </p>
+                                </section>
+                            )}
 
-                                <CommentTimeline
-                                    comentarios={comentarios}
-                                    ordensServico={
-                                        ordensServico
-                                    }
-                                    novoComentarioTexto={
-                                        novoComentarioTexto
-                                    }
-                                    novaComentarioOrdemServicoId={
-                                        novaComentarioOrdemServicoId
-                                    }
-                                    aoAlterarTexto={
-                                        setNovoComentarioTexto
-                                    }
-                                    aoAlterarOrdemServico={
-                                        setNovaComentarioOrdemServicoId
-                                    }
-                                    aoAdicionarComentario={
-                                        adicionarComentario
-                                    }
-                                />
-                            </>
-                        )}
-                </section>
-            </div>
+                        {!carregandoDetalhe &&
+                            chamadoSelecionado && (
+                                <>
+                                    <TicketDetails
+                                        chamado={
+                                            chamadoSelecionado
+                                        }
+                                    />
+
+                                    <ServiceOrderList
+                                        ordensServico={
+                                            ordensServico
+                                        }
+                                        aoIniciarAtendimento={
+                                            iniciarAtendimento
+                                        }
+                                        aoFinalizarAtendimento={
+                                            finalizarAtendimento
+                                        }
+                                    />
+
+                                    <CommentTimeline
+                                        comentarios={
+                                            comentarios
+                                        }
+                                        ordensServico={
+                                            ordensServico
+                                        }
+                                        novoComentarioTexto={
+                                            novoComentarioTexto
+                                        }
+                                        novaComentarioOrdemServicoId={
+                                            novaComentarioOrdemServicoId
+                                        }
+                                        aoAlterarTexto={
+                                            setNovoComentarioTexto
+                                        }
+                                        aoAlterarOrdemServico={
+                                            setNovaComentarioOrdemServicoId
+                                        }
+                                        aoAdicionarComentario={
+                                            adicionarComentario
+                                        }
+                                    />
+                                </>
+                            )}
+                    </section>
+                </div>
+            )}
         </main>
     );
 }
