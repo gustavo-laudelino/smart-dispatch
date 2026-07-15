@@ -96,6 +96,9 @@ function App() {
 
     const [ordensServico, setOrdensServico] = useState<OrdemServico[]>([]);
     const [comentarios, setComentarios] = useState<ComentarioChamado[]>([]);
+    const [novoComentarioTexto, setNovoComentarioTexto] = useState("");
+    const [novaComentarioOrdemServicoId, setNovaComentarioOrdemServicoId] =
+        useState("sem-os");
 
     const [carregandoFeed, setCarregandoFeed] = useState(true);
     const [carregandoDetalhe, setCarregandoDetalhe] = useState(false);
@@ -161,6 +164,8 @@ function App() {
     function selecionarChamado(chamado: Chamado) {
         setCarregandoDetalhe(true);
         setErro(null);
+        setNovoComentarioTexto("");
+        setNovaComentarioOrdemServicoId("sem-os");
 
         Promise.all([
             fetch(
@@ -278,6 +283,50 @@ function App() {
         }
 
         carregarChamados(false);
+        selecionarChamado(chamadoSelecionado);
+    }
+
+    async function adicionarComentario() {
+        if (!chamadoSelecionado) {
+            return;
+        }
+
+        if (!novoComentarioTexto.trim()) {
+            setErro("O comentário não pode estar vazio");
+            return;
+        }
+
+        setErro(null);
+
+        const ordemServicoId =
+            novaComentarioOrdemServicoId === "sem-os"
+                ? null
+                : Number(novaComentarioOrdemServicoId);
+
+        const response = await fetch(
+            `${API_BASE_URL}/contratos/${chamadoSelecionado.contratoId}/chamados/${chamadoSelecionado.id}/comentarios`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    autorId: 1,
+                    ordemServicoId,
+                    texto: novoComentarioTexto.trim(),
+                }),
+            }
+        );
+
+        if (!response.ok) {
+            const mensagemErro = await extrairMensagemErro(response);
+            setErro(mensagemErro);
+            return;
+        }
+
+        setNovoComentarioTexto("");
+        setNovaComentarioOrdemServicoId("sem-os");
+
         selecionarChamado(chamadoSelecionado);
     }
 
@@ -491,6 +540,38 @@ function App() {
 
                             <section className="card">
                                 <h2 className="section-title">Linha do tempo</h2>
+                                <div className="comment-form">
+                                <textarea
+                                    value={novoComentarioTexto}
+                                    onChange={(event) => setNovoComentarioTexto(event.target.value)}
+                                    placeholder="Escreva um comentário sobre o chamado..."
+                                    rows={4}
+                                />
+
+                                                                <div className="comment-form-footer">
+                                                                    <select
+                                                                        value={novaComentarioOrdemServicoId}
+                                                                        onChange={(event) =>
+                                                                            setNovaComentarioOrdemServicoId(event.target.value)
+                                                                        }
+                                                                    >
+                                                                        <option value="sem-os">Comentário geral</option>
+
+                                                                        {ordensServico.map((ordemServico) => (
+                                                                            <option key={ordemServico.id} value={ordemServico.id}>
+                                                                                OS {ordemServico.numeroOrdemServico}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+
+                                                                    <button
+                                                                        className="primary-button"
+                                                                        onClick={adicionarComentario}
+                                                                    >
+                                                                        Adicionar comentário
+                                                                    </button>
+                                                                </div>
+                                                            </div>
 
                                 {comentarios.length === 0 ? (
                                     <p>Nenhum comentário registrado.</p>
