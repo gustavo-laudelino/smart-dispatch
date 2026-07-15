@@ -1,70 +1,14 @@
 import { useEffect, useState } from "react";
+import type {
+    Chamado,
+    ComentarioChamado,
+    Contrato,
+    ErroResponse,
+    OrdemServico,
+} from "./types";
 import "./App.css";
 
 const API_BASE_URL = "http://localhost:8080";
-
-type Contrato = {
-    id: number;
-    cidade: string;
-};
-
-type Solicitante = {
-    nome: string;
-    email: string | null;
-    telefone: string | null;
-    identificacao: string | null;
-};
-
-type Chamado = {
-    id: number;
-    numeroChamado: string;
-    linkChamadoOsti: string;
-    unidadeId: number;
-    unidadeNome: string;
-    contratoId: number;
-    contratoCidade: string;
-    solicitante: Solicitante;
-    numeroPatrimonio: string | null;
-    tipo: string;
-    categoria: string;
-    prioridade: string;
-    status: string;
-    descricao: string;
-    dataAbertura: string;
-    dataFinalizacao: string | null;
-};
-
-type OrdemServico = {
-    id: number;
-    numeroOrdemServico: string;
-    chamadoId: number;
-    numeroChamado: string;
-    tecnicoId: number;
-    tecnicoNome: string;
-    unidadeAtendimentoId: number;
-    unidadeAtendimentoNome: string;
-    dataCheckIn: string | null;
-    dataCheckOut: string | null;
-};
-
-type ComentarioChamado = {
-    id: number;
-    chamadoId: number;
-    autorId: number;
-    autorNome: string;
-    ordemServicoId: number | null;
-    numeroOrdemServico: string | null;
-    texto: string;
-    dataCriacao: string;
-};
-
-type ErroResponse = {
-    dataHora: string;
-    status: number;
-    erro: string;
-    mensagem: string;
-    caminho: string;
-};
 
 function formatarData(data: string | null) {
     if (!data) {
@@ -341,7 +285,9 @@ function App() {
                 <select
                     className="select"
                     value={contratoSelecionado}
-                    onChange={(event) => setContratoSelecionado(event.target.value)}
+                    onChange={(event) =>
+                        setContratoSelecionado(event.target.value)
+                    }
                 >
                     <option value="todos">Todos os contratos</option>
 
@@ -376,12 +322,20 @@ function App() {
                                     onClick={() => selecionarChamado(chamado)}
                                 >
                                     <div>
-                                        <strong>OSTI {chamado.numeroChamado}</strong>
+                                        <strong>
+                                            OSTI {chamado.numeroChamado}
+                                        </strong>
+
                                         <p>{chamado.unidadeNome}</p>
-                                        <small>{chamado.contratoCidade}</small>
+
+                                        <small>
+                                            {chamado.contratoCidade}
+                                        </small>
                                     </div>
 
-                                    <span className="status">{chamado.status}</span>
+                                    <span className="status">
+                                        {chamado.status}
+                                    </span>
                                 </button>
                             ))}
                         </div>
@@ -398,7 +352,11 @@ function App() {
                     {!carregandoDetalhe && !chamadoSelecionado && (
                         <section className="card empty-detail">
                             <h2>Selecione um chamado</h2>
-                            <p>Escolha um chamado no feed para visualizar os detalhes.</p>
+
+                            <p>
+                                Escolha um chamado no feed para visualizar os
+                                detalhes.
+                            </p>
                         </section>
                     )}
 
@@ -407,49 +365,83 @@ function App() {
                             <section className="card">
                                 <header className="card-header">
                                     <div>
-                                        <span className="label">Chamado OSTI</span>
-                                        <h1>{chamadoSelecionado.numeroChamado}</h1>
+                                        <span className="label">
+                                            Chamado OSTI
+                                        </span>
+
+                                        <h1>
+                                            {chamadoSelecionado.numeroChamado}
+                                        </h1>
                                     </div>
 
-                                    <span className="status">{chamadoSelecionado.status}</span>
+                                    <span className="status">
+                                        {chamadoSelecionado.status}
+                                    </span>
                                 </header>
 
                                 <div className="grid">
                                     <div>
                                         <span className="label">Unidade</span>
-                                        <p>{chamadoSelecionado.unidadeNome}</p>
+
+                                        <p>
+                                            {chamadoSelecionado.unidadeNome}
+                                        </p>
                                     </div>
 
                                     <div>
                                         <span className="label">Contrato</span>
-                                        <p>{chamadoSelecionado.contratoCidade}</p>
-                                    </div>
 
-                                    <div>
-                                        <span className="label">Solicitante</span>
-                                        <p>{chamadoSelecionado.solicitante.nome}</p>
-                                    </div>
-
-                                    <div>
-                                        <span className="label">Patrimônio</span>
                                         <p>
-                                            {chamadoSelecionado.numeroPatrimonio ?? "Não informado"}
+                                            {
+                                                chamadoSelecionado.contratoCidade
+                                            }
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <span className="label">
+                                            Solicitante
+                                        </span>
+
+                                        <p>
+                                            {
+                                                chamadoSelecionado.solicitante
+                                                    .nome
+                                            }
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <span className="label">
+                                            Patrimônio
+                                        </span>
+
+                                        <p>
+                                            {chamadoSelecionado.numeroPatrimonio ??
+                                                "Não informado"}
                                         </p>
                                     </div>
 
                                     <div>
                                         <span className="label">Tipo</span>
+
                                         <p>{chamadoSelecionado.tipo}</p>
                                     </div>
 
                                     <div>
-                                        <span className="label">Prioridade</span>
-                                        <p>{chamadoSelecionado.prioridade}</p>
+                                        <span className="label">
+                                            Prioridade
+                                        </span>
+
+                                        <p>
+                                            {chamadoSelecionado.prioridade}
+                                        </p>
                                     </div>
                                 </div>
 
                                 <div className="description">
                                     <span className="label">Descrição</span>
+
                                     <p>{chamadoSelecionado.descricao}</p>
                                 </div>
 
@@ -464,74 +456,127 @@ function App() {
                             </section>
 
                             <section className="card">
-                                <h2 className="section-title">Ordens de serviço</h2>
+                                <h2 className="section-title">
+                                    Ordens de serviço
+                                </h2>
 
                                 {ordensServico.length === 0 ? (
-                                    <p>Nenhuma ordem de serviço criada.</p>
+                                    <p>
+                                        Nenhuma ordem de serviço criada.
+                                    </p>
                                 ) : (
                                     <div className="orders">
                                         {ordensServico.map((ordemServico) => (
-                                            <article key={ordemServico.id} className="order-card">
+                                            <article
+                                                key={ordemServico.id}
+                                                className="order-card"
+                                            >
                                                 <div className="order-header">
                                                     <div>
-                                                        <span className="label">Ordem de Serviço</span>
-                                                        <h3>{ordemServico.numeroOrdemServico}</h3>
+                                                        <span className="label">
+                                                            Ordem de Serviço
+                                                        </span>
+
+                                                        <h3>
+                                                            {
+                                                                ordemServico.numeroOrdemServico
+                                                            }
+                                                        </h3>
                                                     </div>
 
                                                     <span className="order-status">
-                                                        {definirStatusOrdemServico(ordemServico)}
+                                                        {definirStatusOrdemServico(
+                                                            ordemServico
+                                                        )}
                                                     </span>
                                                 </div>
 
                                                 <div className="grid">
                                                     <div>
-                                                        <span className="label">Técnico</span>
-                                                        <p>{ordemServico.tecnicoNome}</p>
+                                                        <span className="label">
+                                                            Técnico
+                                                        </span>
+
+                                                        <p>
+                                                            {
+                                                                ordemServico.tecnicoNome
+                                                            }
+                                                        </p>
                                                     </div>
 
                                                     <div>
                                                         <span className="label">
-                                                            Unidade de atendimento
+                                                            Unidade de
+                                                            atendimento
                                                         </span>
-                                                        <p>{ordemServico.unidadeAtendimentoNome}</p>
+
+                                                        <p>
+                                                            {
+                                                                ordemServico.unidadeAtendimentoNome
+                                                            }
+                                                        </p>
                                                     </div>
 
                                                     <div>
                                                         <span className="label">
-                                                            Início do atendimento
+                                                            Início do
+                                                            atendimento
                                                         </span>
-                                                        <p>{formatarData(ordemServico.dataCheckIn)}</p>
+
+                                                        <p>
+                                                            {formatarData(
+                                                                ordemServico.dataCheckIn
+                                                            )}
+                                                        </p>
                                                     </div>
 
                                                     <div>
                                                         <span className="label">
-                                                            Finalização do atendimento
+                                                            Finalização do
+                                                            atendimento
                                                         </span>
-                                                        <p>{formatarData(ordemServico.dataCheckOut)}</p>
+
+                                                        <p>
+                                                            {formatarData(
+                                                                ordemServico.dataCheckOut
+                                                            )}
+                                                        </p>
                                                     </div>
                                                 </div>
 
-                                                {!ordemServico.dataCheckIn && !ordemServico.dataCheckOut && (
-                                                    <div className="order-actions">
-                                                        <button
-                                                            className="primary-button"
-                                                            onClick={() => iniciarAtendimento(ordemServico)}
-                                                        >
-                                                            Iniciar atendimento
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                {!ordemServico.dataCheckIn &&
+                                                    !ordemServico.dataCheckOut && (
+                                                        <div className="order-actions">
+                                                            <button
+                                                                className="primary-button"
+                                                                onClick={() =>
+                                                                    iniciarAtendimento(
+                                                                        ordemServico
+                                                                    )
+                                                                }
+                                                            >
+                                                                Iniciar
+                                                                atendimento
+                                                            </button>
+                                                        </div>
+                                                    )}
 
-                                                {ordemServico.dataCheckIn && !ordemServico.dataCheckOut && (
-                                                    <div className="order-actions">
-                                                        <button
-                                                            className="danger-button"
-                                                            onClick={() => finalizarAtendimento(ordemServico)}
-                                                        >
-                                                            Finalizar atendimento
-                                                        </button>
-                                                    </div>
-                                                )}
+                                                {ordemServico.dataCheckIn &&
+                                                    !ordemServico.dataCheckOut && (
+                                                        <div className="order-actions">
+                                                            <button
+                                                                className="danger-button"
+                                                                onClick={() =>
+                                                                    finalizarAtendimento(
+                                                                        ordemServico
+                                                                    )
+                                                                }
+                                                            >
+                                                                Finalizar
+                                                                atendimento
+                                                            </button>
+                                                        </div>
+                                                    )}
                                             </article>
                                         ))}
                                     </div>
@@ -539,58 +584,95 @@ function App() {
                             </section>
 
                             <section className="card">
-                                <h2 className="section-title">Linha do tempo</h2>
+                                <h2 className="section-title">
+                                    Linha do tempo
+                                </h2>
+
                                 <div className="comment-form">
-                                <textarea
-                                    value={novoComentarioTexto}
-                                    onChange={(event) => setNovoComentarioTexto(event.target.value)}
-                                    placeholder="Escreva um comentário sobre o chamado..."
-                                    rows={4}
-                                />
+                                    <textarea
+                                        value={novoComentarioTexto}
+                                        onChange={(event) =>
+                                            setNovoComentarioTexto(
+                                                event.target.value
+                                            )
+                                        }
+                                        placeholder="Escreva um comentário sobre o chamado..."
+                                        rows={4}
+                                    />
 
-                                                                <div className="comment-form-footer">
-                                                                    <select
-                                                                        value={novaComentarioOrdemServicoId}
-                                                                        onChange={(event) =>
-                                                                            setNovaComentarioOrdemServicoId(event.target.value)
-                                                                        }
-                                                                    >
-                                                                        <option value="sem-os">Comentário geral</option>
+                                    <div className="comment-form-footer">
+                                        <select
+                                            value={
+                                                novaComentarioOrdemServicoId
+                                            }
+                                            onChange={(event) =>
+                                                setNovaComentarioOrdemServicoId(
+                                                    event.target.value
+                                                )
+                                            }
+                                        >
+                                            <option value="sem-os">
+                                                Comentário geral
+                                            </option>
 
-                                                                        {ordensServico.map((ordemServico) => (
-                                                                            <option key={ordemServico.id} value={ordemServico.id}>
-                                                                                OS {ordemServico.numeroOrdemServico}
-                                                                            </option>
-                                                                        ))}
-                                                                    </select>
+                                            {ordensServico.map(
+                                                (ordemServico) => (
+                                                    <option
+                                                        key={ordemServico.id}
+                                                        value={
+                                                            ordemServico.id
+                                                        }
+                                                    >
+                                                        OS{" "}
+                                                        {
+                                                            ordemServico.numeroOrdemServico
+                                                        }
+                                                    </option>
+                                                )
+                                            )}
+                                        </select>
 
-                                                                    <button
-                                                                        className="primary-button"
-                                                                        onClick={adicionarComentario}
-                                                                    >
-                                                                        Adicionar comentário
-                                                                    </button>
-                                                                </div>
-                                                            </div>
+                                        <button
+                                            className="primary-button"
+                                            onClick={adicionarComentario}
+                                        >
+                                            Adicionar comentário
+                                        </button>
+                                    </div>
+                                </div>
 
                                 {comentarios.length === 0 ? (
                                     <p>Nenhum comentário registrado.</p>
                                 ) : (
                                     <div className="timeline">
                                         {comentarios.map((comentario) => (
-                                            <article key={comentario.id} className="timeline-item">
+                                            <article
+                                                key={comentario.id}
+                                                className="timeline-item"
+                                            >
                                                 <div className="timeline-header">
                                                     <div>
-                                                        <strong>{comentario.autorNome}</strong>
+                                                        <strong>
+                                                            {
+                                                                comentario.autorNome
+                                                            }
+                                                        </strong>
 
                                                         {comentario.numeroOrdemServico && (
                                                             <span className="os-tag">
-                                                                OS {comentario.numeroOrdemServico}
+                                                                OS{" "}
+                                                                {
+                                                                    comentario.numeroOrdemServico
+                                                                }
                                                             </span>
                                                         )}
                                                     </div>
 
-                                                    <span>{formatarData(comentario.dataCriacao)}</span>
+                                                    <span>
+                                                        {formatarData(
+                                                            comentario.dataCriacao
+                                                        )}
+                                                    </span>
                                                 </div>
 
                                                 <p>{comentario.texto}</p>
