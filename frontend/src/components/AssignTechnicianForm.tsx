@@ -32,12 +32,16 @@ function AssignTechnicianForm({
                                   aoCancelar,
                                   aoTecnicoAtribuido,
                               }: AssignTechnicianFormProps) {
+    const possuiTecnico =
+        ordemServico.tecnicoId !== null;
+
     const [
         basesOperacionais,
         setBasesOperacionais,
     ] = useState<BaseOperacional[]>([]);
 
-    const [baseId, setBaseId] = useState("");
+    const [baseId, setBaseId] =
+        useState("");
 
     const [tecnicos, setTecnicos] =
         useState<Tecnico[]>([]);
@@ -125,7 +129,10 @@ function AssignTechnicianForm({
         }
 
         if (!tecnicoId) {
-            setErro("Selecione um técnico");
+            setErro(
+                "Selecione um técnico"
+            );
+
             return;
         }
 
@@ -137,9 +144,11 @@ function AssignTechnicianForm({
             numeroOrdemServico:
             ordemServico.numeroOrdemServico,
 
-            tecnicoId: Number(tecnicoId),
+            tecnicoId:
+                Number(tecnicoId),
 
-            unidadeAtendimentoId: null,
+            unidadeAtendimentoId:
+                null,
         };
 
         try {
@@ -171,9 +180,21 @@ function AssignTechnicianForm({
     return (
         <section className="assign-technician-form">
             <h3>
-                Atribuir técnico à OS{" "}
+                {possuiTecnico
+                    ? "Alterar técnico da OS "
+                    : "Atribuir técnico à OS "}
+
                 {ordemServico.numeroOrdemServico}
             </h3>
+
+            {possuiTecnico && (
+                <p>
+                    Técnico atual:{" "}
+                    <strong>
+                        {ordemServico.tecnicoNome}
+                    </strong>
+                </p>
+            )}
 
             {erro && (
                 <div className="error">
@@ -225,7 +246,7 @@ function AssignTechnicianForm({
 
                     <label className="form-field">
                         <span className="label">
-                            Técnico
+                            Novo técnico
                         </span>
 
                         <select
@@ -284,8 +305,12 @@ function AssignTechnicianForm({
                         }
                     >
                         {salvando
-                            ? "Atribuindo..."
-                            : "Atribuir técnico"}
+                            ? possuiTecnico
+                                ? "Alterando..."
+                                : "Atribuindo..."
+                            : possuiTecnico
+                                ? "Alterar técnico"
+                                : "Atribuir técnico"}
                     </button>
                 </div>
             </form>

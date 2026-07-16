@@ -81,7 +81,7 @@ function ServiceOrderList({
         aoOrdemCriada(ordemServico);
     }
 
-    function tecnicoAtribuido(
+    function tecnicoAtualizado(
         ordemServico: OrdemServico
     ) {
         setOrdemEmAtribuicaoId(null);
@@ -125,100 +125,125 @@ function ServiceOrderList({
             ) : (
                 <div className="orders">
                     {ordensServico.map(
-                        (ordemServico) => (
-                            <article
-                                key={ordemServico.id}
-                                className="order-card"
-                            >
-                                <div className="order-header">
-                                    <div>
-                                        <span className="label">
-                                            Ordem de Serviço
-                                        </span>
+                        (ordemServico) => {
+                            const atendimentoNaoIniciado =
+                                !ordemServico.dataCheckIn &&
+                                !ordemServico.dataCheckOut;
 
-                                        <h3>
-                                            {
-                                                ordemServico.numeroOrdemServico
-                                            }
-                                        </h3>
-                                    </div>
+                            const formularioAberto =
+                                ordemEmAtribuicaoId ===
+                                ordemServico.id;
 
-                                    <span className="order-status">
-                                        {definirStatusOrdemServico(
-                                            ordemServico
-                                        )}
-                                    </span>
-                                </div>
+                            return (
+                                <article
+                                    key={ordemServico.id}
+                                    className="order-card"
+                                >
+                                    <div className="order-header">
+                                        <div>
+                                            <span className="label">
+                                                Ordem de Serviço
+                                            </span>
 
-                                <div className="grid">
-                                    <div>
-                                        <span className="label">
-                                            Técnico
-                                        </span>
-
-                                        <p>
-                                            {ordemServico.tecnicoNome ??
-                                                "Não atribuído"}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="label">
-                                            Unidade de atendimento
-                                        </span>
-
-                                        <p>
-                                            {
-                                                ordemServico.unidadeAtendimentoNome
-                                            }
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="label">
-                                            Início do atendimento
-                                        </span>
-
-                                        <p>
-                                            {formatarData(
-                                                ordemServico.dataCheckIn
-                                            )}
-                                        </p>
-                                    </div>
-
-                                    <div>
-                                        <span className="label">
-                                            Finalização do atendimento
-                                        </span>
-
-                                        <p>
-                                            {formatarData(
-                                                ordemServico.dataCheckOut
-                                            )}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {ordemServico.tecnicoId === null &&
-                                    ordemEmAtribuicaoId !==
-                                    ordemServico.id && (
-                                        <div className="order-actions">
-                                            <button
-                                                type="button"
-                                                className="primary-button"
-                                                onClick={() =>
-                                                    setOrdemEmAtribuicaoId(
-                                                        ordemServico.id
-                                                    )
+                                            <h3>
+                                                {
+                                                    ordemServico.numeroOrdemServico
                                                 }
-                                            >
-                                                Atribuir técnico
-                                            </button>
+                                            </h3>
                                         </div>
-                                    )}
 
-                                {ordemEmAtribuicaoId ===
-                                    ordemServico.id && (
+                                        <span className="order-status">
+                                            {definirStatusOrdemServico(
+                                                ordemServico
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    <div className="grid">
+                                        <div>
+                                            <span className="label">
+                                                Técnico
+                                            </span>
+
+                                            <p>
+                                                {ordemServico.tecnicoNome ??
+                                                    "Não atribuído"}
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <span className="label">
+                                                Unidade de atendimento
+                                            </span>
+
+                                            <p>
+                                                {
+                                                    ordemServico.unidadeAtendimentoNome
+                                                }
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <span className="label">
+                                                Início do atendimento
+                                            </span>
+
+                                            <p>
+                                                {formatarData(
+                                                    ordemServico.dataCheckIn
+                                                )}
+                                            </p>
+                                        </div>
+
+                                        <div>
+                                            <span className="label">
+                                                Finalização do atendimento
+                                            </span>
+
+                                            <p>
+                                                {formatarData(
+                                                    ordemServico.dataCheckOut
+                                                )}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {atendimentoNaoIniciado &&
+                                        !formularioAberto && (
+                                            <div className="order-actions">
+                                                <button
+                                                    type="button"
+                                                    className="secondary-button"
+                                                    onClick={() =>
+                                                        setOrdemEmAtribuicaoId(
+                                                            ordemServico.id
+                                                        )
+                                                    }
+                                                >
+                                                    {ordemServico.tecnicoId ===
+                                                    null
+                                                        ? "Atribuir técnico"
+                                                        : "Alterar técnico"}
+                                                </button>
+
+                                                {ordemServico.tecnicoId !==
+                                                    null && (
+                                                        <button
+                                                            type="button"
+                                                            className="primary-button"
+                                                            onClick={() =>
+                                                                aoIniciarAtendimento(
+                                                                    ordemServico
+                                                                )
+                                                            }
+                                                        >
+                                                            Iniciar atendimento
+                                                        </button>
+                                                    )}
+                                            </div>
+                                        )}
+
+                                    {formularioAberto && (
                                         <AssignTechnicianForm
                                             chamado={chamado}
                                             ordemServico={
@@ -230,48 +255,30 @@ function ServiceOrderList({
                                                 )
                                             }
                                             aoTecnicoAtribuido={
-                                                tecnicoAtribuido
+                                                tecnicoAtualizado
                                             }
                                         />
                                     )}
 
-                                {!ordemServico.dataCheckIn &&
-                                    !ordemServico.dataCheckOut &&
-                                    ordemServico.tecnicoId !==
-                                    null && (
-                                        <div className="order-actions">
-                                            <button
-                                                type="button"
-                                                className="primary-button"
-                                                onClick={() =>
-                                                    aoIniciarAtendimento(
-                                                        ordemServico
-                                                    )
-                                                }
-                                            >
-                                                Iniciar atendimento
-                                            </button>
-                                        </div>
-                                    )}
-
-                                {ordemServico.dataCheckIn &&
-                                    !ordemServico.dataCheckOut && (
-                                        <div className="order-actions">
-                                            <button
-                                                type="button"
-                                                className="danger-button"
-                                                onClick={() =>
-                                                    aoFinalizarAtendimento(
-                                                        ordemServico
-                                                    )
-                                                }
-                                            >
-                                                Finalizar atendimento
-                                            </button>
-                                        </div>
-                                    )}
-                            </article>
-                        )
+                                    {ordemServico.dataCheckIn &&
+                                        !ordemServico.dataCheckOut && (
+                                            <div className="order-actions">
+                                                <button
+                                                    type="button"
+                                                    className="danger-button"
+                                                    onClick={() =>
+                                                        aoFinalizarAtendimento(
+                                                            ordemServico
+                                                        )
+                                                    }
+                                                >
+                                                    Finalizar atendimento
+                                                </button>
+                                            </div>
+                                        )}
+                                </article>
+                            );
+                        }
                     )}
                 </div>
             )}
