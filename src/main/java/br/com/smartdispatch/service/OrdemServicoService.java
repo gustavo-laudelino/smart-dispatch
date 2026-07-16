@@ -67,10 +67,14 @@ public class OrdemServicoService {
             );
         }
 
-        Tecnico tecnico = tecnicoService.buscarEntidadePorId(
-                contratoId,
-                request.getTecnicoId()
-        );
+        Tecnico tecnico = null;
+
+        if (request.getTecnicoId() != null) {
+            tecnico = tecnicoService.buscarEntidadePorId(
+                    contratoId,
+                    request.getTecnicoId()
+            );
+        }
 
         Unidade unidadeAtendimento = definirUnidadeAtendimento(
                 contratoId,
@@ -86,19 +90,9 @@ public class OrdemServicoService {
         ordemServico.setUnidadeAtendimento(unidadeAtendimento);
 
         OrdemServico ordemServicoSalva =
-                ordemServicoRepository.save(ordemServico);
+                ordemServicoRepository.saveAndFlush(ordemServico);
 
-        boolean existeAtendimentoAtivo =
-                ordemServicoRepository
-                        .existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                                chamadoId
-                        );
-
-        if (existeAtendimentoAtivo) {
-            chamado.setStatus(StatusChamado.EM_ATENDIMENTO);
-        } else {
-            chamado.setStatus(StatusChamado.ATRIBUIDO);
-        }
+        recalcularStatusOperacionalDoChamado(chamado);
 
         return converterParaResponse(ordemServicoSalva);
     }
@@ -157,10 +151,14 @@ public class OrdemServicoService {
 
         if (ordemServico.getDataCheckIn() == null) {
 
-            tecnico = tecnicoService.buscarEntidadePorId(
-                    contratoId,
-                    request.getTecnicoId()
-            );
+            if (request.getTecnicoId() == null) {
+                tecnico = null;
+            } else {
+                tecnico = tecnicoService.buscarEntidadePorId(
+                        contratoId,
+                        request.getTecnicoId()
+                );
+            }
 
             if (request.getUnidadeAtendimentoId() == null) {
                 unidadeAtendimento =
@@ -174,7 +172,9 @@ public class OrdemServicoService {
 
         } else {
 
-            if (!ordemServico
+            if (request.getTecnicoId() == null
+                    || ordemServico.getTecnico() == null
+                    || !ordemServico
                     .getTecnico()
                     .getId()
                     .equals(request.getTecnicoId())) {
@@ -206,9 +206,12 @@ public class OrdemServicoService {
         ordemServico.setTecnico(tecnico);
         ordemServico.setUnidadeAtendimento(unidadeAtendimento);
 
-
         OrdemServico ordemServicoAtualizada =
-                ordemServicoRepository.save(ordemServico);
+                ordemServicoRepository.saveAndFlush(ordemServico);
+
+        recalcularStatusOperacionalDoChamado(
+                ordemServicoAtualizada.getChamado()
+        );
 
         return converterParaResponse(ordemServicoAtualizada);
     }
@@ -241,6 +244,13 @@ public class OrdemServicoService {
         }
 
         Tecnico tecnico = ordemServico.getTecnico();
+
+        if (tecnico == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Não é possível efetuar check-in sem um técnico atribuído"
+            );
+        }
 
         if (!tecnico.isAtivo()) {
             throw new ResponseStatusException(
@@ -370,19 +380,19 @@ public class OrdemServicoService {
     private void validarRequest(
             OrdemServicoRequest request
     ) {
+        if (request == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Os dados da ordem de serviço devem ser informados"
+            );
+        }
+
         if (request.getNumeroOrdemServico() == null
                 || request.getNumeroOrdemServico().isBlank()) {
 
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "O número da ordem de serviço deve ser informado"
-            );
-        }
-
-        if (request.getTecnicoId() == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "O técnico deve ser informado"
             );
         }
     }
@@ -434,14 +444,25 @@ public class OrdemServicoService {
             return;
         }
 
-        boolean existeOrdemNaoIniciada =
+        boolean existeOrdemAtribuidaNaoIniciada =
                 ordemServicoRepository
-                        .existsByChamadoIdAndDataCheckInIsNullAndDataCheckOutIsNull(
+                        .existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(
                                 chamado.getId()
                         );
 
-        if (existeOrdemNaoIniciada) {
+        if (existeOrdemAtribuidaNaoIniciada) {
             chamado.setStatus(StatusChamado.ATRIBUIDO);
+            return;
+        }
+
+        boolean existeOrdemSemTecnico =
+                ordemServicoRepository
+                        .existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(
+                                chamado.getId()
+                        );
+
+        if (existeOrdemSemTecnico) {
+            chamado.setStatus(StatusChamado.ABERTO);
             return;
         }
 
@@ -456,13 +477,21 @@ public class OrdemServicoService {
         Unidade unidadeAtendimento =
                 ordemServico.getUnidadeAtendimento();
 
+        Long tecnicoId = null;
+        String tecnicoNome = null;
+
+        if (tecnico != null) {
+            tecnicoId = tecnico.getId();
+            tecnicoNome = tecnico.getUsuario().getNome();
+        }
+
         return new OrdemServicoResponse(
                 ordemServico.getId(),
                 ordemServico.getNumeroOrdemServico(),
                 chamado.getId(),
                 chamado.getNumeroChamado(),
-                tecnico.getId(),
-                tecnico.getUsuario().getNome(),
+                tecnicoId,
+                tecnicoNome,
                 unidadeAtendimento.getId(),
                 unidadeAtendimento.getNome(),
                 ordemServico.getDataCheckIn(),

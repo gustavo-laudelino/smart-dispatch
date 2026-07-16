@@ -156,6 +156,15 @@ function App() {
         setContratoSelecionado(contratoDoChamado);
     }
 
+    function ordemServicoCriada() {
+        if (!chamadoSelecionado) {
+            return;
+        }
+
+        carregarChamados(false);
+        selecionarChamado(chamadoSelecionado);
+    }
+
     async function iniciarAtendimento(
         ordemServico: OrdemServico
     ) {
@@ -369,6 +378,9 @@ function App() {
                                     />
 
                                     <ServiceOrderList
+                                        chamado={
+                                            chamadoSelecionado
+                                        }
                                         ordensServico={
                                             ordensServico
                                         }
@@ -377,6 +389,9 @@ function App() {
                                         }
                                         aoFinalizarAtendimento={
                                             finalizarAtendimento
+                                        }
+                                        aoOrdemCriada={
+                                            ordemServicoCriada
                                         }
                                     />
 

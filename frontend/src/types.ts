@@ -34,8 +34,8 @@ export type OrdemServico = {
     numeroOrdemServico: string;
     chamadoId: number;
     numeroChamado: string;
-    tecnicoId: number;
-    tecnicoNome: string;
+    tecnicoId: number | null;
+    tecnicoNome: string | null;
     unidadeAtendimentoId: number;
     unidadeAtendimentoNome: string;
     dataCheckIn: string | null;
@@ -76,4 +76,28 @@ export type ChamadoRequest = {
     categoria: string;
     prioridade: string;
     descricao: string;
+};
+
+export type BaseOperacional = {
+    id: number;
+    nome: string;
+};
+
+export type Tecnico = {
+    id: number;
+    nome: string;
+    email: string | null;
+    telefone: string | null;
+    perfil: string;
+    ativo: boolean;
+    baseId: number;
+    baseNome: string;
+    contratoId: number;
+    contratoCidade: string;
+};
+
+export type OrdemServicoRequest = {
+    numeroOrdemServico: string;
+    tecnicoId: number | null;
+    unidadeAtendimentoId: number | null;
 };

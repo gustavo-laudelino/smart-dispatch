@@ -1,9 +1,18 @@
-import type { OrdemServico } from "../types";
+import { useState } from "react";
+
+import CreateServiceOrderForm from "./CreateServiceOrderForm";
+
+import type {
+    Chamado,
+    OrdemServico,
+} from "../types";
 
 type ServiceOrderListProps = {
+    chamado: Chamado;
     ordensServico: OrdemServico[];
     aoIniciarAtendimento: (ordemServico: OrdemServico) => void;
     aoFinalizarAtendimento: (ordemServico: OrdemServico) => void;
+    aoOrdemCriada: (ordemServico: OrdemServico) => void;
 };
 
 function formatarData(data: string | null) {
@@ -35,15 +44,53 @@ function definirStatusOrdemServico(
 }
 
 function ServiceOrderList({
+                              chamado,
                               ordensServico,
                               aoIniciarAtendimento,
                               aoFinalizarAtendimento,
+                              aoOrdemCriada,
                           }: ServiceOrderListProps) {
+    const [
+        criandoOrdemServico,
+        setCriandoOrdemServico,
+    ] = useState(false);
+
+    function ordemCriada(
+        ordemServico: OrdemServico
+    ) {
+        setCriandoOrdemServico(false);
+        aoOrdemCriada(ordemServico);
+    }
+
     return (
         <section className="card">
-            <h2 className="section-title">
-                Ordens de serviço
-            </h2>
+            <div className="service-order-header">
+                <h2 className="section-title">
+                    Ordens de serviço
+                </h2>
+
+                {!criandoOrdemServico && (
+                    <button
+                        type="button"
+                        className="primary-button"
+                        onClick={() =>
+                            setCriandoOrdemServico(true)
+                        }
+                    >
+                        Criar ordem de serviço
+                    </button>
+                )}
+            </div>
+
+            {criandoOrdemServico && (
+                <CreateServiceOrderForm
+                    chamado={chamado}
+                    aoCancelar={() =>
+                        setCriandoOrdemServico(false)
+                    }
+                    aoOrdemCriada={ordemCriada}
+                />
+            )}
 
             {ordensServico.length === 0 ? (
                 <p>Nenhuma ordem de serviço criada.</p>
@@ -126,6 +173,7 @@ function ServiceOrderList({
                                 !ordemServico.dataCheckOut && (
                                     <div className="order-actions">
                                         <button
+                                            type="button"
                                             className="primary-button"
                                             onClick={() =>
                                                 aoIniciarAtendimento(
@@ -142,6 +190,7 @@ function ServiceOrderList({
                                 !ordemServico.dataCheckOut && (
                                     <div className="order-actions">
                                         <button
+                                            type="button"
                                             className="danger-button"
                                             onClick={() =>
                                                 aoFinalizarAtendimento(

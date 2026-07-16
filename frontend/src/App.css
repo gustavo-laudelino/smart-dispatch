@@ -419,3 +419,33 @@
   max-width: 1280px;
   margin: 0 auto;
 }
+
+.service-order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.service-order-header .section-title {
+  margin: 0;
+}
+
+.create-order-form {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 24px;
+  background: #f9fafb;
+}
+
+.create-order-form h3 {
+  margin: 0 0 24px;
+  font-size: 22px;
+}
+
+.create-order-form .error {
+  max-width: none;
+  margin: 0 0 24px;
+}

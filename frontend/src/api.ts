@@ -1,10 +1,13 @@
 import type {
+    BaseOperacional,
     Chamado,
     ChamadoRequest,
     ComentarioChamado,
     Contrato,
     ErroResponse,
     OrdemServico,
+    OrdemServicoRequest,
+    Tecnico,
     Unidade,
 } from "./types";
 
@@ -191,6 +194,60 @@ export async function criarChamado(
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(chamadoRequest),
+        }
+    );
+
+    if (!response.ok) {
+        const mensagemErro = await extrairMensagemErro(response);
+
+        throw new Error(mensagemErro);
+    }
+
+    return response.json();
+}
+
+export async function buscarBasesOperacionais(
+    contratoId: number
+): Promise<BaseOperacional[]> {
+    const response = await fetch(
+        `${API_BASE_URL}/contratos/${contratoId}/bases`
+    );
+
+    if (!response.ok) {
+        throw new Error("Erro ao buscar bases operacionais");
+    }
+
+    return response.json();
+}
+
+export async function buscarTecnicos(
+    contratoId: number,
+    baseId: number
+): Promise<Tecnico[]> {
+    const response = await fetch(
+        `${API_BASE_URL}/contratos/${contratoId}/bases/${baseId}/tecnicos`
+    );
+
+    if (!response.ok) {
+        throw new Error("Erro ao buscar técnicos");
+    }
+
+    return response.json();
+}
+
+export async function criarOrdemServico(
+    contratoId: number,
+    chamadoId: number,
+    ordemServicoRequest: OrdemServicoRequest
+): Promise<OrdemServico> {
+    const response = await fetch(
+        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(ordemServicoRequest),
         }
     );
 

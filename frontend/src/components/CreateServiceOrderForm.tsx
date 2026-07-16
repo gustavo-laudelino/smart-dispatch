@@ -17,7 +17,9 @@ import type {
 
 type CreateServiceOrderFormProps = {
     chamado: Chamado;
+
     aoCancelar: () => void;
+
     aoOrdemCriada: (
         ordemServico: OrdemServico
     ) => void | Promise<void>;
@@ -103,8 +105,7 @@ function CreateServiceOrderForm({
             .then((data) => {
                 const tecnicosAtivos =
                     data.filter(
-                        (tecnico) =>
-                            tecnico.ativo
+                        (tecnico) => tecnico.ativo
                     );
 
                 setTecnicos(tecnicosAtivos);
@@ -197,9 +198,7 @@ function CreateServiceOrderForm({
 
                         <input
                             type="text"
-                            value={
-                                numeroOrdemServico
-                            }
+                            value={numeroOrdemServico}
                             onChange={(event) =>
                                 setNumeroOrdemServico(
                                     event.target.value
@@ -212,9 +211,7 @@ function CreateServiceOrderForm({
 
                     <label className="form-field">
                         <span className="label">
-                            Base operacional
-                            {" "}
-                            (opcional)
+                            Base operacional (opcional)
                         </span>
 
                         <select
@@ -224,9 +221,7 @@ function CreateServiceOrderForm({
                                     event.target.value
                                 )
                             }
-                            disabled={
-                                carregandoBases
-                            }
+                            disabled={carregandoBases}
                         >
                             <option value="">
                                 {carregandoBases
@@ -249,9 +244,7 @@ function CreateServiceOrderForm({
 
                     <label className="form-field">
                         <span className="label">
-                            Técnico
-                            {" "}
-                            (opcional)
+                            Técnico (opcional)
                         </span>
 
                         <select

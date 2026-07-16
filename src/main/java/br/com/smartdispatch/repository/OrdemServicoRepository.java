@@ -20,7 +20,11 @@ public interface OrdemServicoRepository
             Long chamadoId
     );
 
-    boolean existsByChamadoIdAndDataCheckInIsNullAndDataCheckOutIsNull(
+    boolean existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(
+            Long chamadoId
+    );
+
+    boolean existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(
             Long chamadoId
     );
 
