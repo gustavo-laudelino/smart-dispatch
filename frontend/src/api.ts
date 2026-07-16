@@ -252,7 +252,35 @@ export async function criarOrdemServico(
     );
 
     if (!response.ok) {
-        const mensagemErro = await extrairMensagemErro(response);
+        const mensagemErro =
+            await extrairMensagemErro(response);
+
+        throw new Error(mensagemErro);
+    }
+
+    return response.json();
+}
+
+export async function atualizarOrdemServico(
+    contratoId: number,
+    chamadoId: number,
+    ordemServicoId: number,
+    ordemServicoRequest: OrdemServicoRequest
+): Promise<OrdemServico> {
+    const response = await fetch(
+        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}`,
+        {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(ordemServicoRequest),
+        }
+    );
+
+    if (!response.ok) {
+        const mensagemErro =
+            await extrairMensagemErro(response);
 
         throw new Error(mensagemErro);
     }

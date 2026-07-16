@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import AssignTechnicianForm from "./AssignTechnicianForm";
 import CreateServiceOrderForm from "./CreateServiceOrderForm";
 
 import type {
@@ -10,9 +11,18 @@ import type {
 type ServiceOrderListProps = {
     chamado: Chamado;
     ordensServico: OrdemServico[];
-    aoIniciarAtendimento: (ordemServico: OrdemServico) => void;
-    aoFinalizarAtendimento: (ordemServico: OrdemServico) => void;
-    aoOrdemCriada: (ordemServico: OrdemServico) => void;
+
+    aoIniciarAtendimento: (
+        ordemServico: OrdemServico
+    ) => void;
+
+    aoFinalizarAtendimento: (
+        ordemServico: OrdemServico
+    ) => void;
+
+    aoOrdemCriada: (
+        ordemServico: OrdemServico
+    ) => void;
 };
 
 function formatarData(data: string | null) {
@@ -40,6 +50,10 @@ function definirStatusOrdemServico(
         return "Em atendimento";
     }
 
+    if (ordemServico.tecnicoId === null) {
+        return "Aguardando atribuição";
+    }
+
     return "Aguardando início";
 }
 
@@ -55,10 +69,22 @@ function ServiceOrderList({
         setCriandoOrdemServico,
     ] = useState(false);
 
+    const [
+        ordemEmAtribuicaoId,
+        setOrdemEmAtribuicaoId,
+    ] = useState<number | null>(null);
+
     function ordemCriada(
         ordemServico: OrdemServico
     ) {
         setCriandoOrdemServico(false);
+        aoOrdemCriada(ordemServico);
+    }
+
+    function tecnicoAtribuido(
+        ordemServico: OrdemServico
+    ) {
+        setOrdemEmAtribuicaoId(null);
         aoOrdemCriada(ordemServico);
     }
 
@@ -93,117 +119,160 @@ function ServiceOrderList({
             )}
 
             {ordensServico.length === 0 ? (
-                <p>Nenhuma ordem de serviço criada.</p>
+                <p>
+                    Nenhuma ordem de serviço criada.
+                </p>
             ) : (
                 <div className="orders">
-                    {ordensServico.map((ordemServico) => (
-                        <article
-                            key={ordemServico.id}
-                            className="order-card"
-                        >
-                            <div className="order-header">
-                                <div>
-                                    <span className="label">
-                                        Ordem de Serviço
-                                    </span>
+                    {ordensServico.map(
+                        (ordemServico) => (
+                            <article
+                                key={ordemServico.id}
+                                className="order-card"
+                            >
+                                <div className="order-header">
+                                    <div>
+                                        <span className="label">
+                                            Ordem de Serviço
+                                        </span>
 
-                                    <h3>
-                                        {
-                                            ordemServico.numeroOrdemServico
-                                        }
-                                    </h3>
+                                        <h3>
+                                            {
+                                                ordemServico.numeroOrdemServico
+                                            }
+                                        </h3>
+                                    </div>
+
+                                    <span className="order-status">
+                                        {definirStatusOrdemServico(
+                                            ordemServico
+                                        )}
+                                    </span>
                                 </div>
 
-                                <span className="order-status">
-                                    {definirStatusOrdemServico(
-                                        ordemServico
+                                <div className="grid">
+                                    <div>
+                                        <span className="label">
+                                            Técnico
+                                        </span>
+
+                                        <p>
+                                            {ordemServico.tecnicoNome ??
+                                                "Não atribuído"}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <span className="label">
+                                            Unidade de atendimento
+                                        </span>
+
+                                        <p>
+                                            {
+                                                ordemServico.unidadeAtendimentoNome
+                                            }
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <span className="label">
+                                            Início do atendimento
+                                        </span>
+
+                                        <p>
+                                            {formatarData(
+                                                ordemServico.dataCheckIn
+                                            )}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <span className="label">
+                                            Finalização do atendimento
+                                        </span>
+
+                                        <p>
+                                            {formatarData(
+                                                ordemServico.dataCheckOut
+                                            )}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {ordemServico.tecnicoId === null &&
+                                    ordemEmAtribuicaoId !==
+                                    ordemServico.id && (
+                                        <div className="order-actions">
+                                            <button
+                                                type="button"
+                                                className="primary-button"
+                                                onClick={() =>
+                                                    setOrdemEmAtribuicaoId(
+                                                        ordemServico.id
+                                                    )
+                                                }
+                                            >
+                                                Atribuir técnico
+                                            </button>
+                                        </div>
                                     )}
-                                </span>
-                            </div>
 
-                            <div className="grid">
-                                <div>
-                                    <span className="label">
-                                        Técnico
-                                    </span>
-
-                                    <p>
-                                        {ordemServico.tecnicoNome}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <span className="label">
-                                        Unidade de atendimento
-                                    </span>
-
-                                    <p>
-                                        {
-                                            ordemServico.unidadeAtendimentoNome
-                                        }
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <span className="label">
-                                        Início do atendimento
-                                    </span>
-
-                                    <p>
-                                        {formatarData(
-                                            ordemServico.dataCheckIn
-                                        )}
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <span className="label">
-                                        Finalização do atendimento
-                                    </span>
-
-                                    <p>
-                                        {formatarData(
-                                            ordemServico.dataCheckOut
-                                        )}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {!ordemServico.dataCheckIn &&
-                                !ordemServico.dataCheckOut && (
-                                    <div className="order-actions">
-                                        <button
-                                            type="button"
-                                            className="primary-button"
-                                            onClick={() =>
-                                                aoIniciarAtendimento(
-                                                    ordemServico
+                                {ordemEmAtribuicaoId ===
+                                    ordemServico.id && (
+                                        <AssignTechnicianForm
+                                            chamado={chamado}
+                                            ordemServico={
+                                                ordemServico
+                                            }
+                                            aoCancelar={() =>
+                                                setOrdemEmAtribuicaoId(
+                                                    null
                                                 )
                                             }
-                                        >
-                                            Iniciar atendimento
-                                        </button>
-                                    </div>
-                                )}
-
-                            {ordemServico.dataCheckIn &&
-                                !ordemServico.dataCheckOut && (
-                                    <div className="order-actions">
-                                        <button
-                                            type="button"
-                                            className="danger-button"
-                                            onClick={() =>
-                                                aoFinalizarAtendimento(
-                                                    ordemServico
-                                                )
+                                            aoTecnicoAtribuido={
+                                                tecnicoAtribuido
                                             }
-                                        >
-                                            Finalizar atendimento
-                                        </button>
-                                    </div>
-                                )}
-                        </article>
-                    ))}
+                                        />
+                                    )}
+
+                                {!ordemServico.dataCheckIn &&
+                                    !ordemServico.dataCheckOut &&
+                                    ordemServico.tecnicoId !==
+                                    null && (
+                                        <div className="order-actions">
+                                            <button
+                                                type="button"
+                                                className="primary-button"
+                                                onClick={() =>
+                                                    aoIniciarAtendimento(
+                                                        ordemServico
+                                                    )
+                                                }
+                                            >
+                                                Iniciar atendimento
+                                            </button>
+                                        </div>
+                                    )}
+
+                                {ordemServico.dataCheckIn &&
+                                    !ordemServico.dataCheckOut && (
+                                        <div className="order-actions">
+                                            <button
+                                                type="button"
+                                                className="danger-button"
+                                                onClick={() =>
+                                                    aoFinalizarAtendimento(
+                                                        ordemServico
+                                                    )
+                                                }
+                                            >
+                                                Finalizar atendimento
+                                            </button>
+                                        </div>
+                                    )}
+                            </article>
+                        )
+                    )}
                 </div>
             )}
         </section>
