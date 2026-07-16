@@ -2,183 +2,148 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
 import {
-    buscarBasesOperacionais,
-    buscarTecnicos,
-    criarOrdemServico,
+    buscarUnidades,
+    criarChamado,
 } from "../api";
 
 import type {
-    BaseOperacional,
     Chamado,
-    OrdemServico,
-    OrdemServicoRequest,
-    Tecnico,
+    ChamadoRequest,
+    Contrato,
+    Unidade,
 } from "../types";
 
-type CreateServiceOrderFormProps = {
-    chamado: Chamado;
+type CreateTicketFormProps = {
+    contratos: Contrato[];
     aoCancelar: () => void;
-    aoOrdemCriada: (
-        ordemServico: OrdemServico
-    ) => void | Promise<void>;
+    aoChamadoCriado: (chamado: Chamado) => void;
 };
 
-function CreateServiceOrderForm({
-                                    chamado,
-                                    aoCancelar,
-                                    aoOrdemCriada,
-                                }: CreateServiceOrderFormProps) {
-    const [
-        numeroOrdemServico,
-        setNumeroOrdemServico,
-    ] = useState("");
+function CreateTicketForm({
+                              contratos,
+                              aoCancelar,
+                              aoChamadoCriado,
+                          }: CreateTicketFormProps) {
+    const [contratoId, setContratoId] = useState("");
+    const [unidades, setUnidades] = useState<Unidade[]>([]);
+    const [unidadeId, setUnidadeId] = useState("");
 
-    const [
-        basesOperacionais,
-        setBasesOperacionais,
-    ] = useState<BaseOperacional[]>([]);
+    const [numeroChamado, setNumeroChamado] = useState("");
+    const [linkChamadoOsti, setLinkChamadoOsti] = useState("");
 
-    const [baseId, setBaseId] = useState("");
-
-    const [tecnicos, setTecnicos] =
-        useState<Tecnico[]>([]);
-
-    const [tecnicoId, setTecnicoId] =
+    const [solicitanteNome, setSolicitanteNome] = useState("");
+    const [solicitanteEmail, setSolicitanteEmail] = useState("");
+    const [solicitanteTelefone, setSolicitanteTelefone] = useState("");
+    const [solicitanteIdentificacao, setSolicitanteIdentificacao] =
         useState("");
 
-    const [
-        carregandoBases,
-        setCarregandoBases,
-    ] = useState(false);
+    const [numeroPatrimonio, setNumeroPatrimonio] = useState("");
+    const [tipo, setTipo] = useState("INCIDENTE");
+    const [categoria, setCategoria] =
+        useState("COMPUTADOR_COM_DEFEITO");
+    const [prioridade, setPrioridade] = useState("MEDIA");
+    const [descricao, setDescricao] = useState("");
 
-    const [
-        carregandoTecnicos,
-        setCarregandoTecnicos,
-    ] = useState(false);
-
-    const [salvando, setSalvando] =
+    const [carregandoUnidades, setCarregandoUnidades] =
         useState(false);
 
-    const [erro, setErro] =
-        useState<string | null>(null);
+    const [salvando, setSalvando] = useState(false);
+    const [erro, setErro] = useState<string | null>(null);
 
     useEffect(() => {
-        setBasesOperacionais([]);
-        setBaseId("");
-        setTecnicos([]);
-        setTecnicoId("");
+        setUnidades([]);
+        setUnidadeId("");
         setErro(null);
 
-        setCarregandoBases(true);
-
-        buscarBasesOperacionais(
-            chamado.contratoId
-        )
-            .then((data) => {
-                setBasesOperacionais(data);
-            })
-            .catch((error: Error) => {
-                setErro(error.message);
-            })
-            .finally(() => {
-                setCarregandoBases(false);
-            });
-    }, [chamado.contratoId]);
-
-    useEffect(() => {
-        setTecnicos([]);
-        setTecnicoId("");
-
-        if (!baseId) {
+        if (!contratoId) {
             return;
         }
 
-        setCarregandoTecnicos(true);
-        setErro(null);
+        setCarregandoUnidades(true);
 
-        buscarTecnicos(
-            chamado.contratoId,
-            Number(baseId)
-        )
+        buscarUnidades(Number(contratoId))
             .then((data) => {
-                const tecnicosAtivos =
-                    data.filter(
-                        (tecnico) =>
-                            tecnico.ativo
-                    );
-
-                setTecnicos(tecnicosAtivos);
+                setUnidades(data);
             })
             .catch((error: Error) => {
                 setErro(error.message);
             })
             .finally(() => {
-                setCarregandoTecnicos(false);
+                setCarregandoUnidades(false);
             });
-    }, [baseId, chamado.contratoId]);
+    }, [contratoId]);
 
     async function enviarFormulario(
         event: FormEvent<HTMLFormElement>
     ) {
         event.preventDefault();
 
-        const numero =
-            numeroOrdemServico.trim();
+        if (!contratoId) {
+            setErro("Selecione um contrato");
+            return;
+        }
 
-        if (!numero) {
-            setErro(
-                "Informe o número da ordem de serviço"
-            );
-
+        if (!unidadeId) {
+            setErro("Selecione uma unidade");
             return;
         }
 
         setErro(null);
         setSalvando(true);
 
-        const ordemServicoRequest:
-            OrdemServicoRequest = {
-            numeroOrdemServico: numero,
+        const chamadoRequest: ChamadoRequest = {
+            numeroChamado: numeroChamado.trim(),
+            linkChamadoOsti: linkChamadoOsti.trim(),
+            unidadeId: Number(unidadeId),
 
-            tecnicoId: tecnicoId
-                ? Number(tecnicoId)
-                : null,
+            solicitante: {
+                nome: solicitanteNome.trim(),
+                email: solicitanteEmail.trim() || null,
+                telefone: solicitanteTelefone.trim() || null,
+                identificacao:
+                    solicitanteIdentificacao.trim() || null,
+            },
 
-            unidadeAtendimentoId: null,
+            numeroPatrimonio:
+                numeroPatrimonio.trim() || null,
+
+            tipo,
+            categoria,
+            prioridade,
+            descricao: descricao.trim(),
         };
 
         try {
-            const ordemServicoCriada =
-                await criarOrdemServico(
-                    chamado.contratoId,
-                    chamado.id,
-                    ordemServicoRequest
-                );
-
-            setNumeroOrdemServico("");
-            setBaseId("");
-            setTecnicoId("");
-            setTecnicos([]);
-
-            await aoOrdemCriada(
-                ordemServicoCriada
+            const chamadoCriado = await criarChamado(
+                Number(contratoId),
+                chamadoRequest
             );
+
+            aoChamadoCriado(chamadoCriado);
         } catch (error) {
             if (error instanceof Error) {
                 setErro(error.message);
                 return;
             }
 
-            setErro(
-                "Ocorreu um erro inesperado"
-            );
+            setErro("Ocorreu um erro inesperado");
         } finally {
             setSalvando(false);
         }
     }
 
     return (
-        <section className="create-service-order-form">
+        <section className="card create-ticket-card">
+            <header className="card-header">
+                <div>
+                    <span className="label">
+                        Cadastro
+                    </span>
+
+                    <h1>Novo chamado</h1>
+                </div>
+            </header>
+
             {erro && (
                 <div className="error">
                     {erro}
@@ -192,101 +157,277 @@ function CreateServiceOrderForm({
                 <div className="grid">
                     <label className="form-field">
                         <span className="label">
-                            Número da OS
+                            Contrato
+                        </span>
+
+                        <select
+                            value={contratoId}
+                            onChange={(event) =>
+                                setContratoId(event.target.value)
+                            }
+                            required
+                        >
+                            <option value="">
+                                Selecione um contrato
+                            </option>
+
+                            {contratos.map((contrato) => (
+                                <option
+                                    key={contrato.id}
+                                    value={contrato.id}
+                                >
+                                    {contrato.cidade}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+
+                    <label className="form-field">
+                        <span className="label">
+                            Unidade
+                        </span>
+
+                        <select
+                            value={unidadeId}
+                            onChange={(event) =>
+                                setUnidadeId(event.target.value)
+                            }
+                            disabled={
+                                !contratoId ||
+                                carregandoUnidades
+                            }
+                            required
+                        >
+                            <option value="">
+                                {carregandoUnidades
+                                    ? "Carregando unidades..."
+                                    : "Selecione uma unidade"}
+                            </option>
+
+                            {unidades.map((unidade) => (
+                                <option
+                                    key={unidade.id}
+                                    value={unidade.id}
+                                >
+                                    {unidade.nome}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+
+                    <label className="form-field">
+                        <span className="label">
+                            Número do chamado
                         </span>
 
                         <input
                             type="text"
-                            value={
-                                numeroOrdemServico
-                            }
+                            value={numeroChamado}
                             onChange={(event) =>
-                                setNumeroOrdemServico(
+                                setNumeroChamado(
                                     event.target.value
                                 )
                             }
-                            placeholder="Ex.: OS-12345"
+                            placeholder="Ex.: 12345"
                             required
                         />
                     </label>
 
                     <label className="form-field">
                         <span className="label">
-                            Base operacional
-                            {" "}
-                            (opcional)
+                            Link do chamado no OSTI
                         </span>
 
-                        <select
-                            value={baseId}
+                        <input
+                            type="url"
+                            value={linkChamadoOsti}
                             onChange={(event) =>
-                                setBaseId(
+                                setLinkChamadoOsti(
                                     event.target.value
                                 )
                             }
-                            disabled={
-                                carregandoBases
+                            placeholder="https://..."
+                            required
+                        />
+                    </label>
+
+                    <label className="form-field">
+                        <span className="label">
+                            Nome do solicitante
+                        </span>
+
+                        <input
+                            type="text"
+                            value={solicitanteNome}
+                            onChange={(event) =>
+                                setSolicitanteNome(
+                                    event.target.value
+                                )
+                            }
+                            required
+                        />
+                    </label>
+
+                    <label className="form-field">
+                        <span className="label">
+                            E-mail do solicitante
+                        </span>
+
+                        <input
+                            type="email"
+                            value={solicitanteEmail}
+                            onChange={(event) =>
+                                setSolicitanteEmail(
+                                    event.target.value
+                                )
+                            }
+                        />
+                    </label>
+
+                    <label className="form-field">
+                        <span className="label">
+                            Telefone do solicitante
+                        </span>
+
+                        <input
+                            type="text"
+                            value={solicitanteTelefone}
+                            onChange={(event) =>
+                                setSolicitanteTelefone(
+                                    event.target.value
+                                )
+                            }
+                        />
+                    </label>
+
+                    <label className="form-field">
+                        <span className="label">
+                            Identificação do solicitante
+                        </span>
+
+                        <input
+                            type="text"
+                            value={solicitanteIdentificacao}
+                            onChange={(event) =>
+                                setSolicitanteIdentificacao(
+                                    event.target.value
+                                )
+                            }
+                            placeholder="CPF / RG / Matrícula"
+                        />
+                    </label>
+
+                    <label className="form-field">
+                        <span className="label">
+                            Número do patrimônio
+                        </span>
+
+                        <input
+                            type="text"
+                            value={numeroPatrimonio}
+                            onChange={(event) =>
+                                setNumeroPatrimonio(
+                                    event.target.value
+                                )
+                            }
+                        />
+                    </label>
+
+                    <label className="form-field">
+                        <span className="label">
+                            Tipo
+                        </span>
+
+                        <select
+                            value={tipo}
+                            onChange={(event) =>
+                                setTipo(event.target.value)
                             }
                         >
-                            <option value="">
-                                {carregandoBases
-                                    ? "Carregando bases..."
-                                    : "Nenhuma base selecionada"}
+                            <option value="INCIDENTE">
+                                Incidente
                             </option>
 
-                            {basesOperacionais.map(
-                                (base) => (
-                                    <option
-                                        key={base.id}
-                                        value={base.id}
-                                    >
-                                        {base.nome}
-                                    </option>
-                                )
-                            )}
+                            <option value="REQUISICAO">
+                                Requisição
+                            </option>
                         </select>
                     </label>
 
                     <label className="form-field">
                         <span className="label">
-                            Técnico
-                            {" "}
-                            (opcional)
+                            Categoria
                         </span>
 
                         <select
-                            value={tecnicoId}
+                            value={categoria}
                             onChange={(event) =>
-                                setTecnicoId(
-                                    event.target.value
-                                )
-                            }
-                            disabled={
-                                !baseId ||
-                                carregandoTecnicos
+                                setCategoria(event.target.value)
                             }
                         >
-                            <option value="">
-                                {carregandoTecnicos
-                                    ? "Carregando técnicos..."
-                                    : !baseId
-                                        ? "Selecione uma base para visualizar técnicos"
-                                        : "Criar sem técnico"}
+                            <option value="COMPUTADOR_COM_DEFEITO">
+                                Computador com defeito
                             </option>
 
-                            {tecnicos.map(
-                                (tecnico) => (
-                                    <option
-                                        key={tecnico.id}
-                                        value={tecnico.id}
-                                    >
-                                        {tecnico.nome}
-                                    </option>
-                                )
-                            )}
+                            <option value="INSTALACAO_DE_PROGRAMAS">
+                                Instalação de programas
+                            </option>
+
+                            <option value="PROJETOR_TELA_INTERATIVA_COM_DEFEITO">
+                                Projetor ou tela interativa
+                            </option>
+
+                            <option value="OUTROS">
+                                Outros
+                            </option>
+                        </select>
+                    </label>
+
+                    <label className="form-field">
+                        <span className="label">
+                            Prioridade
+                        </span>
+
+                        <select
+                            value={prioridade}
+                            onChange={(event) =>
+                                setPrioridade(event.target.value)
+                            }
+                        >
+                            <option value="BAIXA">
+                                Baixa
+                            </option>
+
+                            <option value="MEDIA">
+                                Média
+                            </option>
+
+                            <option value="ALTA">
+                                Alta
+                            </option>
+
+                            <option value="URGENTE">
+                                Urgente
+                            </option>
                         </select>
                     </label>
                 </div>
+
+                <label className="form-field">
+                    <span className="label">
+                        Descrição
+                    </span>
+
+                    <textarea
+                        value={descricao}
+                        onChange={(event) =>
+                            setDescricao(event.target.value)
+                        }
+                        rows={5}
+                        placeholder="Descreva o problema ou solicitação..."
+                        required
+                    />
+                </label>
 
                 <div className="form-actions">
                     <button
@@ -301,14 +442,11 @@ function CreateServiceOrderForm({
                     <button
                         type="submit"
                         className="primary-button"
-                        disabled={
-                            salvando ||
-                            !numeroOrdemServico.trim()
-                        }
+                        disabled={salvando}
                     >
                         {salvando
-                            ? "Criando ordem..."
-                            : "Criar ordem de serviço"}
+                            ? "Criando chamado..."
+                            : "Criar chamado"}
                     </button>
                 </div>
             </form>
@@ -316,4 +454,4 @@ function CreateServiceOrderForm({
     );
 }
 
-export default CreateServiceOrderForm;
+export default CreateTicketForm;

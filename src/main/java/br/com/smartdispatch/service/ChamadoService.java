@@ -10,6 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import br.com.smartdispatch.dto.StatusChamadoRequest;
+import br.com.smartdispatch.enums.StatusChamado;
+
+import java.time.LocalDateTime;
 
 import java.util.Comparator;
 import java.util.List;
@@ -161,6 +165,59 @@ public class ChamadoService {
                 chamadoRepository.save(chamado);
 
         return converterParaResponse(chamadoAtualizado);
+    }
+
+    @Transactional
+    public ChamadoResponse atualizarStatus(
+            Long contratoId,
+            Long chamadoId,
+            StatusChamadoRequest request
+    ) {
+        if (
+                request == null ||
+                        request.getStatus() == null
+        ) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "O status do chamado deve ser informado"
+            );
+        }
+
+        StatusChamado novoStatus =
+                request.getStatus();
+
+        if (
+                novoStatus == StatusChamado.ABERTO ||
+                        novoStatus == StatusChamado.ATRIBUIDO ||
+                        novoStatus == StatusChamado.EM_ATENDIMENTO
+        ) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Este status é controlado automaticamente pelo sistema"
+            );
+        }
+
+        Chamado chamado = buscarEntidadePorId(
+                contratoId,
+                chamadoId
+        );
+
+        chamado.setStatus(novoStatus);
+
+        if (novoStatus == StatusChamado.FINALIZADO) {
+            chamado.setDataFinalizacao(
+                    LocalDateTime.now()
+            );
+        } else {
+            chamado.setDataFinalizacao(null);
+        }
+
+        Chamado chamadoAtualizado =
+                chamadoRepository.save(chamado);
+
+        return converterParaResponse(
+                chamadoAtualizado
+        );
     }
 
     @Transactional(readOnly = true)

@@ -1,3 +1,22 @@
+export type StatusChamado =
+    | "ABERTO"
+    | "ATRIBUIDO"
+    | "EM_ATENDIMENTO"
+    | "AGUARDANDO_ANALISE"
+    | "PRONTO_PARA_FINALIZAR"
+    | "PENDENTE"
+    | "AGUARDANDO_CLIENTE"
+    | "FINALIZADO"
+    | "CANCELADO";
+
+export type StatusChamadoManual =
+    | "AGUARDANDO_ANALISE"
+    | "PRONTO_PARA_FINALIZAR"
+    | "PENDENTE"
+    | "AGUARDANDO_CLIENTE"
+    | "FINALIZADO"
+    | "CANCELADO";
+
 export type Contrato = {
     id: number;
     cidade: string;
@@ -23,7 +42,7 @@ export type Chamado = {
     tipo: string;
     categoria: string;
     prioridade: string;
-    status: string;
+    status: StatusChamado;
     descricao: string;
     dataAbertura: string;
     dataFinalizacao: string | null;

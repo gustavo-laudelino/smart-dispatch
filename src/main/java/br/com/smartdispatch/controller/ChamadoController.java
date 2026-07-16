@@ -5,6 +5,7 @@ import br.com.smartdispatch.dto.ChamadoResponse;
 import br.com.smartdispatch.service.ChamadoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import br.com.smartdispatch.dto.StatusChamadoRequest;
 
 import java.util.List;
 
@@ -60,4 +61,18 @@ public class ChamadoController {
                 request
         );
     }
+
+    @PatchMapping("/{chamadoId}/status")
+    public ChamadoResponse atualizarStatus(
+            @PathVariable Long contratoId,
+            @PathVariable Long chamadoId,
+            @RequestBody StatusChamadoRequest request
+    ) {
+        return chamadoService.atualizarStatus(
+                contratoId,
+                chamadoId,
+                request
+        );
+    }
 }
+

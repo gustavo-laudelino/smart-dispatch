@@ -7,6 +7,7 @@ import type {
     ErroResponse,
     OrdemServico,
     OrdemServicoRequest,
+    StatusChamadoManual,
     Tecnico,
     Unidade,
 } from "./types";
@@ -275,6 +276,34 @@ export async function atualizarOrdemServico(
                 "Content-Type": "application/json",
             },
             body: JSON.stringify(ordemServicoRequest),
+        }
+    );
+
+    if (!response.ok) {
+        const mensagemErro =
+            await extrairMensagemErro(response);
+
+        throw new Error(mensagemErro);
+    }
+
+    return response.json();
+}
+
+export async function atualizarStatusChamado(
+    contratoId: number,
+    chamadoId: number,
+    status: StatusChamadoManual
+): Promise<Chamado> {
+    const response = await fetch(
+        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/status`,
+        {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                status,
+            }),
         }
     );
 

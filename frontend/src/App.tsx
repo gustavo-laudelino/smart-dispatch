@@ -156,6 +156,8 @@ function App() {
         setContratoSelecionado(contratoDoChamado);
     }
 
+
+
     function ordemServicoCriada() {
         if (!chamadoSelecionado) {
             return;
@@ -191,6 +193,22 @@ function App() {
 
             setErro("Ocorreu um erro inesperado");
         }
+    }
+
+    function statusChamadoAtualizado(
+        chamadoAtualizado: Chamado
+    ) {
+        setChamadoSelecionado(
+            chamadoAtualizado
+        );
+
+        setChamados((chamadosAtuais) =>
+            chamadosAtuais.map((chamado) =>
+                chamado.id === chamadoAtualizado.id
+                    ? chamadoAtualizado
+                    : chamado
+            )
+        );
     }
 
     async function finalizarAtendimento(
@@ -372,8 +390,9 @@ function App() {
                             chamadoSelecionado && (
                                 <>
                                     <TicketDetails
-                                        chamado={
-                                            chamadoSelecionado
+                                        chamado={chamadoSelecionado}
+                                        aoStatusAtualizado={
+                                            statusChamadoAtualizado
                                         }
                                     />
 

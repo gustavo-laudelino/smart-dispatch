@@ -1,12 +1,147 @@
-import type { Chamado } from "../types";
+import { useEffect, useState } from "react";
+
+import { atualizarStatusChamado } from "../api";
+
+import type {
+    Chamado,
+    StatusChamado,
+    StatusChamadoManual,
+} from "../types";
 
 type TicketDetailsProps = {
     chamado: Chamado;
+
+    aoStatusAtualizado?: (
+        chamado: Chamado
+    ) => void;
 };
+
+const STATUS_MANUAIS: {
+    valor: StatusChamadoManual;
+    rotulo: string;
+}[] = [
+    {
+        valor: "AGUARDANDO_ANALISE",
+        rotulo: "Aguardando análise",
+    },
+    {
+        valor: "PRONTO_PARA_FINALIZAR",
+        rotulo: "Pronto para finalizar",
+    },
+    {
+        valor: "PENDENTE",
+        rotulo: "Pendente",
+    },
+    {
+        valor: "AGUARDANDO_CLIENTE",
+        rotulo: "Aguardando cliente",
+    },
+    {
+        valor: "FINALIZADO",
+        rotulo: "Finalizado",
+    },
+    {
+        valor: "CANCELADO",
+        rotulo: "Cancelado",
+    },
+];
+
+function formatarStatus(
+    status: StatusChamado
+): string {
+    const statusEncontrado =
+        STATUS_MANUAIS.find(
+            (opcao) =>
+                opcao.valor === status
+        );
+
+    if (statusEncontrado) {
+        return statusEncontrado.rotulo;
+    }
+
+    const rotulosAutomaticos: Record<
+        string,
+        string
+    > = {
+        ABERTO: "Aberto",
+        ATRIBUIDO: "Atribuído",
+        EM_ATENDIMENTO: "Em atendimento",
+    };
+
+    return (
+        rotulosAutomaticos[status] ??
+        status
+    );
+}
+
+function statusEhManual(
+    status: StatusChamado
+): status is StatusChamadoManual {
+    return STATUS_MANUAIS.some(
+        (opcao) =>
+            opcao.valor === status
+    );
+}
 
 function TicketDetails({
                            chamado,
+                           aoStatusAtualizado,
                        }: TicketDetailsProps) {
+    const [statusAtual, setStatusAtual] =
+        useState<StatusChamado>(
+            chamado.status
+        );
+
+    const [alterandoStatus, setAlterandoStatus] =
+        useState(false);
+
+    const [erroStatus, setErroStatus] =
+        useState<string | null>(null);
+
+    useEffect(() => {
+        setStatusAtual(chamado.status);
+        setErroStatus(null);
+    }, [chamado.id, chamado.status]);
+
+    async function alterarStatus(
+        novoStatus: StatusChamadoManual
+    ) {
+        if (novoStatus === statusAtual) {
+            return;
+        }
+
+        setErroStatus(null);
+        setAlterandoStatus(true);
+
+        try {
+            const chamadoAtualizado =
+                await atualizarStatusChamado(
+                    chamado.contratoId,
+                    chamado.id,
+                    novoStatus
+                );
+
+            setStatusAtual(
+                chamadoAtualizado.status
+            );
+
+            aoStatusAtualizado?.(
+                chamadoAtualizado
+            );
+        } catch (error) {
+            if (error instanceof Error) {
+                setErroStatus(error.message);
+                return;
+            }
+
+            setErroStatus(
+                "Ocorreu um erro inesperado"
+            );
+        } finally {
+            setAlterandoStatus(false);
+        }
+    }
+
     return (
         <section className="card">
             <header className="card-header">
@@ -15,13 +150,58 @@ function TicketDetails({
                         Chamado OSTI
                     </span>
 
-                    <h1>{chamado.numeroChamado}</h1>
+                    <h1>
+                        {chamado.numeroChamado}
+                    </h1>
                 </div>
 
-                <span className="status">
-                    {chamado.status}
-                </span>
+                <select
+                    className="status"
+                    value={statusAtual}
+                    onChange={(event) =>
+                        alterarStatus(
+                            event.target
+                                .value as StatusChamadoManual
+                        )
+                    }
+                    disabled={alterandoStatus}
+                    title="Clique para alterar o status"
+                >
+                    {!statusEhManual(
+                        statusAtual
+                    ) && (
+                        <option
+                            value={statusAtual}
+                            disabled
+                        >
+                            {formatarStatus(
+                                statusAtual
+                            )}
+                        </option>
+                    )}
+
+                    {STATUS_MANUAIS.map(
+                        (opcao) => (
+                            <option
+                                key={opcao.valor}
+                                value={opcao.valor}
+                            >
+                                {opcao.rotulo}
+                            </option>
+                        )
+                    )}
+                </select>
             </header>
+
+            {erroStatus && (
+                <div className="error">
+                    {erroStatus}
+                </div>
+            )}
+
+            {alterandoStatus && (
+                <p>Alterando status...</p>
+            )}
 
             <div className="grid">
                 <div>
@@ -37,7 +217,9 @@ function TicketDetails({
                         Contrato
                     </span>
 
-                    <p>{chamado.contratoCidade}</p>
+                    <p>
+                        {chamado.contratoCidade}
+                    </p>
                 </div>
 
                 <div>
@@ -45,7 +227,9 @@ function TicketDetails({
                         Solicitante
                     </span>
 
-                    <p>{chamado.solicitante.nome}</p>
+                    <p>
+                        {chamado.solicitante.nome}
+                    </p>
                 </div>
 
                 <div>
