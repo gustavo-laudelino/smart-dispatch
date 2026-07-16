@@ -62,8 +62,14 @@ function AssignTechnicianForm({
     const [salvando, setSalvando] =
         useState(false);
 
+    const [removendo, setRemovendo] =
+        useState(false);
+
     const [erro, setErro] =
         useState<string | null>(null);
+
+    const processando =
+        salvando || removendo;
 
     useEffect(() => {
         setCarregandoBases(true);
@@ -115,6 +121,27 @@ function AssignTechnicianForm({
             });
     }, [baseId, chamado.contratoId]);
 
+    async function atualizarTecnico(
+        novoTecnicoId: number | null
+    ): Promise<OrdemServico> {
+        const ordemServicoRequest:
+            OrdemServicoRequest = {
+            numeroOrdemServico:
+            ordemServico.numeroOrdemServico,
+
+            tecnicoId: novoTecnicoId,
+
+            unidadeAtendimentoId: null,
+        };
+
+        return atualizarOrdemServico(
+            chamado.contratoId,
+            chamado.id,
+            ordemServico.id,
+            ordemServicoRequest
+        );
+    }
+
     async function enviarFormulario(
         event: FormEvent<HTMLFormElement>
     ) {
@@ -139,25 +166,10 @@ function AssignTechnicianForm({
         setErro(null);
         setSalvando(true);
 
-        const ordemServicoRequest:
-            OrdemServicoRequest = {
-            numeroOrdemServico:
-            ordemServico.numeroOrdemServico,
-
-            tecnicoId:
-                Number(tecnicoId),
-
-            unidadeAtendimentoId:
-                null,
-        };
-
         try {
             const ordemServicoAtualizada =
-                await atualizarOrdemServico(
-                    chamado.contratoId,
-                    chamado.id,
-                    ordemServico.id,
-                    ordemServicoRequest
+                await atualizarTecnico(
+                    Number(tecnicoId)
                 );
 
             await aoTecnicoAtribuido(
@@ -174,6 +186,44 @@ function AssignTechnicianForm({
             );
         } finally {
             setSalvando(false);
+        }
+    }
+
+    async function removerTecnico() {
+        if (!possuiTecnico) {
+            return;
+        }
+
+        const confirmouRemocao =
+            window.confirm(
+                `Deseja remover o técnico ${ordemServico.tecnicoNome} desta ordem de serviço?`
+            );
+
+        if (!confirmouRemocao) {
+            return;
+        }
+
+        setErro(null);
+        setRemovendo(true);
+
+        try {
+            const ordemServicoAtualizada =
+                await atualizarTecnico(null);
+
+            await aoTecnicoAtribuido(
+                ordemServicoAtualizada
+            );
+        } catch (error) {
+            if (error instanceof Error) {
+                setErro(error.message);
+                return;
+            }
+
+            setErro(
+                "Ocorreu um erro inesperado"
+            );
+        } finally {
+            setRemovendo(false);
         }
     }
 
@@ -221,7 +271,7 @@ function AssignTechnicianForm({
                             }
                             disabled={
                                 carregandoBases ||
-                                salvando
+                                processando
                             }
                             required
                         >
@@ -246,7 +296,9 @@ function AssignTechnicianForm({
 
                     <label className="form-field">
                         <span className="label">
-                            Novo técnico
+                            {possuiTecnico
+                                ? "Novo técnico"
+                                : "Técnico"}
                         </span>
 
                         <select
@@ -259,7 +311,7 @@ function AssignTechnicianForm({
                             disabled={
                                 !baseId ||
                                 carregandoTecnicos ||
-                                salvando
+                                processando
                             }
                             required
                         >
@@ -290,16 +342,29 @@ function AssignTechnicianForm({
                         type="button"
                         className="secondary-button"
                         onClick={aoCancelar}
-                        disabled={salvando}
+                        disabled={processando}
                     >
                         Cancelar
                     </button>
+
+                    {possuiTecnico && (
+                        <button
+                            type="button"
+                            className="danger-button"
+                            onClick={removerTecnico}
+                            disabled={processando}
+                        >
+                            {removendo
+                                ? "Removendo..."
+                                : "Remover técnico"}
+                        </button>
+                    )}
 
                     <button
                         type="submit"
                         className="primary-button"
                         disabled={
-                            salvando ||
+                            processando ||
                             !baseId ||
                             !tecnicoId
                         }
