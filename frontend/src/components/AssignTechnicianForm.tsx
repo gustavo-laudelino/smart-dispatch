@@ -1,18 +1,15 @@
 import { useEffect, useState } from "react";
-import type { FormEvent } from "react";
 
 import {
     atualizarOrdemServico,
-    buscarBasesOperacionais,
-    buscarTecnicos,
+    buscarSugestoesTecnicos,
 } from "../api";
 
 import type {
-    BaseOperacional,
     Chamado,
     OrdemServico,
     OrdemServicoRequest,
-    Tecnico,
+    SugestaoTecnico,
 } from "../types";
 
 type AssignTechnicianFormProps = {
@@ -26,6 +23,21 @@ type AssignTechnicianFormProps = {
     ) => void | Promise<void>;
 };
 
+function formatarNivelIndicacao(
+    nivel: SugestaoTecnico["nivelIndicacao"]
+) {
+    switch (nivel) {
+        case "ALTA":
+            return "Indicação alta";
+
+        case "MODERADA":
+            return "Indicação moderada";
+
+        default:
+            return "Indicação leve";
+    }
+}
+
 function AssignTechnicianForm({
                                   chamado,
                                   ordemServico,
@@ -35,32 +47,16 @@ function AssignTechnicianForm({
     const possuiTecnico =
         ordemServico.tecnicoId !== null;
 
-    const [
-        basesOperacionais,
-        setBasesOperacionais,
-    ] = useState<BaseOperacional[]>([]);
+    const [sugestoes, setSugestoes] =
+        useState<SugestaoTecnico[]>([]);
 
-    const [baseId, setBaseId] =
-        useState("");
-
-    const [tecnicos, setTecnicos] =
-        useState<Tecnico[]>([]);
-
-    const [tecnicoId, setTecnicoId] =
-        useState("");
+    const [carregando, setCarregando] =
+        useState(true);
 
     const [
-        carregandoBases,
-        setCarregandoBases,
-    ] = useState(false);
-
-    const [
-        carregandoTecnicos,
-        setCarregandoTecnicos,
-    ] = useState(false);
-
-    const [salvando, setSalvando] =
-        useState(false);
+        tecnicoEmProcessamentoId,
+        setTecnicoEmProcessamentoId,
+    ] = useState<number | null>(null);
 
     const [removendo, setRemovendo] =
         useState(false);
@@ -69,68 +65,39 @@ function AssignTechnicianForm({
         useState<string | null>(null);
 
     const processando =
-        salvando || removendo;
+        tecnicoEmProcessamentoId !== null ||
+        removendo;
 
     useEffect(() => {
-        setCarregandoBases(true);
+        setCarregando(true);
         setErro(null);
 
-        buscarBasesOperacionais(
-            chamado.contratoId
-        )
-            .then((data) => {
-                setBasesOperacionais(data);
-            })
-            .catch((error: Error) => {
-                setErro(error.message);
-            })
-            .finally(() => {
-                setCarregandoBases(false);
-            });
-    }, [chamado.contratoId]);
-
-    useEffect(() => {
-        setTecnicos([]);
-        setTecnicoId("");
-
-        if (!baseId) {
-            return;
-        }
-
-        setCarregandoTecnicos(true);
-        setErro(null);
-
-        buscarTecnicos(
+        buscarSugestoesTecnicos(
             chamado.contratoId,
-            Number(baseId)
+            chamado.id,
+            ordemServico.id
         )
-            .then((data) => {
-                const tecnicosAtivos =
-                    data.filter(
-                        (tecnico) =>
-                            tecnico.ativo
-                    );
-
-                setTecnicos(tecnicosAtivos);
-            })
+            .then(setSugestoes)
             .catch((error: Error) => {
                 setErro(error.message);
             })
             .finally(() => {
-                setCarregandoTecnicos(false);
+                setCarregando(false);
             });
-    }, [baseId, chamado.contratoId]);
+    }, [
+        chamado.contratoId,
+        chamado.id,
+        ordemServico.id,
+    ]);
 
     async function atualizarTecnico(
-        novoTecnicoId: number | null
-    ): Promise<OrdemServico> {
-        const ordemServicoRequest:
-            OrdemServicoRequest = {
+        tecnicoId: number | null
+    ) {
+        const request: OrdemServicoRequest = {
             numeroOrdemServico:
             ordemServico.numeroOrdemServico,
 
-            tecnicoId: novoTecnicoId,
-
+            tecnicoId,
             unidadeAtendimentoId: null,
         };
 
@@ -138,54 +105,35 @@ function AssignTechnicianForm({
             chamado.contratoId,
             chamado.id,
             ordemServico.id,
-            ordemServicoRequest
+            request
         );
     }
 
-    async function enviarFormulario(
-        event: FormEvent<HTMLFormElement>
+    async function selecionarTecnico(
+        sugestao: SugestaoTecnico
     ) {
-        event.preventDefault();
-
-        if (!baseId) {
-            setErro(
-                "Selecione uma base operacional"
-            );
-
-            return;
-        }
-
-        if (!tecnicoId) {
-            setErro(
-                "Selecione um técnico"
-            );
-
-            return;
-        }
-
         setErro(null);
-        setSalvando(true);
+        setTecnicoEmProcessamentoId(
+            sugestao.tecnicoId
+        );
 
         try {
-            const ordemServicoAtualizada =
+            const ordemAtualizada =
                 await atualizarTecnico(
-                    Number(tecnicoId)
+                    sugestao.tecnicoId
                 );
 
             await aoTecnicoAtribuido(
-                ordemServicoAtualizada
+                ordemAtualizada
             );
         } catch (error) {
-            if (error instanceof Error) {
-                setErro(error.message);
-                return;
-            }
-
             setErro(
-                "Ocorreu um erro inesperado"
+                error instanceof Error
+                    ? error.message
+                    : "Ocorreu um erro inesperado"
             );
         } finally {
-            setSalvando(false);
+            setTecnicoEmProcessamentoId(null);
         }
     }
 
@@ -194,12 +142,11 @@ function AssignTechnicianForm({
             return;
         }
 
-        const confirmouRemocao =
-            window.confirm(
-                `Deseja remover o técnico ${ordemServico.tecnicoNome} desta ordem de serviço?`
-            );
+        const confirmou = window.confirm(
+            `Deseja remover o técnico ${ordemServico.tecnicoNome} desta ordem de serviço?`
+        );
 
-        if (!confirmouRemocao) {
+        if (!confirmou) {
             return;
         }
 
@@ -207,20 +154,17 @@ function AssignTechnicianForm({
         setRemovendo(true);
 
         try {
-            const ordemServicoAtualizada =
+            const ordemAtualizada =
                 await atualizarTecnico(null);
 
             await aoTecnicoAtribuido(
-                ordemServicoAtualizada
+                ordemAtualizada
             );
         } catch (error) {
-            if (error instanceof Error) {
-                setErro(error.message);
-                return;
-            }
-
             setErro(
-                "Ocorreu um erro inesperado"
+                error instanceof Error
+                    ? error.message
+                    : "Ocorreu um erro inesperado"
             );
         } finally {
             setRemovendo(false);
@@ -229,16 +173,32 @@ function AssignTechnicianForm({
 
     return (
         <section className="assign-technician-form">
-            <h3>
-                {possuiTecnico
-                    ? "Alterar técnico da OS "
-                    : "Atribuir técnico à OS "}
+            <div className="technician-selection-header">
+                <div>
+                    <span className="label">
+                        Smart Dispatch
+                    </span>
 
-                {ordemServico.numeroOrdemServico}
-            </h3>
+                    <h3>Selecionar técnico</h3>
+
+                    <p>
+                        Sugestões baseadas em proximidade
+                        e carga operacional.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    className="secondary-button"
+                    onClick={aoCancelar}
+                    disabled={processando}
+                >
+                    Fechar
+                </button>
+            </div>
 
             {possuiTecnico && (
-                <p>
+                <p className="current-technician">
                     Técnico atual:{" "}
                     <strong>
                         {ordemServico.tecnicoNome}
@@ -252,133 +212,135 @@ function AssignTechnicianForm({
                 </div>
             )}
 
-            <form
-                className="ticket-form"
-                onSubmit={enviarFormulario}
-            >
-                <div className="grid">
-                    <label className="form-field">
-                        <span className="label">
-                            Base operacional
-                        </span>
+            {carregando && (
+                <p>Calculando sugestões...</p>
+            )}
 
-                        <select
-                            value={baseId}
-                            onChange={(event) =>
-                                setBaseId(
-                                    event.target.value
-                                )
-                            }
-                            disabled={
-                                carregandoBases ||
-                                processando
-                            }
-                            required
-                        >
-                            <option value="">
-                                {carregandoBases
-                                    ? "Carregando bases..."
-                                    : "Selecione uma base"}
-                            </option>
+            {!carregando &&
+                sugestoes.length === 0 && (
+                    <p>
+                        Nenhum técnico disponível para
+                        este chamado.
+                    </p>
+                )}
 
-                            {basesOperacionais.map(
-                                (base) => (
-                                    <option
-                                        key={base.id}
-                                        value={base.id}
+            {!carregando &&
+                sugestoes.length > 0 && (
+                    <div className="technician-suggestion-list">
+                        {sugestoes.map(
+                            (sugestao, index) => {
+                                const tecnicoAtual =
+                                    ordemServico.tecnicoId ===
+                                    sugestao.tecnicoId;
+
+                                const salvando =
+                                    tecnicoEmProcessamentoId ===
+                                    sugestao.tecnicoId;
+
+                                return (
+                                    <article
+                                        key={
+                                            sugestao.tecnicoId
+                                        }
+                                        className={`technician-suggestion-card ${
+                                            index === 0
+                                                ? "best-suggestion"
+                                                : ""
+                                        }`}
                                     >
-                                        {base.nome}
-                                    </option>
-                                )
-                            )}
-                        </select>
-                    </label>
+                                        <div className="technician-suggestion-content">
+                                            {index === 0 && (
+                                                <span className="best-suggestion-label">
+                                                    Melhor indicação
+                                                </span>
+                                            )}
 
-                    <label className="form-field">
-                        <span className="label">
-                            {possuiTecnico
-                                ? "Novo técnico"
-                                : "Técnico"}
-                        </span>
+                                            <h4>
+                                                {
+                                                    sugestao.tecnicoNome
+                                                }
+                                            </h4>
 
-                        <select
-                            value={tecnicoId}
-                            onChange={(event) =>
-                                setTecnicoId(
-                                    event.target.value
-                                )
+                                            <div className="technician-rating">
+                                                <div
+                                                    className="stars"
+                                                    aria-label={`${sugestao.estrelas} estrelas`}
+                                                >
+                                                    {[1, 2, 3].map(
+                                                        (
+                                                            estrela
+                                                        ) => (
+                                                            <span
+                                                                key={
+                                                                    estrela
+                                                                }
+                                                                className={
+                                                                    estrela <=
+                                                                    sugestao.estrelas
+                                                                        ? "star active"
+                                                                        : "star"
+                                                                }
+                                                            >
+                                                                ★
+                                                            </span>
+                                                        )
+                                                    )}
+                                                </div>
+
+                                                <span
+                                                    className={`indication-badge indication-${sugestao.nivelIndicacao.toLowerCase()}`}
+                                                >
+                                                    {formatarNivelIndicacao(
+                                                        sugestao.nivelIndicacao
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className={
+                                                index === 0
+                                                    ? "primary-button"
+                                                    : "secondary-button"
+                                            }
+                                            onClick={() =>
+                                                selecionarTecnico(
+                                                    sugestao
+                                                )
+                                            }
+                                            disabled={
+                                                processando ||
+                                                tecnicoAtual
+                                            }
+                                        >
+                                            {tecnicoAtual
+                                                ? "Selecionado"
+                                                : salvando
+                                                    ? "Selecionando..."
+                                                    : "Selecionar"}
+                                        </button>
+                                    </article>
+                                );
                             }
-                            disabled={
-                                !baseId ||
-                                carregandoTecnicos ||
-                                processando
-                            }
-                            required
-                        >
-                            <option value="">
-                                {carregandoTecnicos
-                                    ? "Carregando técnicos..."
-                                    : !baseId
-                                        ? "Selecione uma base primeiro"
-                                        : "Selecione um técnico"}
-                            </option>
+                        )}
+                    </div>
+                )}
 
-                            {tecnicos.map(
-                                (tecnico) => (
-                                    <option
-                                        key={tecnico.id}
-                                        value={tecnico.id}
-                                    >
-                                        {tecnico.nome}
-                                    </option>
-                                )
-                            )}
-                        </select>
-                    </label>
-                </div>
-
+            {possuiTecnico && (
                 <div className="form-actions">
                     <button
                         type="button"
-                        className="secondary-button"
-                        onClick={aoCancelar}
+                        className="danger-button"
+                        onClick={removerTecnico}
                         disabled={processando}
                     >
-                        Cancelar
-                    </button>
-
-                    {possuiTecnico && (
-                        <button
-                            type="button"
-                            className="danger-button"
-                            onClick={removerTecnico}
-                            disabled={processando}
-                        >
-                            {removendo
-                                ? "Removendo..."
-                                : "Remover técnico"}
-                        </button>
-                    )}
-
-                    <button
-                        type="submit"
-                        className="primary-button"
-                        disabled={
-                            processando ||
-                            !baseId ||
-                            !tecnicoId
-                        }
-                    >
-                        {salvando
-                            ? possuiTecnico
-                                ? "Alterando..."
-                                : "Atribuindo..."
-                            : possuiTecnico
-                                ? "Alterar técnico"
-                                : "Atribuir técnico"}
+                        {removendo
+                            ? "Removendo..."
+                            : "Remover técnico"}
                     </button>
                 </div>
-            </form>
+            )}
         </section>
     );
 }

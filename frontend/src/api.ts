@@ -10,6 +10,7 @@ import type {
     StatusChamadoManual,
     Tecnico,
     Unidade,
+    SugestaoTecnico,
 } from "./types";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -76,6 +77,25 @@ export async function buscarOrdensServico(
 
     if (!response.ok) {
         throw new Error("Erro ao buscar ordens de serviço");
+    }
+
+    return response.json();
+}
+
+export async function buscarSugestoesTecnicos(
+    contratoId: number,
+    chamadoId: number,
+    ordemServicoId: number
+): Promise<SugestaoTecnico[]> {
+    const response = await fetch(
+        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}/sugestoes-tecnicos`
+    );
+
+    if (!response.ok) {
+        const mensagemErro =
+            await extrairMensagemErro(response);
+
+        throw new Error(mensagemErro);
     }
 
     return response.json();

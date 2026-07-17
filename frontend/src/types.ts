@@ -120,3 +120,22 @@ export type OrdemServicoRequest = {
     tecnicoId: number | null;
     unidadeAtendimentoId: number | null;
 };
+
+export type NivelIndicacao =
+    | "LEVE"
+    | "MODERADA"
+    | "ALTA";
+
+export type SugestaoTecnico = {
+    tecnicoId: number;
+    tecnicoNome: string;
+
+    pontuacao: number;
+    distanciaKm: number;
+
+    quantidadeOsAtivas: number;
+    atendimentosUltimos15Dias: number;
+
+    nivelIndicacao: NivelIndicacao;
+    estrelas: number;
+};
