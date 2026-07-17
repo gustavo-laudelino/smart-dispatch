@@ -449,3 +449,200 @@
   max-width: none;
   margin: 0 0 24px;
 }
+
+/* ================================
+   Sugestão e seleção de técnicos
+================================ */
+
+.assign-technician-form {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background:
+          linear-gradient(
+                  145deg,
+                  #ffffff 0%,
+                  #f8fbff 100%
+          );
+  box-shadow: 0 16px 40px rgba(37, 99, 235, 0.1);
+}
+
+.technician-selection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.technician-selection-header h3 {
+  margin: 4px 0 6px;
+  font-size: 24px;
+  color: #111827;
+}
+
+.technician-selection-header p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.current-technician {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.assign-technician-form .error {
+  max-width: none;
+  margin: 0 0 20px;
+}
+
+.technician-suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.technician-suggestion-card {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  min-height: 88px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  transition:
+          transform 0.2s ease,
+          border-color 0.2s ease,
+          box-shadow 0.2s ease;
+}
+
+.technician-suggestion-card:hover {
+  transform: translateY(-2px);
+  border-color: #93c5fd;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.1);
+}
+
+.technician-suggestion-card.best-suggestion {
+  border: 2px solid #2563eb;
+  background:
+          linear-gradient(
+                  135deg,
+                  #eff6ff 0%,
+                  #ffffff 65%
+          );
+  box-shadow: 0 14px 32px rgba(37, 99, 235, 0.14);
+}
+
+.technician-suggestion-content {
+  min-width: 0;
+}
+
+.technician-suggestion-content h4 {
+  margin: 4px 0 10px;
+  font-size: 18px;
+  color: #111827;
+}
+
+.best-suggestion-label {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 4px;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.best-suggestion-label::before {
+  content: "◆";
+  margin-right: 6px;
+  font-size: 8px;
+}
+
+.technician-rating {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.stars {
+  display: flex;
+  gap: 3px;
+  line-height: 1;
+}
+
+.star {
+  color: #d1d5db;
+  font-size: 21px;
+}
+
+.star.active {
+  color: #f59e0b;
+  text-shadow: 0 2px 5px rgba(245, 158, 11, 0.2);
+}
+
+.indication-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.indication-alta {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.indication-moderada {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.indication-leve {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.technician-suggestion-card > button {
+  min-width: 112px;
+  flex-shrink: 0;
+}
+
+.assign-technician-form .form-actions {
+  margin-top: 24px;
+}
+
+@media (max-width: 720px) {
+  .technician-selection-header {
+    flex-direction: column;
+  }
+
+  .technician-selection-header > button {
+    width: 100%;
+  }
+
+  .technician-suggestion-card {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .technician-suggestion-card > button {
+    width: 100%;
+  }
+}
