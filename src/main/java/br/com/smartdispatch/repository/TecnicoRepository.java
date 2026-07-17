@@ -19,4 +19,8 @@ public interface TecnicoRepository extends JpaRepository<Tecnico, Long> {
             Long tecnicoId,
             Long contratoId
     );
+
+    List<Tecnico> findByBaseOperacionalContratoIdAndAtivoTrue(
+            Long contratoId
+    );
 }

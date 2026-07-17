@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 public interface OrdemServicoRepository
         extends JpaRepository<OrdemServico, Long> {
@@ -44,5 +45,15 @@ public interface OrdemServicoRepository
             Long contratoId
     );
 
+    List<OrdemServico>
+    findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+            Long tecnicoId,
+            Long contratoId
+    );
 
+    long countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+            Long tecnicoId,
+            Long contratoId,
+            LocalDateTime dataInicial
+    );
 }

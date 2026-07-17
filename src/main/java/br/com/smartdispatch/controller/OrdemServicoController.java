@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import br.com.smartdispatch.dto.CheckInRequest;
 
 import java.util.List;
+import br.com.smartdispatch.dto.SugestaoTecnicoResponse;
+import br.com.smartdispatch.service.SugestaoTecnicoService;
 
 @RestController
 @RequestMapping(
@@ -15,12 +17,15 @@ import java.util.List;
 )
 public class OrdemServicoController {
 
+    private final SugestaoTecnicoService sugestaoTecnicoService;
     private final OrdemServicoService ordemServicoService;
 
     public OrdemServicoController(
-            OrdemServicoService ordemServicoService
+            OrdemServicoService ordemServicoService,
+            SugestaoTecnicoService sugestaoTecnicoService
     ) {
         this.ordemServicoService = ordemServicoService;
+        this.sugestaoTecnicoService = sugestaoTecnicoService;
     }
 
     @PostMapping
@@ -85,6 +90,19 @@ public class OrdemServicoController {
             @PathVariable Long ordemServicoId
     ) {
         return ordemServicoService.realizarCheckOut(
+                contratoId,
+                chamadoId,
+                ordemServicoId
+        );
+    }
+
+    @GetMapping("/{ordemServicoId}/sugestoes-tecnicos")
+    public List<SugestaoTecnicoResponse> listarSugestoesTecnicos(
+            @PathVariable Long contratoId,
+            @PathVariable Long chamadoId,
+            @PathVariable Long ordemServicoId
+    ) {
+        return sugestaoTecnicoService.listarSugestoes(
                 contratoId,
                 chamadoId,
                 ordemServicoId
