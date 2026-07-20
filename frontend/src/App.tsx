@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
 import {
-    DetailSkeleton,
-} from "./components/LoadingSkeletons";
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 
 import {
     adicionarComentario as adicionarComentarioApi,
@@ -16,6 +17,9 @@ import {
 
 import CommentTimeline from "./components/CommentTimeline";
 import CreateTicketForm from "./components/CreateTicketForm";
+import {
+    DetailSkeleton,
+} from "./components/LoadingSkeletons";
 import ServiceOrderList from "./components/ServiceOrderList";
 import TicketDetails from "./components/TicketDetails";
 import TicketFeed from "./components/TicketFeed";
@@ -29,6 +33,14 @@ import type {
 
 import "./App.css";
 
+type FiltroStatus =
+    | Chamado["status"]
+    | "TODOS";
+
+type OrdemData =
+    | "MAIS_RECENTES"
+    | "MAIS_ANTIGOS";
+
 function App() {
     const [contratos, setContratos] =
         useState<Contrato[]>([]);
@@ -38,6 +50,20 @@ function App() {
         setContratoSelecionado,
     ] = useState("todos");
 
+    const [
+        filtroStatus,
+        setFiltroStatus,
+    ] = useState<FiltroStatus>("TODOS");
+
+    const [
+        ordemData,
+        setOrdemData,
+    ] = useState<OrdemData>(
+        "MAIS_RECENTES"
+    );
+
+
+
     const [chamados, setChamados] =
         useState<Chamado[]>([]);
 
@@ -46,11 +72,15 @@ function App() {
         setChamadoSelecionado,
     ] = useState<Chamado | null>(null);
 
-    const [ordensServico, setOrdensServico] =
-        useState<OrdemServico[]>([]);
+    const [
+        ordensServico,
+        setOrdensServico,
+    ] = useState<OrdemServico[]>([]);
 
-    const [comentarios, setComentarios] =
-        useState<ComentarioChamado[]>([]);
+    const [
+        comentarios,
+        setComentarios,
+    ] = useState<ComentarioChamado[]>([]);
 
     const [
         novoComentarioTexto,
@@ -80,6 +110,64 @@ function App() {
     const [erro, setErro] =
         useState<string | null>(null);
 
+    const chamadosFiltrados =
+        useMemo(() => {
+            const resultado =
+                filtroStatus === "TODOS"
+                    ? [...chamados]
+                    : chamados.filter(
+                        (chamado) =>
+                            chamado.status ===
+                            filtroStatus
+                    );
+
+            resultado.sort(
+                (chamadoA, chamadoB) => {
+                    const dataA =
+                        new Date(
+                            chamadoA.dataAbertura
+                        ).getTime();
+
+                    const dataB =
+                        new Date(
+                            chamadoB.dataAbertura
+                        ).getTime();
+
+                    const timestampA =
+                        Number.isNaN(dataA)
+                            ? 0
+                            : dataA;
+
+                    const timestampB =
+                        Number.isNaN(dataB)
+                            ? 0
+                            : dataB;
+
+                    if (
+                        ordemData ===
+                        "MAIS_ANTIGOS"
+                    ) {
+                        return (
+                            timestampA -
+                            timestampB
+                        );
+                    }
+
+                    return (
+                        timestampB -
+                        timestampA
+                    );
+                }
+            );
+
+            return resultado;
+        }, [
+            chamados,
+            filtroStatus,
+            ordemData,
+        ]);
+
+
     useEffect(() => {
         buscarContratos()
             .then((data) => {
@@ -93,6 +181,8 @@ function App() {
     useEffect(() => {
         carregarChamados();
     }, [contratoSelecionado]);
+
+
 
     function carregarChamados(
         limparDetalhe = true
@@ -125,6 +215,7 @@ function App() {
         setErro(null);
 
         setNovoComentarioTexto("");
+
         setNovaComentarioOrdemServicoId(
             "sem-os"
         );
@@ -201,6 +292,7 @@ function App() {
         }
 
         carregarChamados(false);
+
         selecionarChamado(
             chamadoSelecionado
         );
@@ -228,13 +320,10 @@ function App() {
                 chamadoSelecionado
             );
         } catch (error) {
-            if (error instanceof Error) {
-                setErro(error.message);
-                return;
-            }
-
             setErro(
-                "Ocorreu um erro inesperado"
+                error instanceof Error
+                    ? error.message
+                    : "Ocorreu um erro inesperado"
             );
         }
     }
@@ -279,13 +368,10 @@ function App() {
                 chamadoSelecionado
             );
         } catch (error) {
-            if (error instanceof Error) {
-                setErro(error.message);
-                return;
-            }
-
             setErro(
-                "Ocorreu um erro inesperado"
+                error instanceof Error
+                    ? error.message
+                    : "Ocorreu um erro inesperado"
             );
         }
     }
@@ -302,7 +388,6 @@ function App() {
             setErro(
                 "O comentário não pode estar vazio"
             );
-
             return;
         }
 
@@ -335,13 +420,10 @@ function App() {
                 chamadoSelecionado
             );
         } catch (error) {
-            if (error instanceof Error) {
-                setErro(error.message);
-                return;
-            }
-
             setErro(
-                "Ocorreu um erro inesperado"
+                error instanceof Error
+                    ? error.message
+                    : "Ocorreu um erro inesperado"
             );
         }
     }
@@ -428,77 +510,36 @@ function App() {
             </aside>
 
             <div className="app-content">
-                <header className="app-header">
-                    <div className="app-header-title">
-                        <span className="label">
-                            Central de operações
-                        </span>
+                <header className="app-header compact-app-header">
+                    <div className="compact-header-main">
+                        <div className="app-header-title">
+            <span className="label">
+                Central de operações
+            </span>
 
-                        <div className="app-header-title-row">
-                            <h1>Chamados</h1>
+                            <div className="app-header-title-row">
+                                <h1>
+                                    Chamados
+                                </h1>
 
-                            <span className="header-ticket-count">
-                                {chamados.length}
-                            </span>
+                                <span
+                                    className="header-ticket-count"
+                                    title={`${chamadosFiltrados.length} de ${chamados.length} chamados`}
+                                >
+                    {
+                        chamadosFiltrados.length
+                    }
+                </span>
+                            </div>
                         </div>
 
-                        <p>
-                            Acompanhe, distribua e
-                            gerencie os atendimentos
-                            técnicos.
-                        </p>
-                    </div>
-
-                    <div className="header-actions">
                         {!criandoChamado && (
-                            <>
-                                <select
-                                    className="select"
-                                    value={
-                                        contratoSelecionado
-                                    }
-                                    onChange={(
-                                        event
-                                    ) =>
-                                        setContratoSelecionado(
-                                            event
-                                                .target
-                                                .value
-                                        )
-                                    }
-                                >
-                                    <option value="todos">
-                                        Todos os
-                                        contratos
-                                    </option>
-
-                                    {contratos.map(
-                                        (
-                                            contrato
-                                        ) => (
-                                            <option
-                                                key={
-                                                    contrato.id
-                                                }
-                                                value={
-                                                    contrato.id
-                                                }
-                                            >
-                                                {
-                                                    contrato.cidade
-                                                }
-                                            </option>
-                                        )
-                                    )}
-                                </select>
-
+                            <div className="compact-header-actions">
                                 <button
                                     type="button"
                                     className="primary-button"
                                     onClick={() => {
-                                        setErro(
-                                            null
-                                        );
+                                        setErro(null);
 
                                         setCriandoChamado(
                                             true
@@ -507,7 +548,7 @@ function App() {
                                 >
                                     + Novo chamado
                                 </button>
-                            </>
+                            </div>
                         )}
                     </div>
                 </header>
@@ -539,13 +580,40 @@ function App() {
                         <div className="layout">
                             <TicketFeed
                                 chamados={
-                                    chamados
+                                    chamadosFiltrados
+                                }
+                                contratos={
+                                    contratos
+                                }
+                                contratoSelecionado={
+                                    contratoSelecionado
+                                }
+                                filtroStatus={
+                                    filtroStatus
+                                }
+                                ordemData={
+                                    ordemData
                                 }
                                 chamadoSelecionado={
                                     chamadoSelecionado
                                 }
                                 carregando={
                                     carregandoFeed
+                                }
+                                aoAlterarContrato={
+                                    setContratoSelecionado
+                                }
+                                aoAlterarStatus={
+                                    setFiltroStatus
+                                }
+                                aoAlternarOrdenacao={() =>
+                                    setOrdemData(
+                                        ordemAtual =>
+                                            ordemAtual ===
+                                            "MAIS_RECENTES"
+                                                ? "MAIS_ANTIGOS"
+                                                : "MAIS_RECENTES"
+                                    )
                                 }
                                 aoSelecionarChamado={
                                     selecionarChamado
@@ -575,8 +643,7 @@ function App() {
                                                 feed para
                                                 visualizar
                                                 os detalhes
-                                                da
-                                                operação.
+                                                da operação.
                                             </p>
                                         </section>
                                     )}
