@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import {
+    DetailSkeleton,
+} from "./components/LoadingSkeletons";
 
 import {
     adicionarComentario as adicionarComentarioApi,
@@ -551,13 +554,7 @@ function App() {
 
                             <section className="detail-area">
                                 {carregandoDetalhe && (
-                                    <section className="card">
-                                        <p>
-                                            Carregando
-                                            detalhes do
-                                            chamado...
-                                        </p>
-                                    </section>
+                                    <DetailSkeleton />
                                 )}
 
                                 {!carregandoDetalhe &&

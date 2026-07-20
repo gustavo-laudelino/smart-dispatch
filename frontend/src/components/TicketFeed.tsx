@@ -1,4 +1,5 @@
 import type { Chamado } from "../types";
+import { FeedSkeleton } from "./LoadingSkeletons";
 
 type TicketFeedProps = {
     chamados: Chamado[];
@@ -58,9 +59,7 @@ function TicketFeed({
             </div>
 
             {carregando ? (
-                <p className="feed-message">
-                    Carregando chamados...
-                </p>
+                <FeedSkeleton />
             ) : chamados.length === 0 ? (
                 <p className="feed-message">
                     Nenhum chamado encontrado.
