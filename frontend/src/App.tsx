@@ -27,13 +27,21 @@ import type {
 import "./App.css";
 
 function App() {
-    const [contratos, setContratos] = useState<Contrato[]>([]);
-    const [contratoSelecionado, setContratoSelecionado] =
-        useState("todos");
+    const [contratos, setContratos] =
+        useState<Contrato[]>([]);
 
-    const [chamados, setChamados] = useState<Chamado[]>([]);
-    const [chamadoSelecionado, setChamadoSelecionado] =
-        useState<Chamado | null>(null);
+    const [
+        contratoSelecionado,
+        setContratoSelecionado,
+    ] = useState("todos");
+
+    const [chamados, setChamados] =
+        useState<Chamado[]>([]);
+
+    const [
+        chamadoSelecionado,
+        setChamadoSelecionado,
+    ] = useState<Chamado | null>(null);
 
     const [ordensServico, setOrdensServico] =
         useState<OrdemServico[]>([]);
@@ -41,22 +49,30 @@ function App() {
     const [comentarios, setComentarios] =
         useState<ComentarioChamado[]>([]);
 
-    const [novoComentarioTexto, setNovoComentarioTexto] =
-        useState("");
+    const [
+        novoComentarioTexto,
+        setNovoComentarioTexto,
+    ] = useState("");
 
     const [
         novaComentarioOrdemServicoId,
         setNovaComentarioOrdemServicoId,
     ] = useState("sem-os");
 
-    const [carregandoFeed, setCarregandoFeed] =
-        useState(true);
+    const [
+        carregandoFeed,
+        setCarregandoFeed,
+    ] = useState(true);
 
-    const [carregandoDetalhe, setCarregandoDetalhe] =
-        useState(false);
+    const [
+        carregandoDetalhe,
+        setCarregandoDetalhe,
+    ] = useState(false);
 
-    const [criandoChamado, setCriandoChamado] =
-        useState(false);
+    const [
+        criandoChamado,
+        setCriandoChamado,
+    ] = useState(false);
 
     const [erro, setErro] =
         useState<string | null>(null);
@@ -99,22 +115,28 @@ function App() {
             });
     }
 
-    function selecionarChamado(chamado: Chamado) {
+    function selecionarChamado(
+        chamado: Chamado
+    ) {
         setCarregandoDetalhe(true);
         setErro(null);
 
         setNovoComentarioTexto("");
-        setNovaComentarioOrdemServicoId("sem-os");
+        setNovaComentarioOrdemServicoId(
+            "sem-os"
+        );
 
         Promise.all([
             buscarDetalhesChamado(
                 chamado.contratoId,
                 chamado.id
             ),
+
             buscarOrdensServico(
                 chamado.contratoId,
                 chamado.id
             ),
+
             buscarComentarios(
                 chamado.contratoId,
                 chamado.id
@@ -126,9 +148,17 @@ function App() {
                      ordensServicoData,
                      comentariosData,
                  ]) => {
-                    setChamadoSelecionado(chamadoData);
-                    setOrdensServico(ordensServicoData);
-                    setComentarios(comentariosData);
+                    setChamadoSelecionado(
+                        chamadoData
+                    );
+
+                    setOrdensServico(
+                        ordensServicoData
+                    );
+
+                    setComentarios(
+                        comentariosData
+                    );
                 }
             )
             .catch((error: Error) => {
@@ -139,24 +169,28 @@ function App() {
             });
     }
 
-    function chamadoCriado(chamado: Chamado) {
+    function chamadoCriado(
+        chamado: Chamado
+    ) {
         setCriandoChamado(false);
 
         const contratoDoChamado =
             String(chamado.contratoId);
 
         if (
-            contratoSelecionado === "todos" ||
-            contratoSelecionado === contratoDoChamado
+            contratoSelecionado ===
+            "todos" ||
+            contratoSelecionado ===
+            contratoDoChamado
         ) {
             carregarChamados();
             return;
         }
 
-        setContratoSelecionado(contratoDoChamado);
+        setContratoSelecionado(
+            contratoDoChamado
+        );
     }
-
-
 
     function ordemServicoCriada() {
         if (!chamadoSelecionado) {
@@ -164,7 +198,9 @@ function App() {
         }
 
         carregarChamados(false);
-        selecionarChamado(chamadoSelecionado);
+        selecionarChamado(
+            chamadoSelecionado
+        );
     }
 
     async function iniciarAtendimento(
@@ -184,14 +220,19 @@ function App() {
             );
 
             carregarChamados(false);
-            selecionarChamado(chamadoSelecionado);
+
+            selecionarChamado(
+                chamadoSelecionado
+            );
         } catch (error) {
             if (error instanceof Error) {
                 setErro(error.message);
                 return;
             }
 
-            setErro("Ocorreu um erro inesperado");
+            setErro(
+                "Ocorreu um erro inesperado"
+            );
         }
     }
 
@@ -203,10 +244,12 @@ function App() {
         );
 
         setChamados((chamadosAtuais) =>
-            chamadosAtuais.map((chamado) =>
-                chamado.id === chamadoAtualizado.id
-                    ? chamadoAtualizado
-                    : chamado
+            chamadosAtuais.map(
+                (chamado) =>
+                    chamado.id ===
+                    chamadoAtualizado.id
+                        ? chamadoAtualizado
+                        : chamado
             )
         );
     }
@@ -228,14 +271,19 @@ function App() {
             );
 
             carregarChamados(false);
-            selecionarChamado(chamadoSelecionado);
+
+            selecionarChamado(
+                chamadoSelecionado
+            );
         } catch (error) {
             if (error instanceof Error) {
                 setErro(error.message);
                 return;
             }
 
-            setErro("Ocorreu um erro inesperado");
+            setErro(
+                "Ocorreu um erro inesperado"
+            );
         }
     }
 
@@ -244,19 +292,26 @@ function App() {
             return;
         }
 
-        const texto = novoComentarioTexto.trim();
+        const texto =
+            novoComentarioTexto.trim();
 
         if (!texto) {
-            setErro("O comentário não pode estar vazio");
+            setErro(
+                "O comentário não pode estar vazio"
+            );
+
             return;
         }
 
         setErro(null);
 
         const ordemServicoId =
-            novaComentarioOrdemServicoId === "sem-os"
+            novaComentarioOrdemServicoId ===
+            "sem-os"
                 ? null
-                : Number(novaComentarioOrdemServicoId);
+                : Number(
+                    novaComentarioOrdemServicoId
+                );
 
         try {
             await adicionarComentarioApi(
@@ -268,181 +323,328 @@ function App() {
             );
 
             setNovoComentarioTexto("");
-            setNovaComentarioOrdemServicoId("sem-os");
 
-            selecionarChamado(chamadoSelecionado);
+            setNovaComentarioOrdemServicoId(
+                "sem-os"
+            );
+
+            selecionarChamado(
+                chamadoSelecionado
+            );
         } catch (error) {
             if (error instanceof Error) {
                 setErro(error.message);
                 return;
             }
 
-            setErro("Ocorreu um erro inesperado");
+            setErro(
+                "Ocorreu um erro inesperado"
+            );
         }
     }
 
     return (
-        <main className="page">
-            <header className="app-header">
-                <div>
-                    <span className="label">
-                        Smart Dispatch
+        <div className="app-shell">
+            <aside className="app-sidebar">
+                <div className="sidebar-brand">
+                    <div className="sidebar-brand-mark">
+                        SD
+                    </div>
+
+                    <div className="sidebar-brand-text">
+                        <strong>
+                            Smart Dispatch
+                        </strong>
+
+                        <span>
+                            Operação inteligente
+                        </span>
+                    </div>
+                </div>
+
+                <nav className="sidebar-navigation">
+                    <span className="sidebar-section-label">
+                        Operação
                     </span>
 
-                    <h1>Feed de chamados</h1>
-                </div>
+                    <div className="sidebar-nav-item active">
+                        <span className="sidebar-nav-icon">
+                            ◆
+                        </span>
 
-                <div className="header-actions">
-                    {!criandoChamado && (
-                        <>
-                            <select
-                                className="select"
-                                value={contratoSelecionado}
-                                onChange={(event) =>
-                                    setContratoSelecionado(
-                                        event.target.value
+                        <span>Chamados</span>
+                    </div>
+
+                    <div className="sidebar-nav-item disabled">
+                        <span className="sidebar-nav-icon">
+                            ◉
+                        </span>
+
+                        <span>Técnicos</span>
+
+                        <small>Em breve</small>
+                    </div>
+
+                    <div className="sidebar-nav-item disabled">
+                        <span className="sidebar-nav-icon">
+                            ◈
+                        </span>
+
+                        <span>Unidades</span>
+
+                        <small>Em breve</small>
+                    </div>
+
+                    <div className="sidebar-nav-item disabled">
+                        <span className="sidebar-nav-icon">
+                            ▣
+                        </span>
+
+                        <span>Contratos</span>
+
+                        <small>Em breve</small>
+                    </div>
+                </nav>
+
+                <div className="sidebar-footer">
+                    <div className="sidebar-profile-avatar">
+                        CTO
+                    </div>
+
+                    <div className="sidebar-profile-content">
+                        <strong>
+                            Visão operacional
+                        </strong>
+
+                        <span>
+                            Centro de Tecnologia
+                            Operacional
+                        </span>
+                    </div>
+                </div>
+            </aside>
+
+            <div className="app-content">
+                <header className="app-header">
+                    <div className="app-header-title">
+                        <span className="label">
+                            Central de operações
+                        </span>
+
+                        <div className="app-header-title-row">
+                            <h1>Chamados</h1>
+
+                            <span className="header-ticket-count">
+                                {chamados.length}
+                            </span>
+                        </div>
+
+                        <p>
+                            Acompanhe, distribua e
+                            gerencie os atendimentos
+                            técnicos.
+                        </p>
+                    </div>
+
+                    <div className="header-actions">
+                        {!criandoChamado && (
+                            <>
+                                <select
+                                    className="select"
+                                    value={
+                                        contratoSelecionado
+                                    }
+                                    onChange={(
+                                        event
+                                    ) =>
+                                        setContratoSelecionado(
+                                            event
+                                                .target
+                                                .value
+                                        )
+                                    }
+                                >
+                                    <option value="todos">
+                                        Todos os
+                                        contratos
+                                    </option>
+
+                                    {contratos.map(
+                                        (
+                                            contrato
+                                        ) => (
+                                            <option
+                                                key={
+                                                    contrato.id
+                                                }
+                                                value={
+                                                    contrato.id
+                                                }
+                                            >
+                                                {
+                                                    contrato.cidade
+                                                }
+                                            </option>
+                                        )
+                                    )}
+                                </select>
+
+                                <button
+                                    type="button"
+                                    className="primary-button"
+                                    onClick={() => {
+                                        setErro(
+                                            null
+                                        );
+
+                                        setCriandoChamado(
+                                            true
+                                        );
+                                    }}
+                                >
+                                    + Novo chamado
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </header>
+
+                <main className="page">
+                    {erro && (
+                        <div className="error">
+                            {erro}
+                        </div>
+                    )}
+
+                    {criandoChamado ? (
+                        <div className="create-ticket-area">
+                            <CreateTicketForm
+                                contratos={
+                                    contratos
+                                }
+                                aoCancelar={() =>
+                                    setCriandoChamado(
+                                        false
                                     )
                                 }
-                            >
-                                <option value="todos">
-                                    Todos os contratos
-                                </option>
+                                aoChamadoCriado={
+                                    chamadoCriado
+                                }
+                            />
+                        </div>
+                    ) : (
+                        <div className="layout">
+                            <TicketFeed
+                                chamados={
+                                    chamados
+                                }
+                                chamadoSelecionado={
+                                    chamadoSelecionado
+                                }
+                                carregando={
+                                    carregandoFeed
+                                }
+                                aoSelecionarChamado={
+                                    selecionarChamado
+                                }
+                            />
 
-                                {contratos.map((contrato) => (
-                                    <option
-                                        key={contrato.id}
-                                        value={contrato.id}
-                                    >
-                                        {contrato.cidade}
-                                    </option>
-                                ))}
-                            </select>
+                            <section className="detail-area">
+                                {carregandoDetalhe && (
+                                    <section className="card">
+                                        <p>
+                                            Carregando
+                                            detalhes do
+                                            chamado...
+                                        </p>
+                                    </section>
+                                )}
 
-                            <button
-                                type="button"
-                                className="primary-button"
-                                onClick={() => {
-                                    setErro(null);
-                                    setCriandoChamado(true);
-                                }}
-                            >
-                                Novo chamado
-                            </button>
-                        </>
-                    )}
-                </div>
-            </header>
+                                {!carregandoDetalhe &&
+                                    !chamadoSelecionado && (
+                                        <section className="card empty-detail">
+                                            <div className="empty-detail-icon">
+                                                ◆
+                                            </div>
 
-            {erro && (
-                <div className="error">
-                    {erro}
-                </div>
-            )}
+                                            <h2>
+                                                Selecione
+                                                um chamado
+                                            </h2>
 
-            {criandoChamado ? (
-                <div className="create-ticket-area">
-                    <CreateTicketForm
-                        contratos={contratos}
-                        aoCancelar={() =>
-                            setCriandoChamado(false)
-                        }
-                        aoChamadoCriado={chamadoCriado}
-                    />
-                </div>
-            ) : (
-                <div className="layout">
-                    <TicketFeed
-                        chamados={chamados}
-                        chamadoSelecionado={
-                            chamadoSelecionado
-                        }
-                        carregando={carregandoFeed}
-                        aoSelecionarChamado={
-                            selecionarChamado
-                        }
-                    />
+                                            <p>
+                                                Escolha um
+                                                chamado no
+                                                feed para
+                                                visualizar
+                                                os detalhes
+                                                da
+                                                operação.
+                                            </p>
+                                        </section>
+                                    )}
 
-                    <section className="detail-area">
-                        {carregandoDetalhe && (
-                            <section className="card">
-                                <p>
-                                    Carregando detalhes do chamado...
-                                </p>
+                                {!carregandoDetalhe &&
+                                    chamadoSelecionado && (
+                                        <>
+                                            <TicketDetails
+                                                chamado={
+                                                    chamadoSelecionado
+                                                }
+                                                aoStatusAtualizado={
+                                                    statusChamadoAtualizado
+                                                }
+                                            />
+
+                                            <ServiceOrderList
+                                                chamado={
+                                                    chamadoSelecionado
+                                                }
+                                                ordensServico={
+                                                    ordensServico
+                                                }
+                                                aoIniciarAtendimento={
+                                                    iniciarAtendimento
+                                                }
+                                                aoFinalizarAtendimento={
+                                                    finalizarAtendimento
+                                                }
+                                                aoOrdemCriada={
+                                                    ordemServicoCriada
+                                                }
+                                            />
+
+                                            <CommentTimeline
+                                                comentarios={
+                                                    comentarios
+                                                }
+                                                ordensServico={
+                                                    ordensServico
+                                                }
+                                                novoComentarioTexto={
+                                                    novoComentarioTexto
+                                                }
+                                                novaComentarioOrdemServicoId={
+                                                    novaComentarioOrdemServicoId
+                                                }
+                                                aoAlterarTexto={
+                                                    setNovoComentarioTexto
+                                                }
+                                                aoAlterarOrdemServico={
+                                                    setNovaComentarioOrdemServicoId
+                                                }
+                                                aoAdicionarComentario={
+                                                    adicionarComentario
+                                                }
+                                            />
+                                        </>
+                                    )}
                             </section>
-                        )}
-
-                        {!carregandoDetalhe &&
-                            !chamadoSelecionado && (
-                                <section className="card empty-detail">
-                                    <h2>
-                                        Selecione um chamado
-                                    </h2>
-
-                                    <p>
-                                        Escolha um chamado no
-                                        feed para visualizar os
-                                        detalhes.
-                                    </p>
-                                </section>
-                            )}
-
-                        {!carregandoDetalhe &&
-                            chamadoSelecionado && (
-                                <>
-                                    <TicketDetails
-                                        chamado={chamadoSelecionado}
-                                        aoStatusAtualizado={
-                                            statusChamadoAtualizado
-                                        }
-                                    />
-
-                                    <ServiceOrderList
-                                        chamado={
-                                            chamadoSelecionado
-                                        }
-                                        ordensServico={
-                                            ordensServico
-                                        }
-                                        aoIniciarAtendimento={
-                                            iniciarAtendimento
-                                        }
-                                        aoFinalizarAtendimento={
-                                            finalizarAtendimento
-                                        }
-                                        aoOrdemCriada={
-                                            ordemServicoCriada
-                                        }
-                                    />
-
-                                    <CommentTimeline
-                                        comentarios={
-                                            comentarios
-                                        }
-                                        ordensServico={
-                                            ordensServico
-                                        }
-                                        novoComentarioTexto={
-                                            novoComentarioTexto
-                                        }
-                                        novaComentarioOrdemServicoId={
-                                            novaComentarioOrdemServicoId
-                                        }
-                                        aoAlterarTexto={
-                                            setNovoComentarioTexto
-                                        }
-                                        aoAlterarOrdemServico={
-                                            setNovaComentarioOrdemServicoId
-                                        }
-                                        aoAdicionarComentario={
-                                            adicionarComentario
-                                        }
-                                    />
-                                </>
-                            )}
-                    </section>
-                </div>
-            )}
-        </main>
+                        </div>
+                    )}
+                </main>
+            </div>
+        </div>
     );
 }
 

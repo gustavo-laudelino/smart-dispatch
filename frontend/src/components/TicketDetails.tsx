@@ -83,6 +83,14 @@ function statusEhManual(
     );
 }
 
+function criarClassePrioridade(
+    prioridade: string
+) {
+    return prioridade
+        .toLowerCase()
+        .replace(/_/g, "-");
+}
+
 function TicketDetails({
                            chamado,
                            aoStatusAtualizado,
@@ -92,8 +100,10 @@ function TicketDetails({
             chamado.status
         );
 
-    const [alterandoStatus, setAlterandoStatus] =
-        useState(false);
+    const [
+        alterandoStatus,
+        setAlterandoStatus,
+    ] = useState(false);
 
     const [erroStatus, setErroStatus] =
         useState<string | null>(null);
@@ -129,23 +139,25 @@ function TicketDetails({
                 chamadoAtualizado
             );
         } catch (error) {
-            if (error instanceof Error) {
-                setErroStatus(error.message);
-                return;
-            }
-
             setErroStatus(
-                "Ocorreu um erro inesperado"
+                error instanceof Error
+                    ? error.message
+                    : "Ocorreu um erro inesperado"
             );
         } finally {
             setAlterandoStatus(false);
         }
     }
 
+    const classePrioridade =
+        criarClassePrioridade(
+            chamado.prioridade
+        );
+
     return (
-        <section className="card">
-            <header className="card-header">
-                <div>
+        <section className="card ticket-detail-card">
+            <header className="ticket-detail-header">
+                <div className="ticket-detail-heading">
                     <span className="label">
                         Chamado OSTI
                     </span>
@@ -153,44 +165,62 @@ function TicketDetails({
                     <h1>
                         {chamado.numeroChamado}
                     </h1>
+
+                    <p>
+                        {chamado.unidadeNome}
+                        <span>•</span>
+                        {chamado.contratoCidade}
+                    </p>
                 </div>
 
-                <select
-                    className="status"
-                    value={statusAtual}
-                    onChange={(event) =>
-                        alterarStatus(
-                            event.target
-                                .value as StatusChamadoManual
-                        )
-                    }
-                    disabled={alterandoStatus}
-                    title="Clique para alterar o status"
-                >
-                    {!statusEhManual(
-                        statusAtual
-                    ) && (
-                        <option
-                            value={statusAtual}
-                            disabled
-                        >
-                            {formatarStatus(
-                                statusAtual
-                            )}
-                        </option>
-                    )}
+                <div className="ticket-status-control">
+                    <span className="label">
+                        Status do chamado
+                    </span>
 
-                    {STATUS_MANUAIS.map(
-                        (opcao) => (
+                    <select
+                        className="ticket-status-select"
+                        value={statusAtual}
+                        onChange={(event) =>
+                            alterarStatus(
+                                event.target
+                                    .value as StatusChamadoManual
+                            )
+                        }
+                        disabled={alterandoStatus}
+                        title="Clique para alterar o status"
+                    >
+                        {!statusEhManual(
+                            statusAtual
+                        ) && (
                             <option
-                                key={opcao.valor}
-                                value={opcao.valor}
+                                value={statusAtual}
+                                disabled
                             >
-                                {opcao.rotulo}
+                                {formatarStatus(
+                                    statusAtual
+                                )}
                             </option>
-                        )
+                        )}
+
+                        {STATUS_MANUAIS.map(
+                            (opcao) => (
+                                <option
+                                    key={opcao.valor}
+                                    value={opcao.valor}
+                                >
+                                    {opcao.rotulo}
+                                </option>
+                            )
+                        )}
+                    </select>
+
+                    {alterandoStatus && (
+                        <small>
+                            Atualizando status...
+                        </small>
                     )}
-                </select>
+                </div>
             </header>
 
             {erroStatus && (
@@ -199,83 +229,98 @@ function TicketDetails({
                 </div>
             )}
 
-            {alterandoStatus && (
-                <p>Alterando status...</p>
-            )}
-
-            <div className="grid">
-                <div>
-                    <span className="label">
-                        Unidade
-                    </span>
-
-                    <p>{chamado.unidadeNome}</p>
-                </div>
-
-                <div>
-                    <span className="label">
-                        Contrato
-                    </span>
-
-                    <p>
-                        {chamado.contratoCidade}
-                    </p>
-                </div>
-
-                <div>
+            <div className="ticket-detail-grid">
+                <div className="ticket-detail-field">
                     <span className="label">
                         Solicitante
                     </span>
 
-                    <p>
+                    <strong>
                         {chamado.solicitante.nome}
-                    </p>
+                    </strong>
                 </div>
 
-                <div>
+                <div className="ticket-detail-field">
                     <span className="label">
                         Patrimônio
                     </span>
 
-                    <p>
+                    <strong>
                         {chamado.numeroPatrimonio ??
                             "Não informado"}
-                    </p>
+                    </strong>
                 </div>
 
-                <div>
+                <div className="ticket-detail-field">
                     <span className="label">
                         Tipo
                     </span>
 
-                    <p>{chamado.tipo}</p>
+                    <strong>
+                        {chamado.tipo}
+                    </strong>
                 </div>
 
-                <div>
+                <div className="ticket-detail-field">
+                    <span className="label">
+                        Categoria
+                    </span>
+
+                    <strong>
+                        {chamado.categoria}
+                    </strong>
+                </div>
+
+                <div className="ticket-detail-field">
                     <span className="label">
                         Prioridade
                     </span>
 
-                    <p>{chamado.prioridade}</p>
+                    <span
+                        className={`priority-badge priority-${classePrioridade}`}
+                    >
+                        {chamado.prioridade}
+                    </span>
+                </div>
+
+                <div className="ticket-detail-field">
+                    <span className="label">
+                        Unidade
+                    </span>
+
+                    <strong>
+                        {chamado.unidadeNome}
+                    </strong>
                 </div>
             </div>
 
-            <div className="description">
-                <span className="label">
-                    Descrição
-                </span>
+            <div className="ticket-description">
+                <div>
+                    <span className="label">
+                        Descrição
+                    </span>
 
-                <p>{chamado.descricao}</p>
+                    <p>
+                        {chamado.descricao}
+                    </p>
+                </div>
             </div>
 
-            <a
-                href={chamado.linkChamadoOsti}
-                target="_blank"
-                rel="noreferrer"
-                className="link"
-            >
-                Abrir chamado no OSTI
-            </a>
+            <footer className="ticket-detail-footer">
+                <span>
+                    Chamado sincronizado com o OSTI
+                </span>
+
+                <a
+                    href={chamado.linkChamadoOsti}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="link"
+                >
+                    Abrir no OSTI
+                    <span>↗</span>
+                </a>
+            </footer>
         </section>
     );
 }

@@ -25,36 +25,73 @@ type ServiceOrderListProps = {
     ) => void;
 };
 
+type StatusVisualOrdem = {
+    rotulo: string;
+    classe: string;
+};
+
 function formatarData(data: string | null) {
     if (!data) {
-        return "Não informado";
+        return "Aguardando";
     }
 
-    return new Date(data).toLocaleString("pt-BR");
+    return new Date(data).toLocaleString(
+        "pt-BR",
+        {
+            dateStyle: "short",
+            timeStyle: "short",
+        }
+    );
 }
 
 function definirStatusOrdemServico(
     ordemServico: OrdemServico
-) {
+): StatusVisualOrdem {
     if (
         ordemServico.dataCheckIn &&
         ordemServico.dataCheckOut
     ) {
-        return "Encerrada";
+        return {
+            rotulo: "Encerrada",
+            classe: "encerrada",
+        };
     }
 
     if (
         ordemServico.dataCheckIn &&
         !ordemServico.dataCheckOut
     ) {
-        return "Em atendimento";
+        return {
+            rotulo: "Em atendimento",
+            classe: "em-atendimento",
+        };
     }
 
     if (ordemServico.tecnicoId === null) {
-        return "Aguardando atribuição";
+        return {
+            rotulo: "Aguardando atribuição",
+            classe: "sem-tecnico",
+        };
     }
 
-    return "Aguardando início";
+    return {
+        rotulo: "Aguardando início",
+        classe: "aguardando-inicio",
+    };
+}
+
+function obterIniciais(nome: string | null) {
+    if (!nome) {
+        return "?";
+    }
+
+    return nome
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((parte) => parte.charAt(0))
+        .join("")
+        .toUpperCase();
 }
 
 function ServiceOrderList({
@@ -89,11 +126,28 @@ function ServiceOrderList({
     }
 
     return (
-        <section className="card">
-            <div className="service-order-header">
-                <h2 className="section-title">
-                    Ordens de serviço
-                </h2>
+        <section className="card service-orders-card">
+            <div className="service-orders-header">
+                <div>
+                    <span className="label">
+                        Execução operacional
+                    </span>
+
+                    <div className="service-orders-title-row">
+                        <h2 className="section-title">
+                            Ordens de serviço
+                        </h2>
+
+                        <span className="service-orders-count">
+                            {ordensServico.length}
+                        </span>
+                    </div>
+
+                    <p>
+                        Acompanhe a distribuição e a
+                        execução dos atendimentos.
+                    </p>
+                </div>
 
                 {!criandoOrdemServico && (
                     <button
@@ -103,7 +157,7 @@ function ServiceOrderList({
                             setCriandoOrdemServico(true)
                         }
                     >
-                        Criar ordem de serviço
+                        + Nova Ordem de Serviço
                     </button>
                 )}
             </div>
@@ -119,13 +173,29 @@ function ServiceOrderList({
             )}
 
             {ordensServico.length === 0 ? (
-                <p>
-                    Nenhuma ordem de serviço criada.
-                </p>
+                <div className="service-orders-empty">
+                    <div className="service-orders-empty-icon">
+                        OS
+                    </div>
+
+                    <h3>
+                        Nenhuma ordem de serviço
+                    </h3>
+
+                    <p>
+                        Crie uma ordem para iniciar a
+                        distribuição do atendimento.
+                    </p>
+                </div>
             ) : (
                 <div className="orders">
                     {ordensServico.map(
                         (ordemServico) => {
+                            const status =
+                                definirStatusOrdemServico(
+                                    ordemServico
+                                );
+
                             const atendimentoNaoIniciado =
                                 !ordemServico.dataCheckIn &&
                                 !ordemServico.dataCheckOut;
@@ -134,77 +204,181 @@ function ServiceOrderList({
                                 ordemEmAtribuicaoId ===
                                 ordemServico.id;
 
+                            const atribuida =
+                                ordemServico.tecnicoId !==
+                                null;
+
+                            const iniciada =
+                                ordemServico.dataCheckIn !==
+                                null;
+
+                            const encerrada =
+                                ordemServico.dataCheckOut !==
+                                null;
+
                             return (
                                 <article
                                     key={ordemServico.id}
-                                    className="order-card"
+                                    className={`order-card order-card-${status.classe}`}
                                 >
-                                    <div className="order-header">
-                                        <div>
-                                            <span className="label">
-                                                Ordem de Serviço
-                                            </span>
+                                    <header className="order-summary-header">
+                                        <div className="order-identity">
+                                            <div className="order-identity-icon">
+                                                OS
+                                            </div>
 
-                                            <h3>
-                                                {
-                                                    ordemServico.numeroOrdemServico
-                                                }
-                                            </h3>
+                                            <div>
+                                                <span className="label">
+                                                    Ordem de serviço
+                                                </span>
+
+                                                <h3>
+                                                    {
+                                                        ordemServico.numeroOrdemServico
+                                                    }
+                                                </h3>
+                                            </div>
                                         </div>
 
-                                        <span className="order-status">
-                                            {definirStatusOrdemServico(
-                                                ordemServico
-                                            )}
+                                        <span
+                                            className={`order-status order-status-${status.classe}`}
+                                        >
+                                            <span className="order-status-dot" />
+
+                                            {status.rotulo}
                                         </span>
-                                    </div>
+                                    </header>
 
-                                    <div className="grid">
-                                        <div>
+                                    <div className="order-information-grid">
+                                        <div className="order-information-field technician-field">
                                             <span className="label">
-                                                Técnico
+                                                Técnico responsável
                                             </span>
 
-                                            <p>
-                                                {ordemServico.tecnicoNome ??
-                                                    "Não atribuído"}
-                                            </p>
+                                            <div className="order-technician">
+                                                <span className="order-technician-avatar">
+                                                    {obterIniciais(
+                                                        ordemServico.tecnicoNome
+                                                    )}
+                                                </span>
+
+                                                <strong>
+                                                    {ordemServico.tecnicoNome ??
+                                                        "Não atribuído"}
+                                                </strong>
+                                            </div>
                                         </div>
 
-                                        <div>
+                                        <div className="order-information-field">
                                             <span className="label">
                                                 Unidade de atendimento
                                             </span>
 
-                                            <p>
+                                            <strong>
                                                 {
                                                     ordemServico.unidadeAtendimentoNome
                                                 }
-                                            </p>
+                                            </strong>
                                         </div>
 
-                                        <div>
+                                        <div className="order-information-field">
                                             <span className="label">
-                                                Início do atendimento
+                                                Check-in
                                             </span>
 
-                                            <p>
+                                            <strong>
                                                 {formatarData(
                                                     ordemServico.dataCheckIn
                                                 )}
-                                            </p>
+                                            </strong>
                                         </div>
 
-                                        <div>
+                                        <div className="order-information-field">
                                             <span className="label">
-                                                Finalização do atendimento
+                                                Check-out
                                             </span>
 
-                                            <p>
+                                            <strong>
                                                 {formatarData(
                                                     ordemServico.dataCheckOut
                                                 )}
-                                            </p>
+                                            </strong>
+                                        </div>
+                                    </div>
+
+                                    <div className="order-progress">
+                                        <div
+                                            className={`order-progress-step ${
+                                                atribuida
+                                                    ? "completed"
+                                                    : "current"
+                                            }`}
+                                        >
+                                            <span className="order-progress-marker">
+                                                {atribuida
+                                                    ? "✓"
+                                                    : "1"}
+                                            </span>
+
+                                            <span>
+                                                Técnico atribuído
+                                            </span>
+                                        </div>
+
+                                        <div
+                                            className={`order-progress-line ${
+                                                iniciada
+                                                    ? "completed"
+                                                    : ""
+                                            }`}
+                                        />
+
+                                        <div
+                                            className={`order-progress-step ${
+                                                iniciada
+                                                    ? "completed"
+                                                    : atribuida
+                                                        ? "current"
+                                                        : ""
+                                            }`}
+                                        >
+                                            <span className="order-progress-marker">
+                                                {iniciada
+                                                    ? "✓"
+                                                    : "2"}
+                                            </span>
+
+                                            <span>
+                                                Atendimento iniciado
+                                            </span>
+                                        </div>
+
+                                        <div
+                                            className={`order-progress-line ${
+                                                encerrada
+                                                    ? "completed"
+                                                    : ""
+                                            }`}
+                                        />
+
+                                        <div
+                                            className={`order-progress-step ${
+                                                encerrada
+                                                    ? "completed"
+                                                    : iniciada
+                                                        ? "current"
+                                                        : ""
+                                            }`}
+                                        >
+                                            <span className="order-progress-marker">
+                                                {encerrada
+                                                    ? "✓"
+                                                    : "3"}
+                                            </span>
+
+                                            <span>
+                                                Atendimento concluído
+                                            </span>
                                         </div>
                                     </div>
 
