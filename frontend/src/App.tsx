@@ -655,7 +655,7 @@ function App() {
                                                 chamado={
                                                     chamadoSelecionado
                                                 }
-                                                aoStatusAtualizado={
+                                                aoChamadoAtualizado={
                                                     statusChamadoAtualizado
                                                 }
                                             />
