@@ -5,12 +5,13 @@ import type {
     ComentarioChamado,
     Contrato,
     ErroResponse,
+    HistoricoChamado,
     OrdemServico,
     OrdemServicoRequest,
     StatusChamadoManual,
+    SugestaoTecnico,
     Tecnico,
     Unidade,
-    SugestaoTecnico,
 } from "./types";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -137,6 +138,24 @@ export async function buscarComentarios(
 
     if (!response.ok) {
         throw new Error("Erro ao buscar comentários");
+    }
+
+    return response.json();
+}
+
+export async function buscarHistoricoChamado(
+    contratoId: number,
+    chamadoId: number
+): Promise<HistoricoChamado[]> {
+    const response = await fetch(
+        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/historico`
+    );
+
+    if (!response.ok) {
+        const mensagemErro =
+            await extrairMensagemErro(response);
+
+        throw new Error(mensagemErro);
     }
 
     return response.json();

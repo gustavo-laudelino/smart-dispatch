@@ -679,6 +679,9 @@ function App() {
                                             />
 
                                             <CommentTimeline
+                                                chamado={
+                                                    chamadoSelecionado
+                                                }
                                                 comentarios={
                                                     comentarios
                                                 }

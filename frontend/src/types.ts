@@ -141,3 +141,29 @@ export type SugestaoTecnico = {
     nivelIndicacao: NivelIndicacao;
     estrelas: number;
 };
+
+export type TipoEventoChamado =
+    | "CHAMADO_CRIADO"
+    | "DADOS_CHAMADO_ALTERADOS"
+    | "STATUS_ALTERADO"
+    | "ORDEM_SERVICO_CRIADA"
+    | "ORDEM_SERVICO_ALTERADA"
+    | "TECNICO_ATRIBUIDO"
+    | "TECNICO_ALTERADO"
+    | "TECNICO_REMOVIDO"
+    | "UNIDADE_ORDEM_ALTERADA"
+    | "ATENDIMENTO_INICIADO"
+    | "ATENDIMENTO_FINALIZADO"
+    | "ATENDIMENTO_FINALIZADO_AUTOMATICAMENTE";
+
+export type HistoricoChamado = {
+    id: number;
+    chamadoId: number;
+
+    ordemServicoId: number | null;
+    numeroOrdemServico: string | null;
+
+    tipoEvento: TipoEventoChamado;
+    descricao: string;
+    dataEvento: string;
+};
