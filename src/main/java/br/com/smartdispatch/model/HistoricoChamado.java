@@ -1,49 +1,76 @@
 package br.com.smartdispatch.model;
 
-import br.com.smartdispatch.enums.TipoEventoHistorico;
+import br.com.smartdispatch.enums.TipoEventoChamado;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
+@Entity
+@Table(
+        name = "historicos_chamado",
+        indexes = {
+                @Index(
+                        name = "idx_historico_chamado_data",
+                        columnList = "chamado_id, data_evento"
+                )
+        }
+)
 public class HistoricoChamado {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne
+    @JoinColumn(
+            name = "chamado_id",
+            nullable = false
+    )
     private Chamado chamado;
-    private Usuario usuario;
-    private TipoEventoHistorico tipoEvento;
-    private String mensagem;
-    private LocalDateTime dataHora;
+
+    @ManyToOne
+    @JoinColumn(name = "ordem_servico_id")
+    private OrdemServico ordemServico;
+
+    @Enumerated(EnumType.STRING)
+    @Column(
+            name = "tipo_evento",
+            nullable = false,
+            length = 60
+    )
+    private TipoEventoChamado tipoEvento;
+
+    @Column(
+            nullable = false,
+            length = 1000
+    )
+    private String descricao;
+
+    @Column(
+            name = "data_evento",
+            nullable = false
+    )
+    private LocalDateTime dataEvento;
 
     public HistoricoChamado() {
-        this.dataHora = LocalDateTime.now();
     }
 
-    public HistoricoChamado(
-            Chamado chamado,
-            Usuario usuario,
-            TipoEventoHistorico tipoEvento,
-            String mensagem
-    ) {
-        if (chamado == null) {
-            throw new IllegalArgumentException("O chamado não pode ser nulo.");
+    @PrePersist
+    public void definirDataEvento() {
+        if (dataEvento == null) {
+            dataEvento = LocalDateTime.now();
         }
-
-        if (usuario == null) {
-            throw new IllegalArgumentException("O usuário não pode ser nulo.");
-        }
-
-        if (tipoEvento == null) {
-            throw new IllegalArgumentException("O tipo do evento não pode ser nulo.");
-        }
-
-        if (mensagem == null || mensagem.isBlank()) {
-            throw new IllegalArgumentException("A mensagem não pode estar vazia.");
-        }
-
-        this.chamado = chamado;
-        this.usuario = usuario;
-        this.tipoEvento = tipoEvento;
-        this.mensagem = mensagem;
-        this.dataHora = LocalDateTime.now();
     }
 
     public Long getId() {
@@ -58,39 +85,49 @@ public class HistoricoChamado {
         return chamado;
     }
 
-    public void setChamado(Chamado chamado) {
+    public void setChamado(
+            Chamado chamado
+    ) {
         this.chamado = chamado;
     }
 
-    public Usuario getUsuario() {
-        return usuario;
+    public OrdemServico getOrdemServico() {
+        return ordemServico;
     }
 
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
+    public void setOrdemServico(
+            OrdemServico ordemServico
+    ) {
+        this.ordemServico = ordemServico;
     }
 
-    public TipoEventoHistorico getTipoEvento() {
+    public TipoEventoChamado getTipoEvento() {
         return tipoEvento;
     }
 
-    public void setTipoEvento(TipoEventoHistorico tipoEvento) {
+    public void setTipoEvento(
+            TipoEventoChamado tipoEvento
+    ) {
         this.tipoEvento = tipoEvento;
     }
 
-    public String getMensagem() {
-        return mensagem;
+    public String getDescricao() {
+        return descricao;
     }
 
-    public void setMensagem(String mensagem) {
-        this.mensagem = mensagem;
+    public void setDescricao(
+            String descricao
+    ) {
+        this.descricao = descricao;
     }
 
-    public LocalDateTime getDataHora() {
-        return dataHora;
+    public LocalDateTime getDataEvento() {
+        return dataEvento;
     }
 
-    public void setDataHora(LocalDateTime dataHora) {
-        this.dataHora = dataHora;
+    public void setDataEvento(
+            LocalDateTime dataEvento
+    ) {
+        this.dataEvento = dataEvento;
     }
 }

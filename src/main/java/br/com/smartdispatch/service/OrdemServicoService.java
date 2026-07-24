@@ -4,6 +4,7 @@ import br.com.smartdispatch.dto.CheckInRequest;
 import br.com.smartdispatch.dto.OrdemServicoRequest;
 import br.com.smartdispatch.dto.OrdemServicoResponse;
 import br.com.smartdispatch.enums.StatusChamado;
+import br.com.smartdispatch.enums.TipoEventoChamado;
 import br.com.smartdispatch.model.Chamado;
 import br.com.smartdispatch.model.OrdemServico;
 import br.com.smartdispatch.model.Tecnico;
@@ -16,6 +17,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class OrdemServicoService {
@@ -24,17 +26,29 @@ public class OrdemServicoService {
     private final ChamadoService chamadoService;
     private final TecnicoService tecnicoService;
     private final UnidadeService unidadeService;
+    private final HistoricoChamadoService historicoChamadoService;
 
     public OrdemServicoService(
             OrdemServicoRepository ordemServicoRepository,
             ChamadoService chamadoService,
             TecnicoService tecnicoService,
-            UnidadeService unidadeService
+            UnidadeService unidadeService,
+            HistoricoChamadoService historicoChamadoService
     ) {
-        this.ordemServicoRepository = ordemServicoRepository;
-        this.chamadoService = chamadoService;
-        this.tecnicoService = tecnicoService;
-        this.unidadeService = unidadeService;
+        this.ordemServicoRepository =
+                ordemServicoRepository;
+
+        this.chamadoService =
+                chamadoService;
+
+        this.tecnicoService =
+                tecnicoService;
+
+        this.unidadeService =
+                unidadeService;
+
+        this.historicoChamadoService =
+                historicoChamadoService;
     }
 
     @Transactional
@@ -45,20 +59,26 @@ public class OrdemServicoService {
     ) {
         validarRequest(request);
 
-        Chamado chamado = chamadoService.buscarEntidadePorId(
-                contratoId,
-                chamadoId
+        Chamado chamado =
+                chamadoService.buscarEntidadePorId(
+                        contratoId,
+                        chamadoId
+                );
+
+        validarChamadoPermiteNovaOrdem(
+                chamado
         );
 
-        validarChamadoPermiteNovaOrdem(chamado);
-
         String numeroOrdemServico =
-                request.getNumeroOrdemServico().trim();
+                request
+                        .getNumeroOrdemServico()
+                        .trim();
 
         boolean numeroJaCadastrado =
-                ordemServicoRepository.existsByNumeroOrdemServico(
-                        numeroOrdemServico
-                );
+                ordemServicoRepository
+                        .existsByNumeroOrdemServico(
+                                numeroOrdemServico
+                        );
 
         if (numeroJaCadastrado) {
             throw new ResponseStatusException(
@@ -70,24 +90,38 @@ public class OrdemServicoService {
         Tecnico tecnico = null;
 
         if (request.getTecnicoId() != null) {
-            tecnico = tecnicoService.buscarEntidadePorId(
-                    contratoId,
-                    request.getTecnicoId()
-            );
+            tecnico =
+                    tecnicoService.buscarEntidadePorId(
+                            contratoId,
+                            request.getTecnicoId()
+                    );
         }
 
-        Unidade unidadeAtendimento = definirUnidadeAtendimento(
-                contratoId,
-                chamado,
-                request.getUnidadeAtendimentoId()
+        Unidade unidadeAtendimento =
+                definirUnidadeAtendimento(
+                        contratoId,
+                        chamado,
+                        request.getUnidadeAtendimentoId()
+                );
+
+        OrdemServico ordemServico =
+                new OrdemServico();
+
+        ordemServico.setNumeroOrdemServico(
+                numeroOrdemServico
         );
 
-        OrdemServico ordemServico = new OrdemServico();
+        ordemServico.setChamado(
+                chamado
+        );
 
-        ordemServico.setNumeroOrdemServico(numeroOrdemServico);
-        ordemServico.setChamado(chamado);
-        ordemServico.setTecnico(tecnico);
-        ordemServico.setUnidadeAtendimento(unidadeAtendimento);
+        ordemServico.setTecnico(
+                tecnico
+        );
+
+        ordemServico.setUnidadeAtendimento(
+                unidadeAtendimento
+        );
 
         if (tecnico != null) {
             ordemServico.setDataAtribuicaoTecnico(
@@ -100,7 +134,33 @@ public class OrdemServicoService {
                         ordemServico
                 );
 
-        recalcularStatusOperacionalDoChamado(chamado);
+        historicoChamadoService.registrar(
+                chamado,
+                ordemServicoSalva,
+                TipoEventoChamado.ORDEM_SERVICO_CRIADA,
+                "Ordem de serviço "
+                        + numeroOrdemServico
+                        + " criada para a unidade "
+                        + unidadeAtendimento.getNome()
+                        + "."
+        );
+
+        if (tecnico != null) {
+            historicoChamadoService.registrar(
+                    chamado,
+                    ordemServicoSalva,
+                    TipoEventoChamado.TECNICO_ATRIBUIDO,
+                    "Técnico "
+                            + obterNomeTecnico(tecnico)
+                            + " atribuído à OS "
+                            + numeroOrdemServico
+                            + "."
+            );
+        }
+
+        recalcularStatusOperacionalDoChamado(
+                chamado
+        );
 
         return converterParaResponse(
                 ordemServicoSalva
@@ -118,7 +178,9 @@ public class OrdemServicoService {
         );
 
         return ordemServicoRepository
-                .findByChamadoId(chamadoId)
+                .findByChamadoId(
+                        chamadoId
+                )
                 .stream()
                 .map(this::converterParaResponse)
                 .toList();
@@ -133,21 +195,33 @@ public class OrdemServicoService {
     ) {
         validarRequest(request);
 
-        OrdemServico ordemServico = buscarEntidadePorId(
-                contratoId,
-                chamadoId,
-                ordemServicoId
-        );
+        OrdemServico ordemServico =
+                buscarEntidadePorId(
+                        contratoId,
+                        chamadoId,
+                        ordemServicoId
+                );
+
+        String numeroAnterior =
+                ordemServico
+                        .getNumeroOrdemServico();
+
+        Tecnico tecnicoAnterior =
+                ordemServico.getTecnico();
 
         Long tecnicoAnteriorId =
-                ordemServico.getTecnico() == null
+                tecnicoAnterior == null
                         ? null
-                        : ordemServico
-                          .getTecnico()
-                          .getId();
+                        : tecnicoAnterior.getId();
+
+        Unidade unidadeAnterior =
+                ordemServico
+                        .getUnidadeAtendimento();
 
         String numeroOrdemServico =
-                request.getNumeroOrdemServico().trim();
+                request
+                        .getNumeroOrdemServico()
+                        .trim();
 
         boolean numeroPertenceAOutraOrdem =
                 ordemServicoRepository
@@ -171,15 +245,20 @@ public class OrdemServicoService {
             if (request.getTecnicoId() == null) {
                 tecnico = null;
             } else {
-                tecnico = tecnicoService.buscarEntidadePorId(
-                        contratoId,
-                        request.getTecnicoId()
-                );
+                tecnico =
+                        tecnicoService.buscarEntidadePorId(
+                                contratoId,
+                                request.getTecnicoId()
+                        );
             }
 
-            if (request.getUnidadeAtendimentoId() == null) {
+            if (
+                    request.getUnidadeAtendimentoId()
+                            == null
+            ) {
                 unidadeAtendimento =
-                        ordemServico.getUnidadeAtendimento();
+                        ordemServico
+                                .getUnidadeAtendimento();
             } else {
                 unidadeAtendimento =
                         unidadeService.buscarPorId(
@@ -196,7 +275,9 @@ public class OrdemServicoService {
                             || !ordemServico
                             .getTecnico()
                             .getId()
-                            .equals(request.getTecnicoId())
+                            .equals(
+                                    request.getTecnicoId()
+                            )
             ) {
                 throw new ResponseStatusException(
                         HttpStatus.CONFLICT,
@@ -210,7 +291,8 @@ public class OrdemServicoService {
                             .getUnidadeAtendimento()
                             .getId()
                             .equals(
-                                    request.getUnidadeAtendimentoId()
+                                    request
+                                            .getUnidadeAtendimentoId()
                             )
             ) {
                 throw new ResponseStatusException(
@@ -219,17 +301,21 @@ public class OrdemServicoService {
                 );
             }
 
-            tecnico = ordemServico.getTecnico();
+            tecnico =
+                    ordemServico.getTecnico();
 
             unidadeAtendimento =
-                    ordemServico.getUnidadeAtendimento();
+                    ordemServico
+                            .getUnidadeAtendimento();
         }
 
         ordemServico.setNumeroOrdemServico(
                 numeroOrdemServico
         );
 
-        ordemServico.setTecnico(tecnico);
+        ordemServico.setTecnico(
+                tecnico
+        );
 
         ordemServico.setUnidadeAtendimento(
                 unidadeAtendimento
@@ -245,6 +331,13 @@ public class OrdemServicoService {
                 ordemServicoRepository.saveAndFlush(
                         ordemServico
                 );
+
+        registrarEventosAtualizacao(
+                ordemServicoAtualizada,
+                numeroAnterior,
+                tecnicoAnterior,
+                unidadeAnterior
+        );
 
         recalcularStatusOperacionalDoChamado(
                 ordemServicoAtualizada.getChamado()
@@ -262,11 +355,12 @@ public class OrdemServicoService {
             Long ordemServicoId,
             CheckInRequest request
     ) {
-        OrdemServico ordemServico = buscarEntidadePorId(
-                contratoId,
-                chamadoId,
-                ordemServicoId
-        );
+        OrdemServico ordemServico =
+                buscarEntidadePorId(
+                        contratoId,
+                        chamadoId,
+                        ordemServicoId
+                );
 
         if (ordemServico.getDataCheckOut() != null) {
             throw new ResponseStatusException(
@@ -282,7 +376,8 @@ public class OrdemServicoService {
             );
         }
 
-        Tecnico tecnico = ordemServico.getTecnico();
+        Tecnico tecnico =
+                ordemServico.getTecnico();
 
         if (tecnico == null) {
             throw new ResponseStatusException(
@@ -313,7 +408,8 @@ public class OrdemServicoService {
             boolean encerrarAnterior =
                     request != null
                             && Boolean.TRUE.equals(
-                            request.getEncerrarCheckInAnterior()
+                            request
+                                    .getEncerrarCheckInAnterior()
                     );
 
             if (!encerrarAnterior) {
@@ -334,9 +430,10 @@ public class OrdemServicoService {
                 );
             }
 
-            realizarCheckOutAutomatico(
+            concluirAtendimento(
                     ordemAtivaAnterior,
-                    momentoCheckIn
+                    momentoCheckIn,
+                    true
             );
         }
 
@@ -351,9 +448,21 @@ public class OrdemServicoService {
                 );
 
         OrdemServico ordemServicoAtualizada =
-                ordemServicoRepository.save(
+                ordemServicoRepository.saveAndFlush(
                         ordemServico
                 );
+
+        historicoChamadoService.registrar(
+                ordemServicoAtualizada.getChamado(),
+                ordemServicoAtualizada,
+                TipoEventoChamado.ATENDIMENTO_INICIADO,
+                "Atendimento iniciado na OS "
+                        + ordemServicoAtualizada
+                        .getNumeroOrdemServico()
+                        + " pelo técnico "
+                        + obterNomeTecnico(tecnico)
+                        + "."
+        );
 
         return converterParaResponse(
                 ordemServicoAtualizada
@@ -366,11 +475,12 @@ public class OrdemServicoService {
             Long chamadoId,
             Long ordemServicoId
     ) {
-        OrdemServico ordemServico = buscarEntidadePorId(
-                contratoId,
-                chamadoId,
-                ordemServicoId
-        );
+        OrdemServico ordemServico =
+                buscarEntidadePorId(
+                        contratoId,
+                        chamadoId,
+                        ordemServicoId
+                );
 
         if (ordemServico.getDataCheckIn() == null) {
             throw new ResponseStatusException(
@@ -386,9 +496,10 @@ public class OrdemServicoService {
             );
         }
 
-        realizarCheckOutAutomatico(
+        concluirAtendimento(
                 ordemServico,
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                false
         );
 
         return converterParaResponse(
@@ -503,21 +614,210 @@ public class OrdemServicoService {
         }
     }
 
-    private void realizarCheckOutAutomatico(
-            OrdemServico ordemServicoAtiva,
-            LocalDateTime momentoCheckOut
+    private void registrarEventosAtualizacao(
+            OrdemServico ordemServico,
+            String numeroAnterior,
+            Tecnico tecnicoAnterior,
+            Unidade unidadeAnterior
     ) {
-        ordemServicoAtiva.setDataCheckOut(
+        Chamado chamado =
+                ordemServico.getChamado();
+
+        String numeroAtual =
+                ordemServico
+                        .getNumeroOrdemServico();
+
+        Tecnico tecnicoAtual =
+                ordemServico.getTecnico();
+
+        Unidade unidadeAtual =
+                ordemServico
+                        .getUnidadeAtendimento();
+
+        if (
+                !Objects.equals(
+                        numeroAnterior,
+                        numeroAtual
+                )
+        ) {
+            historicoChamadoService.registrar(
+                    chamado,
+                    ordemServico,
+                    TipoEventoChamado.ORDEM_SERVICO_ALTERADA,
+                    "Número da ordem de serviço alterado de "
+                            + numeroAnterior
+                            + " para "
+                            + numeroAtual
+                            + "."
+            );
+        }
+
+        registrarEventoTecnico(
+                chamado,
+                ordemServico,
+                tecnicoAnterior,
+                tecnicoAtual
+        );
+
+        if (
+                unidadeAnterior != null
+                        && unidadeAtual != null
+                        && !Objects.equals(
+                        unidadeAnterior.getId(),
+                        unidadeAtual.getId()
+                )
+        ) {
+            historicoChamadoService.registrar(
+                    chamado,
+                    ordemServico,
+                    TipoEventoChamado.UNIDADE_ORDEM_ALTERADA,
+                    "Unidade da OS "
+                            + numeroAtual
+                            + " alterada de "
+                            + unidadeAnterior.getNome()
+                            + " para "
+                            + unidadeAtual.getNome()
+                            + "."
+            );
+        }
+    }
+
+    private void registrarEventoTecnico(
+            Chamado chamado,
+            OrdemServico ordemServico,
+            Tecnico tecnicoAnterior,
+            Tecnico tecnicoAtual
+    ) {
+        Long tecnicoAnteriorId =
+                tecnicoAnterior == null
+                        ? null
+                        : tecnicoAnterior.getId();
+
+        Long tecnicoAtualId =
+                tecnicoAtual == null
+                        ? null
+                        : tecnicoAtual.getId();
+
+        if (
+                Objects.equals(
+                        tecnicoAnteriorId,
+                        tecnicoAtualId
+                )
+        ) {
+            return;
+        }
+
+        String numeroOrdemServico =
+                ordemServico
+                        .getNumeroOrdemServico();
+
+        if (
+                tecnicoAnterior == null
+                        && tecnicoAtual != null
+        ) {
+            historicoChamadoService.registrar(
+                    chamado,
+                    ordemServico,
+                    TipoEventoChamado.TECNICO_ATRIBUIDO,
+                    "Técnico "
+                            + obterNomeTecnico(tecnicoAtual)
+                            + " atribuído à OS "
+                            + numeroOrdemServico
+                            + "."
+            );
+
+            return;
+        }
+
+        if (
+                tecnicoAnterior != null
+                        && tecnicoAtual == null
+        ) {
+            historicoChamadoService.registrar(
+                    chamado,
+                    ordemServico,
+                    TipoEventoChamado.TECNICO_REMOVIDO,
+                    "Técnico "
+                            + obterNomeTecnico(tecnicoAnterior)
+                            + " removido da OS "
+                            + numeroOrdemServico
+                            + "."
+            );
+
+            return;
+        }
+
+        historicoChamadoService.registrar(
+                chamado,
+                ordemServico,
+                TipoEventoChamado.TECNICO_ALTERADO,
+                "Técnico da OS "
+                        + numeroOrdemServico
+                        + " alterado de "
+                        + obterNomeTecnico(tecnicoAnterior)
+                        + " para "
+                        + obterNomeTecnico(tecnicoAtual)
+                        + "."
+        );
+    }
+
+    private void concluirAtendimento(
+            OrdemServico ordemServico,
+            LocalDateTime momentoCheckOut,
+            boolean automatico
+    ) {
+        ordemServico.setDataCheckOut(
                 momentoCheckOut
         );
 
         ordemServicoRepository.saveAndFlush(
-                ordemServicoAtiva
+                ordemServico
         );
 
         recalcularStatusOperacionalDoChamado(
-                ordemServicoAtiva.getChamado()
+                ordemServico.getChamado()
         );
+
+        TipoEventoChamado tipoEvento =
+                automatico
+                        ? TipoEventoChamado
+                          .ATENDIMENTO_FINALIZADO_AUTOMATICAMENTE
+                        : TipoEventoChamado
+                          .ATENDIMENTO_FINALIZADO;
+
+        String descricao =
+                automatico
+                        ? "Atendimento da OS "
+                          + ordemServico.getNumeroOrdemServico()
+                          + " finalizado automaticamente para permitir o início de outra ordem de serviço."
+                        : "Atendimento da OS "
+                          + ordemServico.getNumeroOrdemServico()
+                          + " finalizado.";
+
+        historicoChamadoService.registrar(
+                ordemServico.getChamado(),
+                ordemServico,
+                tipoEvento,
+                descricao
+        );
+    }
+
+    private String obterNomeTecnico(
+            Tecnico tecnico
+    ) {
+        if (
+                tecnico == null
+                        || tecnico.getUsuario() == null
+                        || tecnico
+                        .getUsuario()
+                        .getNome() == null
+        ) {
+            return "não informado";
+        }
+
+        return tecnico
+                .getUsuario()
+                .getNome();
     }
 
     private void recalcularStatusOperacionalDoChamado(
@@ -577,18 +877,20 @@ public class OrdemServicoService {
                 ordemServico.getTecnico();
 
         Unidade unidadeAtendimento =
-                ordemServico.getUnidadeAtendimento();
+                ordemServico
+                        .getUnidadeAtendimento();
 
         Long tecnicoId = null;
         String tecnicoNome = null;
 
         if (tecnico != null) {
-            tecnicoId = tecnico.getId();
+            tecnicoId =
+                    tecnico.getId();
 
             tecnicoNome =
-                    tecnico
-                            .getUsuario()
-                            .getNome();
+                    obterNomeTecnico(
+                            tecnico
+                    );
         }
 
         return new OrdemServicoResponse(
