@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+import {
+    useEffect,
+    useState,
+} from "react";
 
 import {
     atualizarOrdemServico,
@@ -38,6 +41,32 @@ function formatarNivelIndicacao(
     }
 }
 
+function obterIniciais(
+    nome: string
+) {
+    return nome
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((parte) =>
+            parte.charAt(0)
+        )
+        .join("")
+        .toUpperCase();
+}
+
+function formatarDistancia(
+    distanciaKm: number
+) {
+    return distanciaKm.toLocaleString(
+        "pt-BR",
+        {
+            minimumFractionDigits: 1,
+            maximumFractionDigits: 1,
+        }
+    );
+}
+
 function AssignTechnicianForm({
                                   chamado,
                                   ordemServico,
@@ -47,26 +76,53 @@ function AssignTechnicianForm({
     const possuiTecnico =
         ordemServico.tecnicoId !== null;
 
-    const [sugestoes, setSugestoes] =
-        useState<SugestaoTecnico[]>([]);
+    const [
+        sugestoes,
+        setSugestoes,
+    ] = useState<SugestaoTecnico[]>([]);
 
-    const [carregando, setCarregando] =
-        useState(true);
+    const [
+        tecnicoSelecionadoId,
+        setTecnicoSelecionadoId,
+    ] = useState<number | null>(
+        ordemServico.tecnicoId
+    );
+
+    const [
+        carregando,
+        setCarregando,
+    ] = useState(true);
 
     const [
         tecnicoEmProcessamentoId,
         setTecnicoEmProcessamentoId,
     ] = useState<number | null>(null);
 
-    const [removendo, setRemovendo] =
-        useState(false);
+    const [
+        removendo,
+        setRemovendo,
+    ] = useState(false);
 
-    const [erro, setErro] =
-        useState<string | null>(null);
+    const [
+        erro,
+        setErro,
+    ] = useState<string | null>(null);
 
     const processando =
         tecnicoEmProcessamentoId !== null ||
         removendo;
+
+    const tecnicoSelecionado =
+        sugestoes.find(
+            (sugestao) =>
+                sugestao.tecnicoId ===
+                tecnicoSelecionadoId
+        ) ?? null;
+
+    const tecnicoSelecionadoEhAtual =
+        tecnicoSelecionadoId !== null &&
+        tecnicoSelecionadoId ===
+        ordemServico.tecnicoId;
 
     useEffect(() => {
         setCarregando(true);
@@ -77,7 +133,13 @@ function AssignTechnicianForm({
             chamado.id,
             ordemServico.id
         )
-            .then(setSugestoes)
+            .then((dados) => {
+                setSugestoes(dados);
+
+                setTecnicoSelecionadoId(
+                    ordemServico.tecnicoId
+                );
+            })
             .catch((error: Error) => {
                 setErro(error.message);
             })
@@ -88,6 +150,7 @@ function AssignTechnicianForm({
         chamado.contratoId,
         chamado.id,
         ordemServico.id,
+        ordemServico.tecnicoId,
     ]);
 
     async function atualizarTecnico(
@@ -98,6 +161,7 @@ function AssignTechnicianForm({
             ordemServico.numeroOrdemServico,
 
             tecnicoId,
+
             unidadeAtendimentoId: null,
         };
 
@@ -109,18 +173,24 @@ function AssignTechnicianForm({
         );
     }
 
-    async function selecionarTecnico(
-        sugestao: SugestaoTecnico
-    ) {
+    async function confirmarTecnico() {
+        if (
+            tecnicoSelecionado === null ||
+            tecnicoSelecionadoEhAtual
+        ) {
+            return;
+        }
+
         setErro(null);
+
         setTecnicoEmProcessamentoId(
-            sugestao.tecnicoId
+            tecnicoSelecionado.tecnicoId
         );
 
         try {
             const ordemAtualizada =
                 await atualizarTecnico(
-                    sugestao.tecnicoId
+                    tecnicoSelecionado.tecnicoId
                 );
 
             await aoTecnicoAtribuido(
@@ -133,7 +203,9 @@ function AssignTechnicianForm({
                     : "Ocorreu um erro inesperado"
             );
         } finally {
-            setTecnicoEmProcessamentoId(null);
+            setTecnicoEmProcessamentoId(
+                null
+            );
         }
     }
 
@@ -142,9 +214,10 @@ function AssignTechnicianForm({
             return;
         }
 
-        const confirmou = window.confirm(
-            `Deseja remover o técnico ${ordemServico.tecnicoNome} desta ordem de serviço?`
-        );
+        const confirmou =
+            window.confirm(
+                `Deseja remover o técnico ${ordemServico.tecnicoNome} desta ordem de serviço?`
+            );
 
         if (!confirmou) {
             return;
@@ -155,7 +228,9 @@ function AssignTechnicianForm({
 
         try {
             const ordemAtualizada =
-                await atualizarTecnico(null);
+                await atualizarTecnico(
+                    null
+                );
 
             await aoTecnicoAtribuido(
                 ordemAtualizada
@@ -172,98 +247,203 @@ function AssignTechnicianForm({
     }
 
     return (
-        <section className="assign-technician-form">
-            <div className="technician-selection-header">
+        <section className="assign-technician-form technician-ranking-panel">
+            <header className="technician-selection-header">
                 <div>
                     <span className="label">
                         Smart Dispatch
                     </span>
 
-                    <h3>Selecionar técnico</h3>
+                    <h3>
+                        Selecionar técnico
+                    </h3>
 
                     <p>
-                        Sugestões baseadas em proximidade
-                        e carga operacional.
+                        Compare distância, carga atual
+                        e distribuição recente.
                     </p>
                 </div>
 
                 <button
                     type="button"
-                    className="secondary-button"
+                    className="technician-drawer-close"
                     onClick={aoCancelar}
                     disabled={processando}
+                    aria-label="Fechar seleção de técnicos"
                 >
-                    Fechar
+                    ×
                 </button>
-            </div>
+            </header>
 
-            {possuiTecnico && (
-                <p className="current-technician">
-                    Técnico atual:{" "}
+            <div className="technician-ranking-body">
+                <div className="technician-ranking-context">
+                    <span>
+                        Ordem de serviço
+                    </span>
+
                     <strong>
-                        {ordemServico.tecnicoNome}
+                        {
+                            ordemServico.numeroOrdemServico
+                        }
                     </strong>
-                </p>
-            )}
 
-            {erro && (
-                <div className="error">
-                    {erro}
+                    <small>
+                        {
+                            ordemServico
+                                .unidadeAtendimentoNome
+                        }
+                    </small>
                 </div>
-            )}
 
-            {carregando && (
-                <p>Calculando sugestões...</p>
-            )}
+                {possuiTecnico && (
+                    <div className="technician-current-summary">
+                        <span>
+                            Técnico atual
+                        </span>
 
-            {!carregando &&
-                sugestoes.length === 0 && (
-                    <p>
-                        Nenhum técnico disponível para
-                        este chamado.
-                    </p>
+                        <strong>
+                            {
+                                ordemServico.tecnicoNome
+                            }
+                        </strong>
+                    </div>
                 )}
 
-            {!carregando &&
-                sugestoes.length > 0 && (
-                    <div className="technician-suggestion-list">
-                        {sugestoes.map(
-                            (sugestao, index) => {
-                                const tecnicoAtual =
-                                    ordemServico.tecnicoId ===
-                                    sugestao.tecnicoId;
+                {erro && (
+                    <div className="technician-drawer-error">
+                        {erro}
+                    </div>
+                )}
 
-                                const salvando =
-                                    tecnicoEmProcessamentoId ===
-                                    sugestao.tecnicoId;
+                {carregando && (
+                    <div className="technician-ranking-loading">
+                        <span className="technician-loading-spinner" />
 
-                                return (
-                                    <article
-                                        key={
-                                            sugestao.tecnicoId
-                                        }
-                                        className={`technician-suggestion-card ${
-                                            index === 0
-                                                ? "best-suggestion"
-                                                : ""
-                                        }`}
-                                    >
-                                        <div className="technician-suggestion-content">
-                                            {index === 0 && (
-                                                <span className="best-suggestion-label">
-                                                    Melhor indicação
+                        <strong>
+                            Calculando sugestões
+                        </strong>
+
+                        <p>
+                            Analisando distância e
+                            carga operacional.
+                        </p>
+                    </div>
+                )}
+
+                {!carregando &&
+                    sugestoes.length === 0 && (
+                        <div className="technician-ranking-empty">
+                            <strong>
+                                Nenhum técnico disponível
+                            </strong>
+
+                            <p>
+                                Não encontramos técnicos
+                                ativos para este contrato.
+                            </p>
+                        </div>
+                    )}
+
+                {!carregando &&
+                    sugestoes.length > 0 && (
+                        <div className="technician-suggestion-list">
+                            {sugestoes.map(
+                                (
+                                    sugestao,
+                                    index
+                                ) => {
+                                    const selecionado =
+                                        tecnicoSelecionadoId ===
+                                        sugestao.tecnicoId;
+
+                                    const tecnicoAtual =
+                                        ordemServico.tecnicoId ===
+                                        sugestao.tecnicoId;
+
+                                    return (
+                                        <button
+                                            type="button"
+                                            key={
+                                                sugestao.tecnicoId
+                                            }
+                                            className={`technician-suggestion-card ${
+                                                index === 0
+                                                    ? "best-suggestion"
+                                                    : ""
+                                            } ${
+                                                selecionado
+                                                    ? "selected"
+                                                    : ""
+                                            }`}
+                                            onClick={() =>
+                                                setTecnicoSelecionadoId(
+                                                    sugestao.tecnicoId
+                                                )
+                                            }
+                                            disabled={
+                                                processando
+                                            }
+                                            aria-pressed={
+                                                selecionado
+                                            }
+                                        >
+                                            <div className="technician-card-top">
+                                                <div className="technician-card-person">
+                                                    <span className="technician-card-avatar">
+                                                        {obterIniciais(
+                                                            sugestao.tecnicoNome
+                                                        )}
+                                                    </span>
+
+                                                    <div>
+                                                        <span className="technician-position">
+                                                            #
+                                                            {
+                                                                index +
+                                                                1
+                                                            }{" "}
+                                                            no ranking
+                                                        </span>
+
+                                                        <h4>
+                                                            {
+                                                                sugestao.tecnicoNome
+                                                            }
+                                                        </h4>
+                                                    </div>
+                                                </div>
+
+                                                <span className="technician-selection-indicator">
+                                                    {selecionado
+                                                        ? "✓"
+                                                        : ""}
                                                 </span>
-                                            )}
+                                            </div>
 
-                                            <h4>
-                                                {
-                                                    sugestao.tecnicoNome
-                                                }
-                                            </h4>
+                                            <div className="technician-card-badges">
+                                                {index ===
+                                                    0 && (
+                                                        <span className="best-suggestion-label">
+                                                        Melhor indicação
+                                                    </span>
+                                                    )}
 
-                                            <div className="technician-rating">
+                                                {tecnicoAtual && (
+                                                    <span className="current-technician-label">
+                                                        Técnico atual
+                                                    </span>
+                                                )}
+
+                                                <span
+                                                    className={`indication-badge indication-${sugestao.nivelIndicacao.toLowerCase()}`}
+                                                >
+                                                    {formatarNivelIndicacao(
+                                                        sugestao.nivelIndicacao
+                                                    )}
+                                                </span>
+
                                                 <div
-                                                    className="stars"
+                                                    className="technician-rating"
                                                     aria-label={`${sugestao.estrelas} estrelas`}
                                                 >
                                                     {[1, 2, 3].map(
@@ -286,61 +466,152 @@ function AssignTechnicianForm({
                                                         )
                                                     )}
                                                 </div>
-
-                                                <span
-                                                    className={`indication-badge indication-${sugestao.nivelIndicacao.toLowerCase()}`}
-                                                >
-                                                    {formatarNivelIndicacao(
-                                                        sugestao.nivelIndicacao
-                                                    )}
-                                                </span>
                                             </div>
-                                        </div>
 
-                                        <button
-                                            type="button"
-                                            className={
-                                                index === 0
-                                                    ? "primary-button"
-                                                    : "secondary-button"
-                                            }
-                                            onClick={() =>
-                                                selecionarTecnico(
-                                                    sugestao
-                                                )
-                                            }
-                                            disabled={
-                                                processando ||
-                                                tecnicoAtual
-                                            }
-                                        >
-                                            {tecnicoAtual
-                                                ? "Selecionado"
-                                                : salvando
-                                                    ? "Selecionando..."
-                                                    : "Selecionar"}
+                                            <div className="technician-metrics-grid">
+                                                <div className="technician-metric">
+                                                    <span>
+                                                        Distância
+                                                        estimada
+                                                    </span>
+
+                                                    <strong>
+                                                        {formatarDistancia(
+                                                            sugestao.distanciaKm
+                                                        )}{" "}
+                                                        km
+                                                    </strong>
+                                                </div>
+
+                                                <div className="technician-metric">
+                                                    <span>
+                                                        OS ativas
+                                                    </span>
+
+                                                    <strong>
+                                                        {
+                                                            sugestao.quantidadeOsAtivas
+                                                        }
+                                                    </strong>
+                                                </div>
+
+                                                <div className="technician-metric">
+                                                    <span>
+                                                        Atribuídas
+                                                        hoje
+                                                    </span>
+
+                                                    <strong>
+                                                        {
+                                                            sugestao.atribuicoesHoje
+                                                        }
+                                                    </strong>
+                                                </div>
+
+                                                <div className="technician-metric">
+                                                    <span>
+                                                        Concluídas
+                                                        em 15 dias
+                                                    </span>
+
+                                                    <strong>
+                                                        {
+                                                            sugestao.atendimentosUltimos15Dias
+                                                        }
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            <div className="technician-card-score">
+                                                <span>
+                                                    Pontuação operacional
+                                                </span>
+
+                                                <strong>
+                                                    {sugestao.pontuacao.toLocaleString(
+                                                        "pt-BR",
+                                                        {
+                                                            maximumFractionDigits: 2,
+                                                        }
+                                                    )}
+                                                </strong>
+                                            </div>
                                         </button>
-                                    </article>
-                                );
-                            }
-                        )}
-                    </div>
-                )}
+                                    );
+                                }
+                            )}
+                        </div>
+                    )}
 
-            {possuiTecnico && (
-                <div className="form-actions">
+                <p className="technician-ranking-note">
+                    A distância considera a OS ativa
+                    mais próxima. Sem OS ativa, utiliza
+                    a base operacional do técnico.
+                </p>
+            </div>
+
+            <footer className="technician-selection-footer">
+                <div className="technician-footer-selection">
+                    <span>
+                        Técnico selecionado
+                    </span>
+
+                    <strong>
+                        {tecnicoSelecionado
+                            ? tecnicoSelecionado.tecnicoNome
+                            : "Nenhum técnico selecionado"}
+                    </strong>
+                </div>
+
+                <div className="technician-footer-actions">
+                    {possuiTecnico && (
+                        <button
+                            type="button"
+                            className="technician-remove-button"
+                            onClick={
+                                removerTecnico
+                            }
+                            disabled={
+                                processando
+                            }
+                        >
+                            {removendo
+                                ? "Removendo..."
+                                : "Remover atual"}
+                        </button>
+                    )}
+
                     <button
                         type="button"
-                        className="danger-button"
-                        onClick={removerTecnico}
+                        className="technician-cancel-button"
+                        onClick={aoCancelar}
                         disabled={processando}
                     >
-                        {removendo
-                            ? "Removendo..."
-                            : "Remover técnico"}
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="button"
+                        className="technician-confirm-button"
+                        onClick={
+                            confirmarTecnico
+                        }
+                        disabled={
+                            processando ||
+                            tecnicoSelecionado ===
+                            null ||
+                            tecnicoSelecionadoEhAtual
+                        }
+                    >
+                        {tecnicoEmProcessamentoId !==
+                        null
+                            ? "Atribuindo..."
+                            : tecnicoSelecionadoEhAtual
+                                ? "Já atribuído"
+                                : "Atribuir técnico"}
                     </button>
                 </div>
-            )}
+            </footer>
         </section>
     );
 }

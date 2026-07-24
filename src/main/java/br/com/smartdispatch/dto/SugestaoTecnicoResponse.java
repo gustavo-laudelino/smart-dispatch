@@ -11,6 +11,7 @@ public class SugestaoTecnicoResponse {
     private double distanciaKm;
 
     private int quantidadeOsAtivas;
+    private int atribuicoesHoje;
     private int atendimentosUltimos15Dias;
 
     private NivelIndicacao nivelIndicacao;
@@ -25,6 +26,7 @@ public class SugestaoTecnicoResponse {
             double pontuacao,
             double distanciaKm,
             int quantidadeOsAtivas,
+            int atribuicoesHoje,
             int atendimentosUltimos15Dias,
             NivelIndicacao nivelIndicacao
     ) {
@@ -32,10 +34,16 @@ public class SugestaoTecnicoResponse {
         this.tecnicoNome = tecnicoNome;
         this.pontuacao = pontuacao;
         this.distanciaKm = distanciaKm;
-        this.quantidadeOsAtivas = quantidadeOsAtivas;
-        this.atendimentosUltimos15Dias = atendimentosUltimos15Dias;
-        this.nivelIndicacao = nivelIndicacao;
-        this.estrelas = nivelIndicacao.getEstrelas();
+        this.quantidadeOsAtivas =
+                quantidadeOsAtivas;
+        this.atribuicoesHoje =
+                atribuicoesHoje;
+        this.atendimentosUltimos15Dias =
+                atendimentosUltimos15Dias;
+        this.nivelIndicacao =
+                nivelIndicacao;
+        this.estrelas =
+                nivelIndicacao.getEstrelas();
     }
 
     public Long getTecnicoId() {
@@ -56,6 +64,10 @@ public class SugestaoTecnicoResponse {
 
     public int getQuantidadeOsAtivas() {
         return quantidadeOsAtivas;
+    }
+
+    public int getAtribuicoesHoje() {
+        return atribuicoesHoje;
     }
 
     public int getAtendimentosUltimos15Dias() {

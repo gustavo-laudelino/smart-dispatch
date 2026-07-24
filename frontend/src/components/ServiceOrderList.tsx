@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import AssignTechnicianForm from "./AssignTechnicianForm";
+import TechnicianDrawer from "./TechnicianDrawer";
 import CreateServiceOrderForm from "./CreateServiceOrderForm";
 
 import type {
@@ -30,7 +30,9 @@ type StatusVisualOrdem = {
     classe: string;
 };
 
-function formatarData(data: string | null) {
+function formatarData(
+    data: string | null
+) {
     if (!data) {
         return "Aguardando";
     }
@@ -80,7 +82,9 @@ function definirStatusOrdemServico(
     };
 }
 
-function obterIniciais(nome: string | null) {
+function obterIniciais(
+    nome: string | null
+) {
     if (!nome) {
         return "?";
     }
@@ -89,7 +93,9 @@ function obterIniciais(nome: string | null) {
         .trim()
         .split(/\s+/)
         .slice(0, 2)
-        .map((parte) => parte.charAt(0))
+        .map((parte) =>
+            parte.charAt(0)
+        )
         .join("")
         .toUpperCase();
 }
@@ -111,10 +117,36 @@ function ServiceOrderList({
         setOrdemEmAtribuicaoId,
     ] = useState<number | null>(null);
 
+    const [
+        ordemExpandidaId,
+        setOrdemExpandidaId,
+    ] = useState<number | null>(null);
+
+    function alternarOrdem(
+        ordemServicoId: number
+    ) {
+        const ordemJaEstaAberta =
+            ordemExpandidaId ===
+            ordemServicoId;
+
+        setOrdemEmAtribuicaoId(null);
+
+        setOrdemExpandidaId(
+            ordemJaEstaAberta
+                ? null
+                : ordemServicoId
+        );
+    }
+
     function ordemCriada(
         ordemServico: OrdemServico
     ) {
         setCriandoOrdemServico(false);
+
+        setOrdemExpandidaId(
+            ordemServico.id
+        );
+
         aoOrdemCriada(ordemServico);
     }
 
@@ -122,6 +154,11 @@ function ServiceOrderList({
         ordemServico: OrdemServico
     ) {
         setOrdemEmAtribuicaoId(null);
+
+        setOrdemExpandidaId(
+            ordemServico.id
+        );
+
         aoOrdemCriada(ordemServico);
     }
 
@@ -144,8 +181,8 @@ function ServiceOrderList({
                     </div>
 
                     <p>
-                        Acompanhe a distribuição e a
-                        execução dos atendimentos.
+                        Acompanhe o andamento das
+                        execuções vinculadas ao chamado.
                     </p>
                 </div>
 
@@ -154,10 +191,12 @@ function ServiceOrderList({
                         type="button"
                         className="primary-button"
                         onClick={() =>
-                            setCriandoOrdemServico(true)
+                            setCriandoOrdemServico(
+                                true
+                            )
                         }
                     >
-                        + Nova Ordem de Serviço
+                        + Nova ordem
                     </button>
                 )}
             </div>
@@ -166,9 +205,13 @@ function ServiceOrderList({
                 <CreateServiceOrderForm
                     chamado={chamado}
                     aoCancelar={() =>
-                        setCriandoOrdemServico(false)
+                        setCriandoOrdemServico(
+                            false
+                        )
                     }
-                    aoOrdemCriada={ordemCriada}
+                    aoOrdemCriada={
+                        ordemCriada
+                    }
                 />
             )}
 
@@ -196,6 +239,10 @@ function ServiceOrderList({
                                     ordemServico
                                 );
 
+                            const aberta =
+                                ordemExpandidaId ===
+                                ordemServico.id;
+
                             const atendimentoNaoIniciado =
                                 !ordemServico.dataCheckIn &&
                                 !ordemServico.dataCheckOut;
@@ -218,18 +265,33 @@ function ServiceOrderList({
 
                             return (
                                 <article
-                                    key={ordemServico.id}
-                                    className={`order-card order-card-${status.classe}`}
+                                    key={
+                                        ordemServico.id
+                                    }
+                                    className={`order-card order-card-${status.classe} ${
+                                        aberta
+                                            ? "expanded"
+                                            : ""
+                                    }`}
                                 >
-                                    <header className="order-summary-header">
-                                        <div className="order-identity">
-                                            <div className="order-identity-icon">
-                                                OS
-                                            </div>
-
-                                            <div>
+                                    <button
+                                        type="button"
+                                        className="order-collapse-trigger"
+                                        onClick={() =>
+                                            alternarOrdem(
+                                                ordemServico.id
+                                            )
+                                        }
+                                        aria-expanded={
+                                            aberta
+                                        }
+                                        aria-controls={`order-details-${ordemServico.id}`}
+                                    >
+                                        <div className="order-collapsed-top">
+                                            <div className="order-collapsed-identity">
                                                 <span className="label">
-                                                    Ordem de serviço
+                                                    Ordem de
+                                                    serviço
                                                 </span>
 
                                                 <h3>
@@ -238,218 +300,252 @@ function ServiceOrderList({
                                                     }
                                                 </h3>
                                             </div>
-                                        </div>
 
-                                        <span
-                                            className={`order-status order-status-${status.classe}`}
-                                        >
-                                            <span className="order-status-dot" />
+                                            <div className="order-collapsed-actions">
+                                                <span
+                                                    className={`order-status order-status-${status.classe}`}
+                                                >
+                                                    <span className="order-status-dot" />
 
-                                            {status.rotulo}
-                                        </span>
-                                    </header>
-
-                                    <div className="order-information-grid">
-                                        <div className="order-information-field technician-field">
-                                            <span className="label">
-                                                Técnico responsável
-                                            </span>
-
-                                            <div className="order-technician">
-                                                <span className="order-technician-avatar">
-                                                    {obterIniciais(
-                                                        ordemServico.tecnicoNome
-                                                    )}
+                                                    {
+                                                        status.rotulo
+                                                    }
                                                 </span>
 
-                                                <strong>
-                                                    {ordemServico.tecnicoNome ??
-                                                        "Não atribuído"}
-                                                </strong>
+                                                <span className="order-expand-button">
+                                                    <svg
+                                                        viewBox="0 0 24 24"
+                                                        aria-hidden="true"
+                                                    >
+                                                        <path
+                                                            d="m7 10 5 5 5-5"
+                                                            fill="none"
+                                                            stroke="currentColor"
+                                                            strokeWidth="2"
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                        />
+                                                    </svg>
+                                                </span>
                                             </div>
                                         </div>
 
-                                        <div className="order-information-field">
-                                            <span className="label">
-                                                Unidade de atendimento
-                                            </span>
+                                        <div className="order-progress order-summary-progress">
+                                            <div
+                                                className={`order-progress-step ${
+                                                    atribuida
+                                                        ? "completed"
+                                                        : "current"
+                                                }`}
+                                            >
+                                                <span className="order-progress-marker">
+                                                    {atribuida
+                                                        ? "✓"
+                                                        : "1"}
+                                                </span>
 
-                                            <strong>
-                                                {
-                                                    ordemServico.unidadeAtendimentoNome
-                                                }
-                                            </strong>
-                                        </div>
+                                                <span>
+                                                    Técnico
+                                                    atribuído
+                                                </span>
+                                            </div>
 
-                                        <div className="order-information-field">
-                                            <span className="label">
-                                                Check-in
-                                            </span>
-
-                                            <strong>
-                                                {formatarData(
-                                                    ordemServico.dataCheckIn
-                                                )}
-                                            </strong>
-                                        </div>
-
-                                        <div className="order-information-field">
-                                            <span className="label">
-                                                Check-out
-                                            </span>
-
-                                            <strong>
-                                                {formatarData(
-                                                    ordemServico.dataCheckOut
-                                                )}
-                                            </strong>
-                                        </div>
-                                    </div>
-
-                                    <div className="order-progress">
-                                        <div
-                                            className={`order-progress-step ${
-                                                atribuida
-                                                    ? "completed"
-                                                    : "current"
-                                            }`}
-                                        >
-                                            <span className="order-progress-marker">
-                                                {atribuida
-                                                    ? "✓"
-                                                    : "1"}
-                                            </span>
-
-                                            <span>
-                                                Técnico atribuído
-                                            </span>
-                                        </div>
-
-                                        <div
-                                            className={`order-progress-line ${
-                                                iniciada
-                                                    ? "completed"
-                                                    : ""
-                                            }`}
-                                        />
-
-                                        <div
-                                            className={`order-progress-step ${
-                                                iniciada
-                                                    ? "completed"
-                                                    : atribuida
-                                                        ? "current"
+                                            <div
+                                                className={`order-progress-line ${
+                                                    iniciada
+                                                        ? "completed"
                                                         : ""
-                                            }`}
-                                        >
-                                            <span className="order-progress-marker">
-                                                {iniciada
-                                                    ? "✓"
-                                                    : "2"}
-                                            </span>
+                                                }`}
+                                            />
 
-                                            <span>
-                                                Atendimento iniciado
-                                            </span>
-                                        </div>
+                                            <div
+                                                className={`order-progress-step ${
+                                                    iniciada
+                                                        ? "completed"
+                                                        : atribuida
+                                                            ? "current"
+                                                            : ""
+                                                }`}
+                                            >
+                                                <span className="order-progress-marker">
+                                                    {iniciada
+                                                        ? "✓"
+                                                        : "2"}
+                                                </span>
 
-                                        <div
-                                            className={`order-progress-line ${
-                                                encerrada
-                                                    ? "completed"
-                                                    : ""
-                                            }`}
-                                        />
+                                                <span>
+                                                    Atendimento
+                                                    iniciado
+                                                </span>
+                                            </div>
 
-                                        <div
-                                            className={`order-progress-step ${
-                                                encerrada
-                                                    ? "completed"
-                                                    : iniciada
-                                                        ? "current"
+                                            <div
+                                                className={`order-progress-line ${
+                                                    encerrada
+                                                        ? "completed"
                                                         : ""
-                                            }`}
-                                        >
-                                            <span className="order-progress-marker">
-                                                {encerrada
-                                                    ? "✓"
-                                                    : "3"}
-                                            </span>
+                                                }`}
+                                            />
 
-                                            <span>
-                                                Atendimento concluído
-                                            </span>
+                                            <div
+                                                className={`order-progress-step ${
+                                                    encerrada
+                                                        ? "completed"
+                                                        : iniciada
+                                                            ? "current"
+                                                            : ""
+                                                }`}
+                                            >
+                                                <span className="order-progress-marker">
+                                                    {encerrada
+                                                        ? "✓"
+                                                        : "3"}
+                                                </span>
+
+                                                <span>
+                                                    Atendimento
+                                                    concluído
+                                                </span>
+                                            </div>
                                         </div>
-                                    </div>
+                                    </button>
 
-                                    {atendimentoNaoIniciado &&
-                                        !formularioAberto && (
-                                            <div className="order-actions">
-                                                <button
-                                                    type="button"
-                                                    className="secondary-button"
-                                                    onClick={() =>
-                                                        setOrdemEmAtribuicaoId(
-                                                            ordemServico.id
-                                                        )
-                                                    }
-                                                >
-                                                    {ordemServico.tecnicoId ===
-                                                    null
-                                                        ? "Atribuir técnico"
-                                                        : "Alterar técnico"}
-                                                </button>
+                                    {aberta && (
+                                        <div
+                                            id={`order-details-${ordemServico.id}`}
+                                            className="order-expanded-content"
+                                        >
+                                            <div className="order-information-grid">
+                                                <div className="order-information-field technician-field">
+                                                    <span className="label">
+                                                        Técnico
+                                                        responsável
+                                                    </span>
 
-                                                {ordemServico.tecnicoId !==
-                                                    null && (
+                                                    <div className="order-technician">
+                                                        <span className="order-technician-avatar">
+                                                            {obterIniciais(
+                                                                ordemServico.tecnicoNome
+                                                            )}
+                                                        </span>
+
+                                                        <strong>
+                                                            {ordemServico.tecnicoNome ??
+                                                                "Não atribuído"}
+                                                        </strong>
+                                                    </div>
+                                                </div>
+
+                                                <div className="order-information-field">
+                                                    <span className="label">
+                                                        Unidade de
+                                                        atendimento
+                                                    </span>
+
+                                                    <strong>
+                                                        {
+                                                            ordemServico.unidadeAtendimentoNome
+                                                        }
+                                                    </strong>
+                                                </div>
+
+                                                <div className="order-information-field">
+                                                    <span className="label">
+                                                        Check-in
+                                                    </span>
+
+                                                    <strong>
+                                                        {formatarData(
+                                                            ordemServico.dataCheckIn
+                                                        )}
+                                                    </strong>
+                                                </div>
+
+                                                <div className="order-information-field">
+                                                    <span className="label">
+                                                        Check-out
+                                                    </span>
+
+                                                    <strong>
+                                                        {formatarData(
+                                                            ordemServico.dataCheckOut
+                                                        )}
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            {atendimentoNaoIniciado &&
+                                                !formularioAberto && (
+                                                    <div className="order-actions">
                                                         <button
                                                             type="button"
-                                                            className="primary-button"
+                                                            className="secondary-button"
                                                             onClick={() =>
-                                                                aoIniciarAtendimento(
+                                                                setOrdemEmAtribuicaoId(
+                                                                    ordemServico.id
+                                                                )
+                                                            }
+                                                        >
+                                                            {ordemServico.tecnicoId ===
+                                                            null
+                                                                ? "Atribuir técnico"
+                                                                : "Alterar técnico"}
+                                                        </button>
+
+                                                        {ordemServico.tecnicoId !==
+                                                            null && (
+                                                                <button
+                                                                    type="button"
+                                                                    className="primary-button"
+                                                                    onClick={() =>
+                                                                        aoIniciarAtendimento(
+                                                                            ordemServico
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Iniciar
+                                                                    atendimento
+                                                                </button>
+                                                            )}
+                                                    </div>
+                                                )}
+
+                                            {formularioAberto && (
+                                                <TechnicianDrawer
+                                                    chamado={chamado}
+                                                    ordemServico={
+                                                        ordemServico
+                                                    }
+                                                    aoCancelar={() =>
+                                                        setOrdemEmAtribuicaoId(
+                                                            null
+                                                        )
+                                                    }
+                                                    aoTecnicoAtribuido={
+                                                        tecnicoAtualizado
+                                                    }
+                                                />
+                                            )}
+
+                                            {ordemServico.dataCheckIn &&
+                                                !ordemServico.dataCheckOut && (
+                                                    <div className="order-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="danger-button"
+                                                            onClick={() =>
+                                                                aoFinalizarAtendimento(
                                                                     ordemServico
                                                                 )
                                                             }
                                                         >
-                                                            Iniciar atendimento
+                                                            Finalizar
+                                                            atendimento
                                                         </button>
-                                                    )}
-                                            </div>
-                                        )}
-
-                                    {formularioAberto && (
-                                        <AssignTechnicianForm
-                                            chamado={chamado}
-                                            ordemServico={
-                                                ordemServico
-                                            }
-                                            aoCancelar={() =>
-                                                setOrdemEmAtribuicaoId(
-                                                    null
-                                                )
-                                            }
-                                            aoTecnicoAtribuido={
-                                                tecnicoAtualizado
-                                            }
-                                        />
+                                                    </div>
+                                                )}
+                                        </div>
                                     )}
-
-                                    {ordemServico.dataCheckIn &&
-                                        !ordemServico.dataCheckOut && (
-                                            <div className="order-actions">
-                                                <button
-                                                    type="button"
-                                                    className="danger-button"
-                                                    onClick={() =>
-                                                        aoFinalizarAtendimento(
-                                                            ordemServico
-                                                        )
-                                                    }
-                                                >
-                                                    Finalizar atendimento
-                                                </button>
-                                            </div>
-                                        )}
                                 </article>
                             );
                         }

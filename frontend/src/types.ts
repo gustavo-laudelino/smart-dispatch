@@ -55,6 +55,7 @@ export type OrdemServico = {
     numeroChamado: string;
     tecnicoId: number | null;
     tecnicoNome: string | null;
+    dataAtribuicaoTecnico: string | null;
     unidadeAtendimentoId: number;
     unidadeAtendimentoNome: string;
     dataCheckIn: string | null;
@@ -134,6 +135,7 @@ export type SugestaoTecnico = {
     distanciaKm: number;
 
     quantidadeOsAtivas: number;
+    atribuicoesHoje: number;
     atendimentosUltimos15Dias: number;
 
     nivelIndicacao: NivelIndicacao;

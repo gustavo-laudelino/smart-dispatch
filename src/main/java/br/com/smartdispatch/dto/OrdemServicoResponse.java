@@ -13,6 +13,8 @@ public class OrdemServicoResponse {
     private Long tecnicoId;
     private String tecnicoNome;
 
+    private LocalDateTime dataAtribuicaoTecnico;
+
     private Long unidadeAtendimentoId;
     private String unidadeAtendimentoNome;
 
@@ -29,19 +31,25 @@ public class OrdemServicoResponse {
             String numeroChamado,
             Long tecnicoId,
             String tecnicoNome,
+            LocalDateTime dataAtribuicaoTecnico,
             Long unidadeAtendimentoId,
             String unidadeAtendimentoNome,
             LocalDateTime dataCheckIn,
             LocalDateTime dataCheckOut
     ) {
         this.id = id;
-        this.numeroOrdemServico = numeroOrdemServico;
+        this.numeroOrdemServico =
+                numeroOrdemServico;
         this.chamadoId = chamadoId;
         this.numeroChamado = numeroChamado;
         this.tecnicoId = tecnicoId;
         this.tecnicoNome = tecnicoNome;
-        this.unidadeAtendimentoId = unidadeAtendimentoId;
-        this.unidadeAtendimentoNome = unidadeAtendimentoNome;
+        this.dataAtribuicaoTecnico =
+                dataAtribuicaoTecnico;
+        this.unidadeAtendimentoId =
+                unidadeAtendimentoId;
+        this.unidadeAtendimentoNome =
+                unidadeAtendimentoNome;
         this.dataCheckIn = dataCheckIn;
         this.dataCheckOut = dataCheckOut;
     }
@@ -68,6 +76,10 @@ public class OrdemServicoResponse {
 
     public String getTecnicoNome() {
         return tecnicoNome;
+    }
+
+    public LocalDateTime getDataAtribuicaoTecnico() {
+        return dataAtribuicaoTecnico;
     }
 
     public Long getUnidadeAtendimentoId() {

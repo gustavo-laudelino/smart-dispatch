@@ -1,5 +1,6 @@
 package br.com.smartdispatch.service;
 
+import br.com.smartdispatch.dto.CheckInRequest;
 import br.com.smartdispatch.dto.OrdemServicoRequest;
 import br.com.smartdispatch.dto.OrdemServicoResponse;
 import br.com.smartdispatch.enums.StatusChamado;
@@ -12,9 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import br.com.smartdispatch.dto.CheckInRequest;
-import java.time.LocalDateTime;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -89,12 +89,22 @@ public class OrdemServicoService {
         ordemServico.setTecnico(tecnico);
         ordemServico.setUnidadeAtendimento(unidadeAtendimento);
 
+        if (tecnico != null) {
+            ordemServico.setDataAtribuicaoTecnico(
+                    LocalDateTime.now()
+            );
+        }
+
         OrdemServico ordemServicoSalva =
-                ordemServicoRepository.saveAndFlush(ordemServico);
+                ordemServicoRepository.saveAndFlush(
+                        ordemServico
+                );
 
         recalcularStatusOperacionalDoChamado(chamado);
 
-        return converterParaResponse(ordemServicoSalva);
+        return converterParaResponse(
+                ordemServicoSalva
+        );
     }
 
     @Transactional(readOnly = true)
@@ -128,6 +138,13 @@ public class OrdemServicoService {
                 chamadoId,
                 ordemServicoId
         );
+
+        Long tecnicoAnteriorId =
+                ordemServico.getTecnico() == null
+                        ? null
+                        : ordemServico
+                          .getTecnico()
+                          .getId();
 
         String numeroOrdemServico =
                 request.getNumeroOrdemServico().trim();
@@ -164,33 +181,38 @@ public class OrdemServicoService {
                 unidadeAtendimento =
                         ordemServico.getUnidadeAtendimento();
             } else {
-                unidadeAtendimento = unidadeService.buscarPorId(
-                        contratoId,
-                        request.getUnidadeAtendimentoId()
-                );
+                unidadeAtendimento =
+                        unidadeService.buscarPorId(
+                                contratoId,
+                                request.getUnidadeAtendimentoId()
+                        );
             }
 
         } else {
 
-            if (request.getTecnicoId() == null
-                    || ordemServico.getTecnico() == null
-                    || !ordemServico
-                    .getTecnico()
-                    .getId()
-                    .equals(request.getTecnicoId())) {
-
+            if (
+                    request.getTecnicoId() == null
+                            || ordemServico.getTecnico() == null
+                            || !ordemServico
+                            .getTecnico()
+                            .getId()
+                            .equals(request.getTecnicoId())
+            ) {
                 throw new ResponseStatusException(
                         HttpStatus.CONFLICT,
                         "Não é possível alterar o técnico após o check-in"
                 );
             }
 
-            if (request.getUnidadeAtendimentoId() != null
-                    && !ordemServico
-                    .getUnidadeAtendimento()
-                    .getId()
-                    .equals(request.getUnidadeAtendimentoId())) {
-
+            if (
+                    request.getUnidadeAtendimentoId() != null
+                            && !ordemServico
+                            .getUnidadeAtendimento()
+                            .getId()
+                            .equals(
+                                    request.getUnidadeAtendimentoId()
+                            )
+            ) {
                 throw new ResponseStatusException(
                         HttpStatus.CONFLICT,
                         "Não é possível alterar a unidade após o check-in"
@@ -198,22 +220,39 @@ public class OrdemServicoService {
             }
 
             tecnico = ordemServico.getTecnico();
+
             unidadeAtendimento =
                     ordemServico.getUnidadeAtendimento();
         }
 
-        ordemServico.setNumeroOrdemServico(numeroOrdemServico);
+        ordemServico.setNumeroOrdemServico(
+                numeroOrdemServico
+        );
+
         ordemServico.setTecnico(tecnico);
-        ordemServico.setUnidadeAtendimento(unidadeAtendimento);
+
+        ordemServico.setUnidadeAtendimento(
+                unidadeAtendimento
+        );
+
+        atualizarDataAtribuicaoTecnico(
+                ordemServico,
+                tecnicoAnteriorId,
+                tecnico
+        );
 
         OrdemServico ordemServicoAtualizada =
-                ordemServicoRepository.saveAndFlush(ordemServico);
+                ordemServicoRepository.saveAndFlush(
+                        ordemServico
+                );
 
         recalcularStatusOperacionalDoChamado(
                 ordemServicoAtualizada.getChamado()
         );
 
-        return converterParaResponse(ordemServicoAtualizada);
+        return converterParaResponse(
+                ordemServicoAtualizada
+        );
     }
 
     @Transactional
@@ -266,7 +305,8 @@ public class OrdemServicoService {
                         )
                         .orElse(null);
 
-        LocalDateTime momentoCheckIn = LocalDateTime.now();
+        LocalDateTime momentoCheckIn =
+                LocalDateTime.now();
 
         if (ordemAtivaAnterior != null) {
 
@@ -281,13 +321,15 @@ public class OrdemServicoService {
                         HttpStatus.CONFLICT,
                         "Não é possível efetuar o check-in, pois você possui "
                                 + "um check-in ativo na OS "
-                                + ordemAtivaAnterior.getNumeroOrdemServico()
+                                + ordemAtivaAnterior
+                                .getNumeroOrdemServico()
                                 + ", na unidade "
                                 + ordemAtivaAnterior
                                 .getUnidadeAtendimento()
                                 .getNome()
                                 + ". Deseja encerrar esse atendimento e iniciar a OS "
-                                + ordemServico.getNumeroOrdemServico()
+                                + ordemServico
+                                .getNumeroOrdemServico()
                                 + "?"
                 );
             }
@@ -298,16 +340,24 @@ public class OrdemServicoService {
             );
         }
 
-        ordemServico.setDataCheckIn(momentoCheckIn);
+        ordemServico.setDataCheckIn(
+                momentoCheckIn
+        );
 
         ordemServico
                 .getChamado()
-                .setStatus(StatusChamado.EM_ATENDIMENTO);
+                .setStatus(
+                        StatusChamado.EM_ATENDIMENTO
+                );
 
         OrdemServico ordemServicoAtualizada =
-                ordemServicoRepository.save(ordemServico);
+                ordemServicoRepository.save(
+                        ordemServico
+                );
 
-        return converterParaResponse(ordemServicoAtualizada);
+        return converterParaResponse(
+                ordemServicoAtualizada
+        );
     }
 
     @Transactional
@@ -341,7 +391,9 @@ public class OrdemServicoService {
                 LocalDateTime.now()
         );
 
-        return converterParaResponse(ordemServico);
+        return converterParaResponse(
+                ordemServico
+        );
     }
 
     @Transactional(readOnly = true)
@@ -356,10 +408,12 @@ public class OrdemServicoService {
                         chamadoId,
                         contratoId
                 )
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Ordem de serviço não encontrada neste chamado"
-                ));
+                .orElseThrow(
+                        () -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Ordem de serviço não encontrada neste chamado"
+                        )
+                );
     }
 
     private Unidade definirUnidadeAtendimento(
@@ -387,9 +441,12 @@ public class OrdemServicoService {
             );
         }
 
-        if (request.getNumeroOrdemServico() == null
-                || request.getNumeroOrdemServico().isBlank()) {
-
+        if (
+                request.getNumeroOrdemServico() == null
+                        || request
+                        .getNumeroOrdemServico()
+                        .isBlank()
+        ) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "O número da ordem de serviço deve ser informado"
@@ -400,17 +457,48 @@ public class OrdemServicoService {
     private void validarChamadoPermiteNovaOrdem(
             Chamado chamado
     ) {
-        if (chamado.getStatus() == StatusChamado.FINALIZADO) {
+        if (
+                chamado.getStatus()
+                        == StatusChamado.FINALIZADO
+        ) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Não é possível criar uma ordem de serviço para um chamado finalizado"
             );
         }
 
-        if (chamado.getStatus() == StatusChamado.CANCELADO) {
+        if (
+                chamado.getStatus()
+                        == StatusChamado.CANCELADO
+        ) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Não é possível criar uma ordem de serviço para um chamado cancelado"
+            );
+        }
+    }
+
+    private void atualizarDataAtribuicaoTecnico(
+            OrdemServico ordemServico,
+            Long tecnicoAnteriorId,
+            Tecnico novoTecnico
+    ) {
+        if (novoTecnico == null) {
+            ordemServico.setDataAtribuicaoTecnico(
+                    null
+            );
+            return;
+        }
+
+        boolean tecnicoFoiAlterado =
+                tecnicoAnteriorId == null
+                        || !tecnicoAnteriorId.equals(
+                        novoTecnico.getId()
+                );
+
+        if (tecnicoFoiAlterado) {
+            ordemServico.setDataAtribuicaoTecnico(
+                    LocalDateTime.now()
             );
         }
     }
@@ -419,7 +507,9 @@ public class OrdemServicoService {
             OrdemServico ordemServicoAtiva,
             LocalDateTime momentoCheckOut
     ) {
-        ordemServicoAtiva.setDataCheckOut(momentoCheckOut);
+        ordemServicoAtiva.setDataCheckOut(
+                momentoCheckOut
+        );
 
         ordemServicoRepository.saveAndFlush(
                 ordemServicoAtiva
@@ -440,7 +530,9 @@ public class OrdemServicoService {
                         );
 
         if (existeAtendimentoAtivo) {
-            chamado.setStatus(StatusChamado.EM_ATENDIMENTO);
+            chamado.setStatus(
+                    StatusChamado.EM_ATENDIMENTO
+            );
             return;
         }
 
@@ -451,7 +543,9 @@ public class OrdemServicoService {
                         );
 
         if (existeOrdemAtribuidaNaoIniciada) {
-            chamado.setStatus(StatusChamado.ATRIBUIDO);
+            chamado.setStatus(
+                    StatusChamado.ATRIBUIDO
+            );
             return;
         }
 
@@ -462,18 +556,26 @@ public class OrdemServicoService {
                         );
 
         if (existeOrdemSemTecnico) {
-            chamado.setStatus(StatusChamado.ABERTO);
+            chamado.setStatus(
+                    StatusChamado.ABERTO
+            );
             return;
         }
 
-        chamado.setStatus(StatusChamado.AGUARDANDO_ANALISE);
+        chamado.setStatus(
+                StatusChamado.AGUARDANDO_ANALISE
+        );
     }
 
     private OrdemServicoResponse converterParaResponse(
             OrdemServico ordemServico
     ) {
-        Chamado chamado = ordemServico.getChamado();
-        Tecnico tecnico = ordemServico.getTecnico();
+        Chamado chamado =
+                ordemServico.getChamado();
+
+        Tecnico tecnico =
+                ordemServico.getTecnico();
+
         Unidade unidadeAtendimento =
                 ordemServico.getUnidadeAtendimento();
 
@@ -482,7 +584,11 @@ public class OrdemServicoService {
 
         if (tecnico != null) {
             tecnicoId = tecnico.getId();
-            tecnicoNome = tecnico.getUsuario().getNome();
+
+            tecnicoNome =
+                    tecnico
+                            .getUsuario()
+                            .getNome();
         }
 
         return new OrdemServicoResponse(
@@ -492,6 +598,7 @@ public class OrdemServicoService {
                 chamado.getNumeroChamado(),
                 tecnicoId,
                 tecnicoNome,
+                ordemServico.getDataAtribuicaoTecnico(),
                 unidadeAtendimento.getId(),
                 unidadeAtendimento.getNome(),
                 ordemServico.getDataCheckIn(),

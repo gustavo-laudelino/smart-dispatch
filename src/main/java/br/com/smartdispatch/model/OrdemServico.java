@@ -23,7 +23,10 @@ public class OrdemServico {
     private String numeroOrdemServico;
 
     @ManyToOne
-    @JoinColumn(name = "chamado_id", nullable = false)
+    @JoinColumn(
+            name = "chamado_id",
+            nullable = false
+    )
     private Chamado chamado;
 
     @ManyToOne
@@ -31,8 +34,13 @@ public class OrdemServico {
     private Tecnico tecnico;
 
     @ManyToOne
-    @JoinColumn(name = "unidade_atendimento_id", nullable = false)
+    @JoinColumn(
+            name = "unidade_atendimento_id",
+            nullable = false
+    )
     private Unidade unidadeAtendimento;
+
+    private LocalDateTime dataAtribuicaoTecnico;
 
     private LocalDateTime dataCheckIn;
 
@@ -53,8 +61,11 @@ public class OrdemServico {
         return numeroOrdemServico;
     }
 
-    public void setNumeroOrdemServico(String numeroOrdemServico) {
-        this.numeroOrdemServico = numeroOrdemServico;
+    public void setNumeroOrdemServico(
+            String numeroOrdemServico
+    ) {
+        this.numeroOrdemServico =
+                numeroOrdemServico;
     }
 
     public Chamado getChamado() {
@@ -77,16 +88,31 @@ public class OrdemServico {
         return unidadeAtendimento;
     }
 
-    public void setUnidadeAtendimento(Unidade unidadeAtendimento) {
-        this.unidadeAtendimento = unidadeAtendimento;
+    public void setUnidadeAtendimento(
+            Unidade unidadeAtendimento
+    ) {
+        this.unidadeAtendimento =
+                unidadeAtendimento;
     }
 
+    public LocalDateTime getDataAtribuicaoTecnico() {
+        return dataAtribuicaoTecnico;
+    }
+
+    public void setDataAtribuicaoTecnico(
+            LocalDateTime dataAtribuicaoTecnico
+    ) {
+        this.dataAtribuicaoTecnico =
+                dataAtribuicaoTecnico;
+    }
 
     public LocalDateTime getDataCheckIn() {
         return dataCheckIn;
     }
 
-    public void setDataCheckIn(LocalDateTime dataCheckIn) {
+    public void setDataCheckIn(
+            LocalDateTime dataCheckIn
+    ) {
         this.dataCheckIn = dataCheckIn;
     }
 
@@ -94,7 +120,9 @@ public class OrdemServico {
         return dataCheckOut;
     }
 
-    public void setDataCheckOut(LocalDateTime dataCheckOut) {
+    public void setDataCheckOut(
+            LocalDateTime dataCheckOut
+    ) {
         this.dataCheckOut = dataCheckOut;
     }
 }

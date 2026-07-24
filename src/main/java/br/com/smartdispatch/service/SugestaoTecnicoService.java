@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
@@ -22,6 +23,7 @@ public class SugestaoTecnicoService {
 
     private static final double PESO_DISTANCIA = 4.0;
     private static final double PESO_OS_ATIVA = 2.0;
+    private static final double PESO_ATRIBUICAO_HOJE = 1.5;
     private static final double PESO_ATENDIMENTO = 1.0;
 
     private static final int DIAS_BALANCEAMENTO = 15;
@@ -39,7 +41,8 @@ public class SugestaoTecnicoService {
             DistanciaService distanciaService
     ) {
         this.tecnicoRepository = tecnicoRepository;
-        this.ordemServicoRepository = ordemServicoRepository;
+        this.ordemServicoRepository =
+                ordemServicoRepository;
         this.distanciaService = distanciaService;
     }
 
@@ -49,42 +52,65 @@ public class SugestaoTecnicoService {
             Long chamadoId,
             Long ordemServicoId
     ) {
-        OrdemServico ordemServicoAlvo = ordemServicoRepository
-                .findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId,
-                        chamadoId,
-                        contratoId
-                )
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Ordem de serviço não encontrada."
-                ));
+        OrdemServico ordemServicoAlvo =
+                ordemServicoRepository
+                        .findByIdAndChamadoIdAndChamadoUnidadeContratoId(
+                                ordemServicoId,
+                                chamadoId,
+                                contratoId
+                        )
+                        .orElseThrow(
+                                () -> new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Ordem de serviço não encontrada."
+                                )
+                        );
 
         Unidade unidadeDestino =
                 ordemServicoAlvo.getUnidadeAtendimento();
 
-        validarCoordenadasDestino(unidadeDestino);
+        validarCoordenadasDestino(
+                unidadeDestino
+        );
 
-        List<Tecnico> tecnicos = tecnicoRepository
-                .findByBaseOperacionalContratoIdAndAtivoTrue(
-                        contratoId
-                );
+        List<Tecnico> tecnicos =
+                tecnicoRepository
+                        .findByBaseOperacionalContratoIdAndAtivoTrue(
+                                contratoId
+                        );
 
-        LocalDateTime inicioPeriodo = LocalDateTime.now()
-                .minusDays(DIAS_BALANCEAMENTO);
+        LocalDateTime inicioPeriodo =
+                LocalDateTime.now()
+                        .minusDays(
+                                DIAS_BALANCEAMENTO
+                        );
 
-        List<CandidatoTecnico> candidatos = tecnicos.stream()
-                .map(tecnico -> criarCandidato(
-                        tecnico,
-                        contratoId,
-                        ordemServicoId,
-                        unidadeDestino,
-                        inicioPeriodo
-                ))
-                .sorted(Comparator.comparingDouble(
-                        CandidatoTecnico::pontuacao
-                ))
-                .toList();
+        LocalDateTime inicioHoje =
+                LocalDate.now()
+                        .atStartOfDay();
+
+        LocalDateTime inicioAmanha =
+                inicioHoje.plusDays(1);
+
+        List<CandidatoTecnico> candidatos =
+                tecnicos.stream()
+                        .map(
+                                tecnico -> criarCandidato(
+                                        tecnico,
+                                        contratoId,
+                                        ordemServicoId,
+                                        unidadeDestino,
+                                        inicioPeriodo,
+                                        inicioHoje,
+                                        inicioAmanha
+                                )
+                        )
+                        .sorted(
+                                Comparator.comparingDouble(
+                                        CandidatoTecnico::pontuacao
+                                )
+                        )
+                        .toList();
 
         if (candidatos.isEmpty()) {
             return List.of();
@@ -94,10 +120,13 @@ public class SugestaoTecnicoService {
                 candidatos.get(0).pontuacao();
 
         return candidatos.stream()
-                .map(candidato -> converterParaResponse(
-                        candidato,
-                        melhorPontuacao
-                ))
+                .map(
+                        candidato ->
+                                converterParaResponse(
+                                        candidato,
+                                        melhorPontuacao
+                                )
+                )
                 .toList();
     }
 
@@ -106,7 +135,9 @@ public class SugestaoTecnicoService {
             Long contratoId,
             Long ordemServicoAlvoId,
             Unidade unidadeDestino,
-            LocalDateTime inicioPeriodo
+            LocalDateTime inicioPeriodo,
+            LocalDateTime inicioHoje,
+            LocalDateTime inicioAmanha
     ) {
         List<OrdemServico> ordensAtivas =
                 ordemServicoRepository
@@ -115,38 +146,63 @@ public class SugestaoTecnicoService {
                                 contratoId
                         )
                         .stream()
-                        .filter(ordem ->
-                                !ordem.getId().equals(ordemServicoAlvoId)
+                        .filter(
+                                ordem ->
+                                        !ordem
+                                                .getId()
+                                                .equals(
+                                                        ordemServicoAlvoId
+                                                )
                         )
                         .toList();
 
-        double distanciaKm = calcularDistanciaMelhorAncora(
-                tecnico,
-                ordensAtivas,
-                unidadeDestino
-        );
+        double distanciaKm =
+                calcularDistanciaMelhorAncora(
+                        tecnico,
+                        ordensAtivas,
+                        unidadeDestino
+                );
 
-        int quantidadeOsAtivas = ordensAtivas.size();
+        int quantidadeOsAtivas =
+                ordensAtivas.size();
 
-        int atendimentosUltimos15Dias = Math.toIntExact(
-                ordemServicoRepository
-                        .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
-                                tecnico.getId(),
-                                contratoId,
-                                inicioPeriodo
-                        )
-        );
+        int atribuicoesHoje =
+                Math.toIntExact(
+                        ordemServicoRepository
+                                .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                                        tecnico.getId(),
+                                        contratoId,
+                                        ordemServicoAlvoId,
+                                        inicioHoje,
+                                        inicioAmanha
+                                )
+                );
+
+        int atendimentosUltimos15Dias =
+                Math.toIntExact(
+                        ordemServicoRepository
+                                .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                                        tecnico.getId(),
+                                        contratoId,
+                                        inicioPeriodo
+                                )
+                );
 
         double pontuacao =
                 distanciaKm * PESO_DISTANCIA
-                        + quantidadeOsAtivas * PESO_OS_ATIVA
-                        + atendimentosUltimos15Dias * PESO_ATENDIMENTO;
+                        + quantidadeOsAtivas
+                        * PESO_OS_ATIVA
+                        + atribuicoesHoje
+                        * PESO_ATRIBUICAO_HOJE
+                        + atendimentosUltimos15Dias
+                        * PESO_ATENDIMENTO;
 
         return new CandidatoTecnico(
                 tecnico,
                 pontuacao,
                 distanciaKm,
                 quantidadeOsAtivas,
+                atribuicoesHoje,
                 atendimentosUltimos15Dias
         );
     }
@@ -158,20 +214,29 @@ public class SugestaoTecnicoService {
     ) {
         if (!ordensAtivas.isEmpty()) {
             return ordensAtivas.stream()
-                    .map(OrdemServico::getUnidadeAtendimento)
-                    .mapToDouble(unidadeAncora ->
-                            distanciaService.calcularEmKm(
-                                    unidadeAncora.getLatitude(),
-                                    unidadeAncora.getLongitude(),
-                                    unidadeDestino.getLatitude(),
-                                    unidadeDestino.getLongitude()
-                            )
+                    .map(
+                            OrdemServico::getUnidadeAtendimento
+                    )
+                    .mapToDouble(
+                            unidadeAncora ->
+                                    distanciaService
+                                            .calcularEmKm(
+                                                    unidadeAncora
+                                                            .getLatitude(),
+                                                    unidadeAncora
+                                                            .getLongitude(),
+                                                    unidadeDestino
+                                                            .getLatitude(),
+                                                    unidadeDestino
+                                                            .getLongitude()
+                                            )
                     )
                     .min()
                     .orElseThrow();
         }
 
-        BaseOperacional base = tecnico.getBaseOperacional();
+        BaseOperacional base =
+                tecnico.getBaseOperacional();
 
         return distanciaService.calcularEmKm(
                 base.getLatitude(),
@@ -186,17 +251,28 @@ public class SugestaoTecnicoService {
             double melhorPontuacao
     ) {
         double diferenca =
-                candidato.pontuacao() - melhorPontuacao;
+                candidato.pontuacao()
+                        - melhorPontuacao;
 
         NivelIndicacao nivelIndicacao =
-                definirNivelIndicacao(diferenca);
+                definirNivelIndicacao(
+                        diferenca
+                );
 
         return new SugestaoTecnicoResponse(
                 candidato.tecnico().getId(),
-                candidato.tecnico().getUsuario().getNome(),
-                arredondar(candidato.pontuacao()),
-                arredondar(candidato.distanciaKm()),
+                candidato
+                        .tecnico()
+                        .getUsuario()
+                        .getNome(),
+                arredondar(
+                        candidato.pontuacao()
+                ),
+                arredondar(
+                        candidato.distanciaKm()
+                ),
                 candidato.quantidadeOsAtivas(),
+                candidato.atribuicoesHoje(),
                 candidato.atendimentosUltimos15Dias(),
                 nivelIndicacao
         );
@@ -205,11 +281,17 @@ public class SugestaoTecnicoService {
     private NivelIndicacao definirNivelIndicacao(
             double diferencaPontuacao
     ) {
-        if (diferencaPontuacao <= LIMITE_INDICACAO_ALTA) {
+        if (
+                diferencaPontuacao
+                        <= LIMITE_INDICACAO_ALTA
+        ) {
             return NivelIndicacao.ALTA;
         }
 
-        if (diferencaPontuacao <= LIMITE_INDICACAO_MODERADA) {
+        if (
+                diferencaPontuacao
+                        <= LIMITE_INDICACAO_MODERADA
+        ) {
             return NivelIndicacao.MODERADA;
         }
 
@@ -221,7 +303,8 @@ public class SugestaoTecnicoService {
     ) {
         if (
                 unidadeDestino.getLatitude() == null
-                        || unidadeDestino.getLongitude() == null
+                        || unidadeDestino
+                        .getLongitude() == null
         ) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -230,8 +313,12 @@ public class SugestaoTecnicoService {
         }
     }
 
-    private double arredondar(double valor) {
-        return Math.round(valor * 100.0) / 100.0;
+    private double arredondar(
+            double valor
+    ) {
+        return Math.round(
+                valor * 100.0
+        ) / 100.0;
     }
 
     private record CandidatoTecnico(
@@ -239,6 +326,7 @@ public class SugestaoTecnicoService {
             double pontuacao,
             double distanciaKm,
             int quantidadeOsAtivas,
+            int atribuicoesHoje,
             int atendimentosUltimos15Dias
     ) {
     }

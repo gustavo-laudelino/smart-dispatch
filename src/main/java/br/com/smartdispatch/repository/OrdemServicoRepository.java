@@ -3,14 +3,16 @@ package br.com.smartdispatch.repository;
 import br.com.smartdispatch.model.OrdemServico;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.time.LocalDateTime;
 
 public interface OrdemServicoRepository
         extends JpaRepository<OrdemServico, Long> {
 
-    List<OrdemServico> findByChamadoId(Long chamadoId);
+    List<OrdemServico> findByChamadoId(
+            Long chamadoId
+    );
 
     Optional<OrdemServico>
     findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
@@ -55,5 +57,13 @@ public interface OrdemServicoRepository
             Long tecnicoId,
             Long contratoId,
             LocalDateTime dataInicial
+    );
+
+    long countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+            Long tecnicoId,
+            Long contratoId,
+            Long ordemServicoIdIgnorada,
+            LocalDateTime inicio,
+            LocalDateTime fim
     );
 }
