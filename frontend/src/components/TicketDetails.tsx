@@ -239,7 +239,7 @@ function TicketDetails({
         setEditando(false);
         setErroEdicao(null);
         setUnidades([]);
-    }, [chamado.id]);
+    }, [chamado]);
 
     function alterarCampo<
         Campo extends keyof FormularioChamado

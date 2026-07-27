@@ -1,4 +1,5 @@
 import {
+    useCallback,
     useEffect,
     useMemo,
     useState,
@@ -178,35 +179,42 @@ function App() {
             });
     }, []);
 
+    const carregarChamados = useCallback(
+        (
+            limparDetalhe = true
+        ) => {
+            setCarregandoFeed(true);
+            setErro(null);
+
+            if (limparDetalhe) {
+                setChamadoSelecionado(null);
+                setOrdensServico([]);
+                setComentarios([]);
+            }
+
+            buscarChamados(
+                contratoSelecionado
+            )
+                .then((data) => {
+                    setChamados(data);
+                })
+                .catch((error: Error) => {
+                    setErro(error.message);
+                })
+                .finally(() => {
+                    setCarregandoFeed(false);
+                });
+        },
+        [
+            contratoSelecionado,
+        ]
+    );
+
     useEffect(() => {
         carregarChamados();
-    }, [contratoSelecionado]);
-
-
-
-    function carregarChamados(
-        limparDetalhe = true
-    ) {
-        setCarregandoFeed(true);
-        setErro(null);
-
-        if (limparDetalhe) {
-            setChamadoSelecionado(null);
-            setOrdensServico([]);
-            setComentarios([]);
-        }
-
-        buscarChamados(contratoSelecionado)
-            .then((data) => {
-                setChamados(data);
-            })
-            .catch((error: Error) => {
-                setErro(error.message);
-            })
-            .finally(() => {
-                setCarregandoFeed(false);
-            });
-    }
+    }, [
+        carregarChamados,
+    ]);
 
     function selecionarChamado(
         chamado: Chamado
