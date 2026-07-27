@@ -1,3 +1,8 @@
+import {
+    useMemo,
+    useState,
+} from "react";
+
 import type {
     Chamado,
     Contrato,
@@ -130,6 +135,47 @@ function formatarDataAbertura(
         .replace(",", "");
 }
 
+function normalizarTexto(
+    valor: string | null | undefined
+) {
+    return (valor ?? "")
+        .normalize("NFD")
+        .replace(
+            /[\u0300-\u036f]/g,
+            ""
+        )
+        .replace(/_/g, " ")
+        .toLowerCase()
+        .trim();
+}
+
+function criarTextoPesquisa(
+    chamado: Chamado
+) {
+    return normalizarTexto(
+        [
+            chamado.numeroChamado,
+            chamado.unidadeNome,
+            chamado.contratoCidade,
+
+            chamado.solicitante.nome,
+            chamado.solicitante.email,
+            chamado.solicitante.telefone,
+            chamado.solicitante.identificacao,
+
+            chamado.numeroPatrimonio,
+            chamado.tipo,
+            chamado.categoria,
+            chamado.prioridade,
+            chamado.status,
+            STATUS_LABELS[chamado.status],
+            chamado.descricao,
+        ]
+            .filter(Boolean)
+            .join(" ")
+    );
+}
+
 function TicketFeed({
                         chamados,
                         contratos,
@@ -143,8 +189,52 @@ function TicketFeed({
                         aoAlternarOrdenacao,
                         aoSelecionarChamado,
                     }: TicketFeedProps) {
+    const [
+        termoBusca,
+        setTermoBusca,
+    ] = useState("");
+
     const ordenandoMaisRecentes =
         ordemData === "MAIS_RECENTES";
+
+    const chamadosPesquisados =
+        useMemo(() => {
+            const buscaNormalizada =
+                normalizarTexto(
+                    termoBusca
+                );
+
+            if (!buscaNormalizada) {
+                return chamados;
+            }
+
+            const termos =
+                buscaNormalizada
+                    .split(/\s+/)
+                    .filter(Boolean);
+
+            return chamados.filter(
+                (chamado) => {
+                    const textoPesquisa =
+                        criarTextoPesquisa(
+                            chamado
+                        );
+
+                    return termos.every(
+                        (termo) =>
+                            textoPesquisa.includes(
+                                termo
+                            )
+                    );
+                }
+            );
+        }, [
+            chamados,
+            termoBusca,
+        ]);
+
+    const existeBusca =
+        termoBusca.trim().length > 0;
 
     return (
         <section className="card feed-card">
@@ -155,9 +245,59 @@ function TicketFeed({
                             Chamados
                         </h2>
 
-                        <span className="feed-count">
-                            {chamados.length}
+                        <span
+                            className="feed-count"
+                            title={
+                                existeBusca
+                                    ? `${chamadosPesquisados.length} de ${chamados.length} chamados`
+                                    : `${chamados.length} chamados`
+                            }
+                        >
+                            {
+                                chamadosPesquisados.length
+                            }
                         </span>
+                    </div>
+
+                    <div className="feed-search">
+                        <svg
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                        >
+                            <circle
+                                cx="11"
+                                cy="11"
+                                r="7"
+                            />
+
+                            <path d="m16.5 16.5 4 4" />
+                        </svg>
+
+                        <input
+                            type="search"
+                            value={termoBusca}
+                            onChange={(event) =>
+                                setTermoBusca(
+                                    event.target.value
+                                )
+                            }
+                            placeholder="Buscar chamados..."
+                            aria-label="Buscar chamados"
+                        />
+
+                        {existeBusca && (
+                            <button
+                                type="button"
+                                className="feed-search-clear"
+                                onClick={() =>
+                                    setTermoBusca("")
+                                }
+                                aria-label="Limpar busca"
+                                title="Limpar busca"
+                            >
+                                ×
+                            </button>
+                        )}
                     </div>
 
                     <div className="feed-inline-filters">
@@ -286,100 +426,118 @@ function TicketFeed({
 
             {carregando ? (
                 <FeedSkeleton />
-            ) : chamados.length === 0 ? (
+            ) : chamadosPesquisados.length ===
+            0 ? (
                 <div className="feed-empty-filter">
                     <strong>
-                        Nenhum chamado encontrado
+                        {existeBusca
+                            ? "Nenhum resultado para a busca"
+                            : "Nenhum chamado encontrado"}
                     </strong>
 
                     <span>
-                        Não existem chamados para
-                        os filtros selecionados.
+                        {existeBusca
+                            ? `Não encontramos chamados relacionados a “${termoBusca.trim()}”.`
+                            : "Não existem chamados para os filtros selecionados."}
                     </span>
+
+                    {existeBusca && (
+                        <button
+                            type="button"
+                            className="feed-empty-clear"
+                            onClick={() =>
+                                setTermoBusca("")
+                            }
+                        >
+                            Limpar busca
+                        </button>
+                    )}
                 </div>
             ) : (
                 <div className="ticket-list">
-                    {chamados.map((chamado) => {
-                        const selecionado =
-                            chamadoSelecionado?.id ===
-                            chamado.id;
+                    {chamadosPesquisados.map(
+                        (chamado) => {
+                            const selecionado =
+                                chamadoSelecionado?.id ===
+                                chamado.id;
 
-                        const classeStatus =
-                            criarClasseStatus(
-                                chamado.status
-                            );
+                            const classeStatus =
+                                criarClasseStatus(
+                                    chamado.status
+                                );
 
-                        return (
-                            <button
-                                type="button"
-                                key={chamado.id}
-                                className={
-                                    selecionado
-                                        ? "ticket-item selected"
-                                        : "ticket-item"
-                                }
-                                onClick={() =>
-                                    aoSelecionarChamado(
-                                        chamado
-                                    )
-                                }
-                            >
-                                <div className="ticket-item-top">
-                                    <span className="ticket-number">
-                                        {
-                                            chamado.numeroChamado
-                                        }
-                                    </span>
-
-                                    <span
-                                        className={`ticket-status ticket-status-${classeStatus}`}
-                                    >
-                                        {
-                                            STATUS_LABELS[
-                                                chamado.status
-                                                ]
-                                        }
-                                    </span>
-                                </div>
-
-                                <div className="ticket-opened-at">
-                                    <span className="ticket-opened-label">
-                                        Aberto em
-                                    </span>
-
-                                    <time
-                                        dateTime={
-                                            chamado.dataAbertura
-                                        }
-                                    >
-                                        {formatarDataAbertura(
-                                            chamado.dataAbertura
-                                        )}
-                                    </time>
-                                </div>
-
-                                <strong className="ticket-unit">
-                                    {
-                                        chamado.unidadeNome
+                            return (
+                                <button
+                                    type="button"
+                                    key={chamado.id}
+                                    className={
+                                        selecionado
+                                            ? "ticket-item selected"
+                                            : "ticket-item"
                                     }
-                                </strong>
+                                    onClick={() =>
+                                        aoSelecionarChamado(
+                                            chamado
+                                        )
+                                    }
+                                >
+                                    <div className="ticket-item-top">
+                                        <span className="ticket-number">
+                                            {
+                                                chamado.numeroChamado
+                                            }
+                                        </span>
 
-                                <div className="ticket-item-footer">
-                                    <span>
-                                        {
-                                            chamado.contratoCidade
-                                        }
-                                    </span>
+                                        <span
+                                            className={`ticket-status ticket-status-${classeStatus}`}
+                                        >
+                                            {
+                                                STATUS_LABELS[
+                                                    chamado.status
+                                                    ]
+                                            }
+                                        </span>
+                                    </div>
 
-                                    <span className="ticket-priority">
+                                    <div className="ticket-opened-at">
+                                        <span className="ticket-opened-label">
+                                            Aberto em
+                                        </span>
+
+                                        <time
+                                            dateTime={
+                                                chamado.dataAbertura
+                                            }
+                                        >
+                                            {formatarDataAbertura(
+                                                chamado.dataAbertura
+                                            )}
+                                        </time>
+                                    </div>
+
+                                    <strong className="ticket-unit">
                                         {
-                                            chamado.prioridade
+                                            chamado.unidadeNome
                                         }
-                                    </span>
-                                </div>
-                            </button>
-                        );
-                    })}
+                                    </strong>
+
+                                    <div className="ticket-item-footer">
+                                        <span>
+                                            {
+                                                chamado.contratoCidade
+                                            }
+                                        </span>
+
+                                        <span className="ticket-priority">
+                                            {
+                                                chamado.prioridade
+                                            }
+                                        </span>
+                                    </div>
+                                </button>
+                            );
+                        }
+                    )}
                 </div>
             )}
         </section>
