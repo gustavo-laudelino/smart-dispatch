@@ -4,11 +4,29 @@ target/
 !**/src/test/**/target/
 .kotlin
 
+### Credenciais e configurações locais ###
+.env
+.env.*
+!**/.env.example
+
+application-local.properties
+application-dev.properties
+application-prod.properties
+
+*.pem
+*.key
+*.p12
+*.jks
+
+### Logs e bancos locais ###
+logs/
+*.log
+*.sql
+*.dump
+*.bak
+
 ### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -18,7 +36,7 @@ target/
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
 
@@ -37,4 +55,3 @@ build/
 
 ### Mac OS ###
 .DS_Store
-.idea/
