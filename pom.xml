@@ -45,6 +45,13 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <!-- Geração da especificação OpenAPI e interface Swagger UI -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+
         <!-- Ferramentas para testes automatizados -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -62,6 +69,8 @@
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+
 
     </dependencies>
 
