@@ -42,6 +42,8 @@ type OrdemData =
     | "MAIS_RECENTES"
     | "MAIS_ANTIGOS";
 
+const TAMANHO_PAGINA = 10;
+
 function App() {
     const [contratos, setContratos] =
         useState<Contrato[]>([]);
@@ -63,10 +65,23 @@ function App() {
         "MAIS_RECENTES"
     );
 
-
-
     const [chamados, setChamados] =
         useState<Chamado[]>([]);
+
+    const [
+        paginaAtual,
+        setPaginaAtual,
+    ] = useState(0);
+
+    const [
+        totalPaginas,
+        setTotalPaginas,
+    ] = useState(0);
+
+    const [
+        totalChamados,
+        setTotalChamados,
+    ] = useState(0);
 
     const [
         chamadoSelecionado,
@@ -168,7 +183,6 @@ function App() {
             ordemData,
         ]);
 
-
     useEffect(() => {
         buscarContratos()
             .then((data) => {
@@ -192,11 +206,32 @@ function App() {
                 setComentarios([]);
             }
 
+            let direction: "asc" | "desc";
+
+            if (ordemData === "MAIS_RECENTES") {
+                direction = "desc";
+            } else {
+                direction = "asc";
+            }
+
             buscarChamados(
-                contratoSelecionado
+                contratoSelecionado,
+                paginaAtual,
+                TAMANHO_PAGINA,
+                direction
             )
                 .then((data) => {
-                    setChamados(data);
+                    setChamados(
+                        data.content
+                    );
+
+                    setTotalPaginas(
+                        data.totalPages
+                    );
+
+                    setTotalChamados(
+                        data.totalElements
+                    );
                 })
                 .catch((error: Error) => {
                     setErro(error.message);
@@ -207,6 +242,8 @@ function App() {
         },
         [
             contratoSelecionado,
+            paginaAtual,
+            ordemData,
         ]
     );
 
@@ -215,6 +252,49 @@ function App() {
     }, [
         carregarChamados,
     ]);
+
+    function alterarContrato(
+        contratoId: string
+    ) {
+        setPaginaAtual(0);
+
+        setContratoSelecionado(
+            contratoId
+        );
+    }
+
+    function alterarPagina(
+        novaPagina: number
+    ) {
+        if (
+            novaPagina < 0 ||
+            novaPagina >= totalPaginas ||
+            novaPagina === paginaAtual
+        ) {
+            return;
+        }
+
+        setPaginaAtual(
+            novaPagina
+        );
+    }
+
+    function alternarOrdenacao() {
+        setPaginaAtual(0);
+
+        if (
+            ordemData ===
+            "MAIS_RECENTES"
+        ) {
+            setOrdemData(
+                "MAIS_ANTIGOS"
+            );
+        } else {
+            setOrdemData(
+                "MAIS_RECENTES"
+            );
+        }
+    }
 
     function selecionarChamado(
         chamado: Chamado
@@ -279,15 +359,22 @@ function App() {
         const contratoDoChamado =
             String(chamado.contratoId);
 
-        if (
+        const chamadoPertenceAoFiltro =
+            contratoSelecionado === "todos" ||
             contratoSelecionado ===
-            "todos" ||
-            contratoSelecionado ===
-            contratoDoChamado
-        ) {
-            carregarChamados();
+            contratoDoChamado;
+
+        if (chamadoPertenceAoFiltro) {
+            if (paginaAtual === 0) {
+                carregarChamados();
+            } else {
+                setPaginaAtual(0);
+            }
+
             return;
         }
+
+        setPaginaAtual(0);
 
         setContratoSelecionado(
             contratoDoChamado
@@ -396,6 +483,7 @@ function App() {
             setErro(
                 "O comentário não pode estar vazio"
             );
+
             return;
         }
 
@@ -521,9 +609,9 @@ function App() {
                 <header className="app-header compact-app-header">
                     <div className="compact-header-main">
                         <div className="app-header-title">
-            <span className="label">
-                Central de operações
-            </span>
+                            <span className="label">
+                                Central de operações
+                            </span>
 
                             <div className="app-header-title-row">
                                 <h1>
@@ -532,12 +620,10 @@ function App() {
 
                                 <span
                                     className="header-ticket-count"
-                                    title={`${chamadosFiltrados.length} de ${chamados.length} chamados`}
+                                    title={`${totalChamados} chamados no total`}
                                 >
-                    {
-                        chamadosFiltrados.length
-                    }
-                </span>
+                                    {totalChamados}
+                                </span>
                             </div>
                         </div>
 
@@ -608,20 +694,26 @@ function App() {
                                 carregando={
                                     carregandoFeed
                                 }
+                                paginaAtual={
+                                    paginaAtual
+                                }
+                                totalPaginas={
+                                    totalPaginas
+                                }
+                                totalChamados={
+                                    totalChamados
+                                }
                                 aoAlterarContrato={
-                                    setContratoSelecionado
+                                    alterarContrato
                                 }
                                 aoAlterarStatus={
                                     setFiltroStatus
                                 }
-                                aoAlternarOrdenacao={() =>
-                                    setOrdemData(
-                                        ordemAtual =>
-                                            ordemAtual ===
-                                            "MAIS_RECENTES"
-                                                ? "MAIS_ANTIGOS"
-                                                : "MAIS_RECENTES"
-                                    )
+                                aoAlterarPagina={
+                                    alterarPagina
+                                }
+                                aoAlternarOrdenacao={
+                                    alternarOrdenacao
                                 }
                                 aoSelecionarChamado={
                                     selecionarChamado

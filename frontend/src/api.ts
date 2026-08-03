@@ -12,7 +12,9 @@ import type {
     SugestaoTecnico,
     Tecnico,
     Unidade,
+    Pagina,
 } from "./types";
+
 
 const API_BASE_URL =
     import.meta.env.VITE_API_URL?.replace(
@@ -41,22 +43,36 @@ export async function buscarContratos(): Promise<Contrato[]> {
 }
 
 export async function buscarChamados(
-    contratoId: string
-): Promise<Chamado[]> {
-    const url =
-        contratoId === "todos"
-            ? `${API_BASE_URL}/chamados`
-            : `${API_BASE_URL}/chamados?contratoId=${contratoId}`;
+    contratoId: string,
+    page: number,
+    size: number,
+    direction: "asc" | "desc"
+): Promise<Pagina<Chamado>> {
+    const parametros = new URLSearchParams({
+        page: String(page),
+        size: String(size),
+        direction,
+    });
 
-    const response = await fetch(url);
+    if (contratoId !== "todos") {
+        parametros.set(
+            "contratoId",
+            contratoId
+        );
+    }
+
+    const response = await fetch(
+        `${API_BASE_URL}/chamados?${parametros.toString()}`
+    );
 
     if (!response.ok) {
-        throw new Error("Erro ao buscar chamados");
+        throw new Error(
+            "Erro ao buscar chamados"
+        );
     }
 
     return response.json();
 }
-
 export async function buscarDetalhesChamado(
     contratoId: number,
     chamadoId: number

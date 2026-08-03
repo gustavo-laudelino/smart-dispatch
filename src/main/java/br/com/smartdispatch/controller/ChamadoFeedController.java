@@ -23,12 +23,14 @@ public class ChamadoFeedController {
     public Page<ChamadoResponse> listarFeed(
             @RequestParam(required = false) Long contratoId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "desc") String direction
     ) {
         return chamadoService.listarFeed(
                 contratoId,
                 page,
-                size
+                size,
+                direction
         );
     }
 }

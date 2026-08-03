@@ -137,25 +137,40 @@ public class ChamadoService {
     public Page<ChamadoResponse> listarFeed(
             Long contratoId,
             int page,
-            int size
+            int size,
+            String direction
     ) {
+        Sort.Direction sortDirection;
+
+        if (direction.equalsIgnoreCase("asc")) {
+            sortDirection = Sort.Direction.ASC;
+        } else {
+            sortDirection = Sort.Direction.DESC;
+        }
+
         Pageable pageable = PageRequest.of(
                 page,
                 size,
-                Sort.by("dataAbertura").descending()
+                Sort.by(
+                        sortDirection,
+                        "dataAbertura"
+                )
         );
 
         Page<Chamado> chamados;
 
         if (contratoId != null) {
-            chamados = chamadoRepository.findByUnidadeContratoId(
-                    contratoId,
-                    pageable
-            );
+            chamados =
+                    chamadoRepository
+                            .findByUnidadeContratoId(
+                                    contratoId,
+                                    pageable
+                            );
         } else {
-            chamados = chamadoRepository.findAll(
-                    pageable
-            );
+            chamados =
+                    chamadoRepository.findAll(
+                            pageable
+                    );
         }
 
         return chamados.map(

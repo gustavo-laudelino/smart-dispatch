@@ -8,7 +8,9 @@ import type {
     Contrato,
 } from "../types";
 
-import { FeedSkeleton } from "./LoadingSkeletons";
+import {
+    FeedSkeleton,
+} from "./LoadingSkeletons";
 
 type FiltroStatus =
     | Chamado["status"]
@@ -29,12 +31,20 @@ type TicketFeedProps = {
     chamadoSelecionado: Chamado | null;
     carregando: boolean;
 
+    paginaAtual: number;
+    totalPaginas: number;
+    totalChamados: number;
+
     aoAlterarContrato: (
         contratoId: string
     ) => void;
 
     aoAlterarStatus: (
         status: FiltroStatus
+    ) => void;
+
+    aoAlterarPagina: (
+        pagina: number
     ) => void;
 
     aoAlternarOrdenacao: () => void;
@@ -184,8 +194,12 @@ function TicketFeed({
                         ordemData,
                         chamadoSelecionado,
                         carregando,
+                        paginaAtual,
+                        totalPaginas,
+                        totalChamados,
                         aoAlterarContrato,
                         aoAlterarStatus,
+                        aoAlterarPagina,
                         aoAlternarOrdenacao,
                         aoSelecionarChamado,
                     }: TicketFeedProps) {
@@ -249,8 +263,8 @@ function TicketFeed({
                             className="feed-count"
                             title={
                                 existeBusca
-                                    ? `${chamadosPesquisados.length} de ${chamados.length} chamados`
-                                    : `${chamados.length} chamados`
+                                    ? `${chamadosPesquisados.length} de ${chamados.length} chamados nesta página`
+                                    : `${chamados.length} de ${totalChamados} chamados`
                             }
                         >
                             {
@@ -540,6 +554,44 @@ function TicketFeed({
                     )}
                 </div>
             )}
+
+            {!carregando &&
+                totalPaginas > 1 && (
+                    <div className="feed-pagination">
+                        <button
+                            type="button"
+                            disabled={
+                                paginaAtual === 0
+                            }
+                            onClick={() =>
+                                aoAlterarPagina(
+                                    paginaAtual - 1
+                                )
+                            }
+                        >
+                            Anterior
+                        </button>
+
+            <span className="feed-pagination-info">
+{paginaAtual + 1} de {totalPaginas}
+</span>
+
+                        <button
+                            type="button"
+                            disabled={
+                                paginaAtual + 1 >=
+                                totalPaginas
+                            }
+                            onClick={() =>
+                                aoAlterarPagina(
+                                    paginaAtual + 1
+                                )
+                            }
+                        >
+                            Próxima
+                        </button>
+                    </div>
+                )}
         </section>
     );
 }
