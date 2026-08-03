@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-
+import org.springframework.data.domain.Page;
 @RestController
 public class ChamadoFeedController {
 
@@ -20,9 +20,15 @@ public class ChamadoFeedController {
     }
 
     @GetMapping("/chamados")
-    public List<ChamadoResponse> listarFeed(
-            @RequestParam(required = false) Long contratoId
+    public Page<ChamadoResponse> listarFeed(
+            @RequestParam(required = false) Long contratoId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
     ) {
-        return chamadoService.listarFeed(contratoId);
+        return chamadoService.listarFeed(
+                contratoId,
+                page,
+                size
+        );
     }
 }

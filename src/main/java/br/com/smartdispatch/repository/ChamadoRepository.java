@@ -7,10 +7,22 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 public interface ChamadoRepository extends JpaRepository<Chamado, Long> {
 
     @EntityGraph(attributePaths = {"unidade", "unidade.contrato"})
     List<Chamado> findAll();
+
+    @EntityGraph(attributePaths = {"unidade", "unidade.contrato"})
+    Page<Chamado> findAll(Pageable pageable);
+
+    @EntityGraph(attributePaths = {"unidade", "unidade.contrato"})
+    Page<Chamado> findByUnidadeContratoId(
+            Long contratoId,
+            Pageable pageable
+    );
 
     List<Chamado> findByUnidadeContratoId(Long contratoId);
 
@@ -29,4 +41,6 @@ public interface ChamadoRepository extends JpaRepository<Chamado, Long> {
             Long contratoId,
             Long chamadoId
     );
+
+
 }

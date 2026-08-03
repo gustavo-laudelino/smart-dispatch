@@ -22,6 +22,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 @Service
 public class ChamadoService {
 
@@ -129,27 +134,33 @@ public class ChamadoService {
     }
 
     @Transactional(readOnly = true)
-    public List<ChamadoResponse> listarFeed(
-            Long contratoId
+    public Page<ChamadoResponse> listarFeed(
+            Long contratoId,
+            int page,
+            int size
     ) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("dataAbertura").descending()
+        );
+
+        Page<Chamado> chamados;
+
         if (contratoId != null) {
-            return listarPorContrato(
-                    contratoId
+            chamados = chamadoRepository.findByUnidadeContratoId(
+                    contratoId,
+                    pageable
+            );
+        } else {
+            chamados = chamadoRepository.findAll(
+                    pageable
             );
         }
 
-        return chamadoRepository
-                .findAll()
-                .stream()
-                .sorted(
-                        Comparator
-                                .comparing(
-                                        Chamado::getDataAbertura
-                                )
-                                .reversed()
-                )
-                .map(this::converterParaResponse)
-                .toList();
+        return chamados.map(
+                this::converterParaResponse
+        );
     }
 
     @Transactional(readOnly = true)
