@@ -21,6 +21,12 @@ public class Usuario {
     @Column(nullable = false)
     private PerfilUsuario perfil;
 
+    @Column(nullable = false)
+    private String senha;
+
+    @Column(nullable = false)
+    private boolean ativo = true;
+
     private String telefone;
 
     public Usuario() {
@@ -64,5 +70,21 @@ public class Usuario {
 
     public void setTelefone(String telefone) {
         this.telefone = telefone;
+    }
+
+    public String getSenha() {
+        return senha;
+    }
+
+    public void setSenha(String senha) {
+        this.senha = senha;
+    }
+
+    public boolean isAtivo() {
+        return ativo;
+    }
+
+    public void setAtivo(boolean ativo) {
+        this.ativo = ativo;
     }
 }
