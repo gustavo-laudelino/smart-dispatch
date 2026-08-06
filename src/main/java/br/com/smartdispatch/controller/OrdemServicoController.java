@@ -10,6 +10,7 @@ import br.com.smartdispatch.dto.CheckInRequest;
 import java.util.List;
 import br.com.smartdispatch.dto.SugestaoTecnicoResponse;
 import br.com.smartdispatch.service.SugestaoTecnicoService;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping(
@@ -28,6 +29,7 @@ public class OrdemServicoController {
         this.sugestaoTecnicoService = sugestaoTecnicoService;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrdemServicoResponse criar(
@@ -53,6 +55,7 @@ public class OrdemServicoController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
     @PutMapping("/{ordemServicoId}")
     public OrdemServicoResponse atualizar(
             @PathVariable Long contratoId,
