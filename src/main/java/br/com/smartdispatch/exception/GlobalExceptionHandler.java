@@ -9,12 +9,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import org.springframework.http.ResponseEntity;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ErroResponse tratarResponseStatusException(
+    public ResponseEntity<ErroResponse> tratarResponseStatusException(
             ResponseStatusException exception,
             HttpServletRequest request
     ) {
@@ -26,12 +27,16 @@ public class GlobalExceptionHandler {
             erro = httpStatus.getReasonPhrase();
         }
 
-        return new ErroResponse(
+        ErroResponse resposta = new ErroResponse(
                 LocalDateTime.now(),
                 statusCode.value(),
                 erro,
                 exception.getReason(),
                 request.getRequestURI()
         );
+
+        return ResponseEntity
+                .status(statusCode)
+                .body(resposta);
     }
 }
