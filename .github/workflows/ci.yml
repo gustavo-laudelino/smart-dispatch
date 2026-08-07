@@ -28,6 +28,7 @@ jobs:
           POSTGRES_DB: smart_dispatch
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+          JWT_SECRET: c21hcnQtZGlzcGF0Y2gtY2ktc2VjcmV0LTEyMzQ1Njc4
 
         ports:
           - 5432:5432
