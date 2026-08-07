@@ -44,6 +44,11 @@ public class OrdemServicoController {
         );
     }
 
+    @PreAuthorize(
+            "hasAnyRole('ADMIN', 'CTO') or " +
+                    "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
+                    "@autorizacaoService.tecnicoPertenceAoContrato(authentication, #contratoId))"
+    )
     @GetMapping
     public List<OrdemServicoResponse> listarPorChamado(
             @PathVariable Long contratoId,
@@ -71,6 +76,12 @@ public class OrdemServicoController {
         );
     }
 
+    @PreAuthorize(
+            "hasAnyRole('ADMIN', 'CTO') or " +
+                    "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
+                    "@autorizacaoService.tecnicoAtribuidoAOrdemServico(" +
+                    "authentication, #contratoId, #chamadoId, #ordemServicoId))"
+    )
     @PostMapping("/{ordemServicoId}/check-in")
     public OrdemServicoResponse realizarCheckIn(
             @PathVariable Long contratoId,
@@ -86,6 +97,12 @@ public class OrdemServicoController {
         );
     }
 
+    @PreAuthorize(
+            "hasAnyRole('ADMIN', 'CTO') or " +
+                    "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
+                    "@autorizacaoService.tecnicoAtribuidoAOrdemServico(" +
+                    "authentication, #contratoId, #chamadoId, #ordemServicoId))"
+    )
     @PostMapping("/{ordemServicoId}/check-out")
     public OrdemServicoResponse realizarCheckOut(
             @PathVariable Long contratoId,
@@ -99,6 +116,7 @@ public class OrdemServicoController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
     @GetMapping("/{ordemServicoId}/sugestoes-tecnicos")
     public List<SugestaoTecnicoResponse> listarSugestoesTecnicos(
             @PathVariable Long contratoId,

@@ -6,9 +6,15 @@ import br.com.smartdispatch.service.ChamadoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import br.com.smartdispatch.dto.StatusChamadoRequest;
-
+import org.springframework.security.access.prepost.PreAuthorize;
 import java.util.List;
+import org.springframework.security.core.Authentication;
 
+@PreAuthorize(
+        "hasAnyRole('ADMIN', 'CTO') or " +
+                "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
+                "@autorizacaoService.tecnicoPertenceAoContrato(authentication, #contratoId))"
+)
 @RestController
 @RequestMapping("/contratos/{contratoId}/chamados")
 public class ChamadoController {
@@ -53,25 +59,28 @@ public class ChamadoController {
     public ChamadoResponse atualizar(
             @PathVariable Long contratoId,
             @PathVariable Long chamadoId,
-            @RequestBody ChamadoRequest request
+            @RequestBody ChamadoRequest request,
+            Authentication authentication
     ) {
         return chamadoService.atualizar(
                 contratoId,
                 chamadoId,
-                request
+                request,
+                authentication
         );
     }
 
-    @PatchMapping("/{chamadoId}/status")
     public ChamadoResponse atualizarStatus(
             @PathVariable Long contratoId,
             @PathVariable Long chamadoId,
-            @RequestBody StatusChamadoRequest request
+            @RequestBody StatusChamadoRequest request,
+            Authentication authentication
     ) {
         return chamadoService.atualizarStatus(
                 contratoId,
                 chamadoId,
-                request
+                request,
+                authentication
         );
     }
 }

@@ -5,7 +5,13 @@ import br.com.smartdispatch.service.UnidadeService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 
+@PreAuthorize(
+        "hasAnyRole('ADMIN', 'CTO') or " +
+                "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
+                "@autorizacaoService.tecnicoPertenceAoContrato(authentication, #contratoId))"
+)
 @RestController
 @RequestMapping("/contratos/{contratoId}/unidades")
 public class UnidadeController {
@@ -16,6 +22,7 @@ public class UnidadeController {
         this.unidadeService = unidadeService;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
     @PostMapping
     public Unidade criar(
             @PathVariable Long contratoId,
@@ -39,6 +46,7 @@ public class UnidadeController {
         return unidadeService.buscarPorId(contratoId, unidadeId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
     @PutMapping("/{unidadeId}")
     public Unidade atualizar(
             @PathVariable Long contratoId,
@@ -52,6 +60,7 @@ public class UnidadeController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
     @DeleteMapping("/{unidadeId}")
     public void excluir(
             @PathVariable Long contratoId,

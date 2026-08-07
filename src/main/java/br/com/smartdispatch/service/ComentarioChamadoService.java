@@ -15,6 +15,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import br.com.smartdispatch.enums.StatusChamado;
 
 @Service
 public class ComentarioChamadoService {
@@ -40,7 +43,8 @@ public class ComentarioChamadoService {
     public ComentarioChamadoResponse criar(
             Long contratoId,
             Long chamadoId,
-            ComentarioChamadoRequest request
+            ComentarioChamadoRequest request,
+            Authentication authentication
     ) {
         validarRequest(request);
 
@@ -49,8 +53,34 @@ public class ComentarioChamadoService {
                 chamadoId
         );
 
+        boolean gestor = authentication
+                .getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN")
+                                || authority.getAuthority().equals("ROLE_CTO")
+                );
+
+        if (chamado.getStatus() == StatusChamado.FINALIZADO && !gestor) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Chamado finalizado não permite novos comentários"
+            );
+        }
+
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuthentication)) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED,
+                    "Usuário não autenticado"
+            );
+        }
+
+        Number usuarioId = jwtAuthentication
+                .getToken()
+                .getClaim("usuarioId");
+
         Usuario autor = usuarioRepository
-                .findById(request.getAutorId())
+                .findById(usuarioId.longValue())
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Autor não encontrado"
@@ -104,13 +134,6 @@ public class ComentarioChamadoService {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "Os dados do comentário devem ser informados"
-            );
-        }
-
-        if (request.getAutorId() == null) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "O autor deve ser informado"
             );
         }
 

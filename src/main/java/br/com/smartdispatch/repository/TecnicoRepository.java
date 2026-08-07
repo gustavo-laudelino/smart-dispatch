@@ -8,6 +8,13 @@ import java.util.Optional;
 
 public interface TecnicoRepository extends JpaRepository<Tecnico, Long> {
 
+    boolean existsByUsuarioIdAndBaseOperacionalContratoId(
+            Long usuarioId,
+            Long contratoId
+    );
+
+    Optional<Tecnico> findByUsuarioId(Long usuarioId);
+
     List<Tecnico> findByBaseOperacionalId(Long baseId);
 
     Optional<Tecnico> findByIdAndBaseOperacionalId(
@@ -23,4 +30,6 @@ public interface TecnicoRepository extends JpaRepository<Tecnico, Long> {
     List<Tecnico> findByBaseOperacionalContratoIdAndAtivoTrue(
             Long contratoId
     );
+
+
 }

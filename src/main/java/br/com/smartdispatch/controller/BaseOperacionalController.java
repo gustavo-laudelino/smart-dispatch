@@ -5,7 +5,13 @@ import br.com.smartdispatch.service.BaseOperacionalService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 
+@PreAuthorize(
+        "hasAnyRole('ADMIN', 'CTO') or " +
+                "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
+                "@autorizacaoService.tecnicoPertenceAoContrato(authentication, #contratoId))"
+)
 @RestController
 @RequestMapping("/contratos/{contratoId}/bases")
 public class BaseOperacionalController {
@@ -18,6 +24,7 @@ public class BaseOperacionalController {
         this.baseService = baseService;
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
     @PostMapping
     public BaseOperacional criar(
             @PathVariable Long contratoId,
@@ -41,6 +48,7 @@ public class BaseOperacionalController {
         return baseService.buscarPorId(contratoId, baseId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
     @PutMapping("/{baseId}")
     public BaseOperacional atualizar(
             @PathVariable Long contratoId,
@@ -54,6 +62,7 @@ public class BaseOperacionalController {
         );
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
     @DeleteMapping("/{baseId}")
     public void excluir(
             @PathVariable Long contratoId,

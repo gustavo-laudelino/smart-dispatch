@@ -1,15 +1,13 @@
 package br.com.smartdispatch.controller;
 
-import br.com.smartdispatch.dto.AtualizarTecnicoRequest;
-import br.com.smartdispatch.dto.CriarTecnicoRequest;
 import br.com.smartdispatch.dto.TecnicoResponse;
 import br.com.smartdispatch.service.TecnicoService;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import br.com.smartdispatch.dto.AtualizarStatusTecnicoRequest;
 
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 
+@PreAuthorize("hasAnyRole('ADMIN', 'CTO')")
 @RestController
 @RequestMapping("/contratos/{contratoId}/bases/{baseId}/tecnicos")
 public class TecnicoController {
@@ -20,19 +18,6 @@ public class TecnicoController {
         this.tecnicoService = tecnicoService;
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public TecnicoResponse criar(
-            @PathVariable Long contratoId,
-            @PathVariable Long baseId,
-            @RequestBody CriarTecnicoRequest request
-    ) {
-        return tecnicoService.criar(
-                contratoId,
-                baseId,
-                request
-        );
-    }
 
     @GetMapping
     public List<TecnicoResponse> listar(
@@ -55,36 +40,6 @@ public class TecnicoController {
                 contratoId,
                 baseId,
                 tecnicoId
-        );
-    }
-
-    @PutMapping("/{tecnicoId}")
-    public TecnicoResponse atualizar(
-            @PathVariable Long contratoId,
-            @PathVariable Long baseId,
-            @PathVariable Long tecnicoId,
-            @RequestBody AtualizarTecnicoRequest request
-    ) {
-        return tecnicoService.atualizar(
-                contratoId,
-                baseId,
-                tecnicoId,
-                request
-        );
-    }
-
-    @PatchMapping("/{tecnicoId}/status")
-    public TecnicoResponse atualizarStatus(
-            @PathVariable Long contratoId,
-            @PathVariable Long baseId,
-            @PathVariable Long tecnicoId,
-            @RequestBody AtualizarStatusTecnicoRequest request
-    ) {
-        return tecnicoService.atualizarStatus(
-                contratoId,
-                baseId,
-                tecnicoId,
-                request
         );
     }
 }

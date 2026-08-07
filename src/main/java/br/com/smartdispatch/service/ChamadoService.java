@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.Authentication;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -198,13 +199,29 @@ public class ChamadoService {
     public ChamadoResponse atualizar(
             Long contratoId,
             Long chamadoId,
-            ChamadoRequest request
+            ChamadoRequest request,
+            Authentication authentication
     ) {
         Chamado chamado =
                 buscarEntidadePorId(
                         contratoId,
                         chamadoId
                 );
+
+        boolean gestor = authentication
+                .getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN")
+                                || authority.getAuthority().equals("ROLE_CTO")
+                );
+
+        if (chamado.getStatus() == StatusChamado.FINALIZADO && !gestor) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Chamado finalizado não permite edição"
+            );
+        }
 
         Unidade unidade =
                 unidadeService.buscarPorId(
@@ -263,7 +280,8 @@ public class ChamadoService {
     public ChamadoResponse atualizarStatus(
             Long contratoId,
             Long chamadoId,
-            StatusChamadoRequest request
+            StatusChamadoRequest request,
+            Authentication authentication
     ) {
         if (
                 request == null
@@ -294,6 +312,22 @@ public class ChamadoService {
                         contratoId,
                         chamadoId
                 );
+
+        boolean gestor = authentication
+                .getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN")
+                                || authority.getAuthority().equals("ROLE_CTO")
+                );
+
+        if (chamado.getStatus() == StatusChamado.FINALIZADO && !gestor) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Chamado finalizado não permite alteração de status"
+            );
+        }
+
 
         StatusChamado statusAnterior =
                 chamado.getStatus();

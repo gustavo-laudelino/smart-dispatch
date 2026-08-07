@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import br.com.smartdispatch.enums.StatusChamado;
 
 public interface OrdemServicoRepository
         extends JpaRepository<OrdemServico, Long> {
@@ -38,6 +39,14 @@ public interface OrdemServicoRepository
     boolean existsByNumeroOrdemServicoAndIdNot(
             String numeroOrdemServico,
             Long ordemServicoId
+    );
+
+    boolean existsByIdAndTecnicoUsuarioIdAndChamadoIdAndChamadoUnidadeContratoIdAndChamadoStatusNot(
+            Long ordemServicoId,
+            Long usuarioId,
+            Long chamadoId,
+            Long contratoId,
+            StatusChamado status
     );
 
     Optional<OrdemServico>

@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping(
@@ -22,17 +24,24 @@ public class ComentarioChamadoController {
         this.comentarioChamadoService = comentarioChamadoService;
     }
 
+    @PreAuthorize(
+            "hasAnyRole('ADMIN', 'CTO') or " +
+                    "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
+                    "@autorizacaoService.tecnicoPertenceAoContrato(authentication, #contratoId))"
+    )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ComentarioChamadoResponse criar(
             @PathVariable Long contratoId,
             @PathVariable Long chamadoId,
-            @RequestBody ComentarioChamadoRequest request
+            @RequestBody ComentarioChamadoRequest request,
+            Authentication authentication
     ) {
         return comentarioChamadoService.criar(
                 contratoId,
                 chamadoId,
-                request
+                request,
+                authentication
         );
     }
 
