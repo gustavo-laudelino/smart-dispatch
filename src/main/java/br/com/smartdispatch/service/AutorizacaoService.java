@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import br.com.smartdispatch.dto.StatusChamadoRequest;
 import br.com.smartdispatch.enums.StatusChamado;
 import br.com.smartdispatch.repository.OrdemServicoRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service("autorizacaoService")
 public class AutorizacaoService {
@@ -123,5 +125,42 @@ public class AutorizacaoService {
                                 .getId()
                 )
                 .orElse(null);
+    }
+
+    public Long resolverContratoPermitido(
+            Authentication authentication,
+            Long contratoIdSolicitado
+    ) {
+        boolean gestor = authentication
+                .getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_ADMIN")
+                                || authority.getAuthority().equals("ROLE_CTO")
+                );
+
+        if (gestor) {
+            return contratoIdSolicitado;
+        }
+
+        Long contratoIdTecnico =
+                obterContratoIdTecnico(authentication);
+
+        if (contratoIdTecnico == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Usuário não possui vínculo com um contrato"
+            );
+        }
+
+        if (contratoIdSolicitado != null
+                && !contratoIdTecnico.equals(contratoIdSolicitado)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Usuário não possui acesso a este contrato"
+            );
+        }
+
+        return contratoIdTecnico;
     }
 }

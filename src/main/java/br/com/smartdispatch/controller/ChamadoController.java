@@ -70,6 +70,10 @@ public class ChamadoController {
         );
     }
 
+    @PatchMapping("/{chamadoId}/status")
+    @PreAuthorize(
+            "@autorizacaoService.podeAlterarStatusChamado(authentication, #contratoId, #request)"
+    )
     public ChamadoResponse atualizarStatus(
             @PathVariable Long contratoId,
             @PathVariable Long chamadoId,
