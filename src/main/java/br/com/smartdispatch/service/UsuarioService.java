@@ -253,6 +253,13 @@ public class UsuarioService {
                 .findByUsuarioId(usuarioId)
                 .orElse(null);
 
+        if (eraTecnico && tecnico == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Usuário técnico não possui vínculo operacional"
+            );
+        }
+
         if (!eraTecnico && seraTecnico) {
 
             if (!informouContrato) {
@@ -288,25 +295,10 @@ public class UsuarioService {
                     request.getBaseOperacionalId()
             );
 
-            if (tecnico == null) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "Usuário técnico não possui vínculo operacional"
-                );
-            }
-
             tecnico.setBaseOperacional(novaBase);
         }
 
         if (eraTecnico && !seraTecnico) {
-
-            if (tecnico == null) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "Usuário técnico não possui vínculo operacional"
-                );
-            }
-
             tecnico.setAtivo(false);
         }
 
@@ -343,11 +335,14 @@ public class UsuarioService {
                         || usuario.getPerfil() == PerfilUsuario.TECNICO_INTERNO;
 
         if (perfilTecnico) {
-            tecnicoRepository
+            Tecnico tecnico = tecnicoRepository
                     .findByUsuarioId(usuarioId)
-                    .ifPresent(tecnico ->
-                            tecnico.setAtivo(request.getAtivo())
-                    );
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "Usuário técnico não possui vínculo operacional"
+                    ));
+
+            tecnico.setAtivo(request.getAtivo());
         }
 
         Usuario usuarioAtualizado =
