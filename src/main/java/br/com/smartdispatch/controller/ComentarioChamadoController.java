@@ -10,6 +10,12 @@ import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.access.prepost.PreAuthorize;
 
+
+@PreAuthorize(
+        "hasAnyRole('ADMIN', 'CTO') or " +
+                "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
+                "@autorizacaoService.tecnicoPertenceAoContrato(authentication, #contratoId))"
+)
 @RestController
 @RequestMapping(
         "/contratos/{contratoId}/chamados/{chamadoId}/comentarios"
@@ -24,11 +30,6 @@ public class ComentarioChamadoController {
         this.comentarioChamadoService = comentarioChamadoService;
     }
 
-    @PreAuthorize(
-            "hasAnyRole('ADMIN', 'CTO') or " +
-                    "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
-                    "@autorizacaoService.tecnicoPertenceAoContrato(authentication, #contratoId))"
-    )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ComentarioChamadoResponse criar(

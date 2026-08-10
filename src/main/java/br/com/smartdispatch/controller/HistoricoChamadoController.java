@@ -8,7 +8,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 
+@PreAuthorize(
+        "hasAnyRole('ADMIN', 'CTO') or " +
+                "(hasAnyRole('TECNICO', 'TECNICO_INTERNO') and " +
+                "@autorizacaoService.tecnicoPertenceAoContrato(authentication, #contratoId))"
+)
 @RestController
 @RequestMapping(
         "/contratos/{contratoId}/chamados/{chamadoId}/historico"
