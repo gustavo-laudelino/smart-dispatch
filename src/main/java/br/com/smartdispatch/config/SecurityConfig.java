@@ -8,8 +8,12 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import br.com.smartdispatch.repository.UsuarioRepository;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.List;
 
 @EnableMethodSecurity
 @Configuration
@@ -17,26 +21,39 @@ public class SecurityConfig {
 
 
     @Bean
-    public JwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter authoritiesConverter =
-                new JwtGrantedAuthoritiesConverter();
-
-        authoritiesConverter.setAuthoritiesClaimName("perfil");
-        authoritiesConverter.setAuthorityPrefix("ROLE_");
-
+    public JwtAuthenticationConverter jwtAuthenticationConverter(
+            UsuarioRepository usuarioRepository
+    ) {
         JwtAuthenticationConverter authenticationConverter =
                 new JwtAuthenticationConverter();
 
-        authenticationConverter.setJwtGrantedAuthoritiesConverter(
-                authoritiesConverter
-        );
+        authenticationConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
+
+            Number usuarioId = jwt.getClaim("usuarioId");
+
+            if (usuarioId == null) {
+                return List.of();
+            }
+
+            return usuarioRepository
+                    .findById(usuarioId.longValue())
+                    .map(usuario ->
+                            List.<GrantedAuthority>of(
+                                    new SimpleGrantedAuthority(
+                                            "ROLE_" + usuario.getPerfil().name()
+                                    )
+                            )
+                    )
+                    .orElse(List.of());
+        });
 
         return authenticationConverter;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http
+            HttpSecurity http,
+            JwtAuthenticationConverter authenticationConverter
     ) throws Exception {
 
         http
@@ -70,7 +87,7 @@ public class SecurityConfig {
                 .oauth2ResourceServer(oauth2 ->
                         oauth2.jwt(jwt ->
                                 jwt.jwtAuthenticationConverter(
-                                        jwtAuthenticationConverter()
+                                        authenticationConverter
                                 )
                         )
                 );
