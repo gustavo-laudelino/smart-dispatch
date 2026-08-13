@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import br.com.smartdispatch.repository.UsuarioRepository;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import static org.springframework.security.config.Customizer.withDefaults;
 
 import java.util.List;
 
@@ -60,6 +61,7 @@ public class SecurityConfig {
                 .csrf(csrf ->
                         csrf.disable()
                 )
+                .cors(withDefaults())
                 .httpBasic(httpBasic ->
                         httpBasic.disable()
                 )
