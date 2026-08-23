@@ -1,6 +1,6 @@
 # Smart Dispatch — Handoff
 
-Última atualização: 2026-08-19
+Última atualização: 2026-08-23
 
 Este arquivo é o documento de **continuidade técnica** do projeto. A intenção é que um novo agente/PM consiga abrir o repositório, ler `CLAUDE.md` + este arquivo, e entender onde estamos e como chegamos aqui — sem depender do histórico de chat anterior. `CLAUDE.md` é "como trabalhar neste projeto" (permanente); este arquivo é "tudo que o próximo agente precisa saber sobre o estado atual" (muda com frequência).
 
@@ -33,9 +33,11 @@ Este arquivo é o documento de **continuidade técnica** do projeto. A intençã
 - **ETAPA 5 — matriz final de segurança:** concluída.
 - **ETAPA 6 — testes/build/Swagger/CI:** **EM ANDAMENTO.**
   - Testes unitários: **CONCLUÍDOS.**
-  - Testes de integração: **PRÓXIMA FASE.**
+  - Testes de integração:
+    - **Fase A — infraestrutura: CONCLUÍDA.**
+    - **Fase B — repositories: PRÓXIMO PASSO.**
 
-A ETAPA 6 como um todo **não** está concluída — só a parte unitária dela.
+A ETAPA 6 como um todo **não** está concluída — só a parte unitária e a infraestrutura de integração (Fase A).
 
 ---
 
@@ -327,40 +329,54 @@ app.jwt.secret=${JWT_SECRET}
 app.jwt.expiration-seconds=43200
 ```
 
-`ddl-auto=update` — não há migrations (Flyway/Liquibase) no projeto atualmente.
+`ddl-auto=update` — não há migrations (Flyway/Liquibase) no projeto atualmente. Essa configuração da aplicação normal **não foi alterada** pela Fase A.
 
-**Não existe `src/test/resources` nem qualquer profile de teste (`application-test.properties`, `@ActiveProfiles`) no projeto hoje** — confirmado por busca no repositório. Hoje não existe configuração de teste dedicada para reaproveitar. Se a estratégia de integração escolhida utilizar profile/properties de teste, essa infraestrutura precisará ser criada. Outras estratégias de configuração também podem ser avaliadas na Fase A.
+**Profile de teste (`src/test/resources/application-test.properties`) — criado na Fase A:**
+
+- datasource de teste usa exclusivamente `TEST_DB_URL`, `TEST_DB_USERNAME`, `TEST_DB_PASSWORD` — nunca as variáveis `DB_*` da aplicação normal, justamente para não atingir `smart_dispatch` acidentalmente;
+- default local (sem env var setada): `jdbc:postgresql://localhost:5432/smart_dispatch_test`;
+- JWT de teste usa `TEST_JWT_SECRET`, separado do `JWT_SECRET` da aplicação normal;
+- `spring.jpa.hibernate.ddl-auto=create-drop`, isolado neste profile — o `update` da aplicação normal permanece intocado.
 
 ---
 
 ## 17. POM / infraestrutura de teste atual
 
-Dependências relevantes hoje (`pom.xml`): `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-security`, `spring-boot-starter-oauth2-resource-server`, `postgresql` (runtime), `springdoc-openapi-starter-webmvc-ui` 3.0.3, `spring-boot-starter-test` (scope test — traz JUnit 5, Mockito, AssertJ).
+Dependências relevantes hoje (`pom.xml`): `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-security`, `spring-boot-starter-oauth2-resource-server`, `postgresql` (runtime), `springdoc-openapi-starter-webmvc-ui` 3.0.3, `spring-boot-starter-test` (scope test — traz JUnit 5, Mockito, AssertJ) e `spring-boot-starter-data-jpa-test` (scope test).
 
-**Confirmado que atualmente NÃO existem no `pom.xml`:** H2, Testcontainers, `spring-security-test` explícito.
+`spring-boot-starter-data-jpa-test` foi adicionado na Fase A: no Spring Boot 4.0.6, a infraestrutura de `@DataJpaTest` **não** vem mais dentro de `spring-boot-starter-test`/`spring-boot-test-autoconfigure` — foi extraída para esse starter próprio, necessário para repository integration (Fase B).
 
-A escolha da infraestrutura de teste de integração ainda **não foi decidida** — é exatamente a próxima decisão pendente (seção 22). Não tratar a ausência dessas dependências como um problema a resolver por iniciativa própria.
+**Confirmado que atualmente NÃO usamos:** H2, Testcontainers, `spring-security-test` explícito.
+
+**Decisão vigente (Fase A, concluída):**
+
+- repository integration usará PostgreSQL real;
+- banco local dedicado: `smart_dispatch_test`;
+- CI reutiliza o PostgreSQL 16 efêmero já existente no workflow;
+- sem H2;
+- sem Testcontainers nesta fase;
+- profile/configuração de teste dedicado (`application-test.properties`, seção 16);
+- `create-drop` somente no ambiente de teste;
+- isolamento entre testes via transação/rollback do slice de teste (`@DataJpaTest`), como de costume no Spring.
 
 ---
 
-## 18. CI — detalhe crítico para a próxima fase
+## 18. CI — estado atual (pós Fase A)
 
 Lido de `.github/workflows/ci.yml`.
 
 **Job backend:**
 
 - `ubuntu-latest`;
-- serviço `postgres:16` com `POSTGRES_DB=smart_dispatch`, `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=postgres`, porta `5432`;
-- env do **job** (disponível para o processo Maven): `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `CORS_ALLOWED_ORIGINS`;
+- serviço `postgres:16` com `POSTGRES_DB=smart_dispatch_test`, `POSTGRES_USER=postgres`, `POSTGRES_PASSWORD=postgres`, porta `5432`;
+- env do **job** (disponível para o processo Maven): `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, `TEST_DB_URL`, `TEST_DB_USERNAME`, `TEST_DB_PASSWORD`, `TEST_JWT_SECRET`, `CORS_ALLOWED_ORIGINS`;
 - step: `mvn --batch-mode test`.
 
 **Job frontend:** Node 22, `npm ci`, lint, build.
 
-**⚠️ Risco de infraestrutura confirmado no arquivo, a resolver antes de qualquer teste que suba `ApplicationContext`:**
+`DB_URL` também aponta, no CI, para o mesmo banco efêmero `smart_dispatch_test` — fallback seguro dentro daquele ambiente descartável, já que o job não roda a aplicação normal, só testes.
 
-`JWT_SECRET` está definido dentro de `jobs.backend.services.postgres.env` — ou seja, é uma variável de ambiente do **container do serviço Postgres**, não do processo que roda o Maven. `jobs.backend.env` (o bloco que o `mvn test` realmente enxerga) só tem `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `CORS_ALLOWED_ORIGINS` — **não tem `JWT_SECRET`**.
-
-**Por que isso não apareceu nos 164 testes unitários:** nenhum deles sobe `ApplicationContext`, então nada tentou resolver `${JWT_SECRET}` via Spring `@Value`. O primeiro teste que carregar `JwtConfig`/`SecurityConfig` via Spring precisará de uma estratégia para fornecer `JWT_SECRET` ao processo de teste — no CI atual, a variável não está disponível para o processo Maven. A solução ainda deve ser decidida na Fase A (seção 22) — por exemplo, mover a variável para `jobs.backend.env`, usar configuração/profile específico de teste, ou outra estratégia aprovada; nenhuma dessas opções foi escolhida ainda. Registrado aqui para não ser redescoberto do zero na próxima sessão.
+`JWT_SECRET` foi movido do `env` exclusivo do container Postgres (`jobs.backend.services.postgres.env`) para `jobs.backend.env`, ficando disponível ao processo Maven — o risco antes registrado nesta seção (variável inacessível ao contexto Spring) está resolvido.
 
 ---
 
@@ -382,7 +398,6 @@ Lido de `.github/workflows/ci.yml`.
 3. **Senha inicial/reset `"cto"`** — hardcoded em `UsuarioService` para criação e reset de senha. Decisão MVP conhecida.
 4. **Busca de OS ativa sem isolamento por contrato** (`OrdemServicoRepository.findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull`) — um técnico pode ter uma OS ativa "vazando" de outro contrato nesse fluxo específico de check-in. Decisão/limitação MVP, não bug.
 5. **Autenticação definitiva do frontend** — ainda não implementada; segue no roadmap.
-6. **CI: `JWT_SECRET` no lugar errado** para testes que subam Spring Context (seção 18) — risco de infraestrutura, não dívida de regra de negócio, mas bloqueante para a próxima fase se não for corrigido a tempo.
 
 Nenhum item desta lista deve ser corrigido automaticamente — cada um exige decisão explícita antes de qualquer alteração de produção ou de CI.
 
@@ -396,28 +411,32 @@ Nenhum item desta lista deve ser corrigido automaticamente — cada um exige dec
 
 ---
 
-## 22. Próxima fase — testes de integração
+## 22. Infraestrutura de integração — decisões da Fase A
 
 O objetivo é testar o que mocks não conseguem provar: queries reais do Spring Data, `SecurityFilterChain` real, serialização HTTP, `@PreAuthorize` de fato aplicado.
 
-**Antes de qualquer teste de integração, o próximo chat precisa decidir (nenhuma automaticamente):**
+**Decisões já aprovadas e implementadas:**
 
-1. estratégia de banco local (Windows);
-2. estratégia de banco no CI;
-3. usar o PostgreSQL já existente no CI, Testcontainers, ou outra solução;
-4. criar (ou não) um profile/properties específico de teste — hoje não existe nenhum (seção 16);
-5. como fornecer `JWT_SECRET` (e demais env vars) aos testes que sobem `ApplicationContext` — considerando o risco já identificado no CI (seção 18);
-6. estratégia de schema — **não decidir automaticamente**; analisar o comportamento atual de `ddl-auto=update` antes de propor mudança;
-7. isolamento/cleanup de dados entre testes;
-8. quais dependências são realmente necessárias (evitar adicionar por impulso);
-9. como manter a execução local simples em Windows;
-10. compatibilidade com o GitHub Actions atual.
+1. banco real: PostgreSQL;
+2. banco local dedicado: `smart_dispatch_test`;
+3. CI: PostgreSQL 16 efêmero já existente no GitHub Actions;
+4. sem H2;
+5. sem Testcontainers nesta fase;
+6. profile/configuração dedicado: `application-test.properties`;
+7. variáveis `TEST_*` separadas das variáveis da aplicação normal;
+8. schema de teste: `ddl-auto=create-drop` somente no ambiente de teste;
+9. repository integration deve usar `@DataJpaTest` com PostgreSQL real;
+10. isolamento normal por transação/rollback do slice de teste;
+11. `JWT_SECRET`/`TEST_JWT_SECRET` já disponíveis corretamente no CI;
+12. `spring-boot-starter-data-jpa-test` já adicionado com scope test.
+
+**Fase A concluída, revisada e commitada.** Não reabrir essas decisões durante a Fase B sem motivo técnico concreto ou tarefa explícita.
 
 ---
 
 ## 23. Ordem recomendada de integração
 
-- **Fase A — infraestrutura.** Responder as 10 perguntas da seção 22 antes de escrever qualquer teste.
+- **Fase A — infraestrutura: CONCLUÍDA.**
 - **Fase B — repositories de maior risco:** `OrdemServicoRepository`, `ChamadoRepository`, `TecnicoRepository` (ver seção 14 para o porquê). Validar queries derivadas, escopo por contrato, filtros e janelas temporais contra banco real. Depois avaliar custo/benefício dos demais repositories.
 - **Fase C — HTTP/Security:** `SecurityFilterChain` real, JWT, mappings, status HTTP, serialização, `@PreAuthorize`, matriz de acesso. Não criar `ControllerTest` trivial que só chama o método Java diretamente (isso não testa nada que valha a pena).
 - **Fase D — fluxos críticos integrados:** login, acesso autenticado, chamado, ordem de serviço, check-in/check-out, autorização por perfil/contrato.
@@ -434,7 +453,7 @@ O objetivo é testar o que mocks não conseguem provar: queries reais do Spring 
 - não perseguir cobertura artificial;
 - não adicionar dezenas de testes de repository sem priorização (ver seção 14);
 - não mudar produção para facilitar teste;
-- não adicionar H2/Testcontainers/`spring-security-test` por impulso — é decisão da Fase A.
+- não adicionar H2, Testcontainers ou novas dependências de teste sem necessidade técnica e tarefa explícita — H2 e Testcontainers não fazem parte da estratégia atual aprovada (seção 22); `spring-security-test` ainda não é uma decisão definitiva para toda a fase futura, sua necessidade será analisada quando chegarmos à camada HTTP/security (Fase C).
 
 ---
 
@@ -449,44 +468,75 @@ O objetivo é testar o que mocks não conseguem provar: queries reais do Spring 
 
 ---
 
-## 26. Próximo passo exato
+## 26. Padrão de trabalho do PM
 
-O próximo chat **não** deve começar implementando nada. Deve, nesta ordem:
+Heurísticas de engenharia, não burocracia absoluta — aplicar julgamento técnico conforme complexidade e risco da tarefa.
 
-1. ler `CLAUDE.md`;
-2. ler este `HANDOFF.md` inteiro;
-3. conferir o estado atual do repositório (`git status`, estrutura);
-4. conferir `pom.xml`;
-5. conferir `application.properties`;
-6. conferir `.github/workflows/ci.yml` (especialmente o risco do `JWT_SECRET`, seção 18);
-7. conferir a estrutura atual de `src/test/java`;
-8. analisar as opções de infraestrutura de teste de integração (seção 22);
-9. apresentar as opções com trade-offs;
-10. recomendar **uma**;
-11. aguardar aprovação antes de adicionar qualquer dependência ou criar a primeira suíte de integração.
-
-**Questão central a resolver:**
-
-> Qual estratégia de banco e infraestrutura de testes de integração devemos adotar no Smart Dispatch, considerando desenvolvimento local em Windows, GitHub Actions já com PostgreSQL 16, a necessidade futura de `ApplicationContext`/Security, e o estado atual das dependências (sem H2/Testcontainers/spring-security-test)?
+1. **Fechar previamente todas as decisões técnicas que puder.** Evitar "preferencialmente", "se achar melhor", "pode usar X ou Y", "escolha uma abordagem" quando o PM já puder decidir. Objetivo: reduzir graus de liberdade do executor.
+2. **Verificar se a tarefa está pronta para execução antes de enviar ao Claude Code.** Quando aplicável, a especificação deve definir: objetivo técnico; arquivo(s) exato(s); cenário(s); Arrange; Act; Assert; comandos de validação; resultado esperado; limites; condições de STOP; alterações permitidas; alterações proibidas. Se ainda houver decisão arquitetural importante aberta, permanecer em análise.
+3. **O `git status` inicial é o BASELINE da rodada.** Distinguir alterações já existentes, alterações permitidas nesta rodada e alterações novas produzidas nesta rodada. A revisão final compara estado inicial versus estado final.
+4. **Encerrar uma subfase em commit antes de iniciar outra responsabilidade**, quando ela já estiver implementada, revisada e aprovada. Objetivo: histórico limpo, rollback simples, evitar mistura desnecessária entre infraestrutura, produção, testes e documentação.
+5. **Cada rodada deve ter um objetivo técnico principal.** Evitar testar várias responsabilidades incidentalmente em uma primeira implementação.
+6. **Ao iniciar uma nova camada ou infraestrutura de testes, provar primeiro o menor cenário útil possível.** Só depois avançar para cenários complexos.
+7. **Verificar se o teste realmente atravessa a camada que afirma provar.** Exemplos: teste unitário = unidade isolada + mocks das dependências; repository integration = Spring Data JPA + SQL real + banco real; HTTP/security = Spring MVC + `SecurityFilterChain` + autenticação/autorização reais.
+8. **Evitar assertions baseadas em detalhes acidentais da implementação.** Priorizar comportamento observável. Em persistência, preferir validar id, campos, relacionamentos e resultado da query, em vez de exigir identidade da mesma instância Java quando isso não fizer parte do comportamento.
+9. **Se o executor ainda precisar tomar uma decisão arquitetural que o PM poderia ter fechado previamente, a tarefa provavelmente ainda não está pronta.** Nesse caso, continuar em análise.
+10. **O prompt para Claude deve ser suficientemente fechado** para que, no Modo A do `CLAUDE.md`, ele atue como executor e não como segundo arquiteto.
 
 ---
 
-## 27. Bootstrap para próxima sessão
+## 27. Convenções da fase de integração
+
+Heurísticas, não regras mecânicas.
+
+1. O primeiro teste de uma nova infraestrutura deve ser mínimo e controlado.
+2. Repository integration deve provar PostgreSQL real.
+3. Persistir apenas as entidades mínimas necessárias para satisfazer os mappings JPA do cenário.
+4. Não criar cleanup manual quando transação/rollback do slice de teste já garantir isolamento adequado.
+5. Quando o objetivo for provar leitura real do banco e isso acrescentar valor ao cenário, considerar `save` → `flush` → `clear` do persistence context → `query`, para reduzir a possibilidade de o first-level cache do Hibernate mascarar a leitura real. **Não** é regra obrigatória para todos os testes — usar somente quando acrescentar valor ao comportamento validado.
+6. Começar por queries simples para provar a infraestrutura. Depois avançar para queries de maior risco.
+7. Não transformar o primeiro teste de integração em busca por coverage.
+8. Na futura camada HTTP/security, priorizar o fluxo real relevante ao Smart Dispatch. Para cenários críticos de segurança, deve ser possível validar: Bearer JWT → `JwtDecoder` → `SecurityFilterChain` → `usuarioId` → banco → perfil atual → `ROLE` → `@PreAuthorize`. `@WithMockUser` pode ser usado em cenários específicos, mas não deve substituir esse fluxo quando ele próprio for o comportamento sob teste.
+
+---
+
+## 28. Próximo passo exato
+
+A Fase A está concluída. O próximo trabalho é iniciar a Fase B de forma controlada.
+
+**Primeira rodada da Fase B:** criar SOMENTE `src/test/java/br/com/smartdispatch/repository/OrdemServicoRepositoryTest.java`.
+
+**Primeiro objetivo:**
+
+- provar que `@DataJpaTest` sobe;
+- usar PostgreSQL real de teste;
+- persistir entidades JPA reais;
+- executar uma query real simples do `OrdemServicoRepository`;
+- confirmar isolamento/rollback;
+- não iniciar ainda queries complexas;
+- não perseguir coverage.
+
+A primeira classe/teste deverá ser especificada pelo PM antes da implementação, conforme as heurísticas das seções 26 e 27.
+
+---
+
+## 29. Bootstrap para próxima sessão
 
 > Antes de implementar:
 > 1. leia `CLAUDE.md`;
 > 2. leia este `HANDOFF.md` inteiro;
-> 3. confirme que entendeu o marco atual;
-> 4. confirme que os unitários terminaram em 164 execuções verdes;
+> 3. confirme o marco de 164 testes unitários verdes;
+> 4. confirme que a Fase A de integração está concluída;
 > 5. confirme que a ETAPA 6 continua aberta;
-> 6. analise a infraestrutura de integração (seções 17, 18, 22);
-> 7. não faça alterações antes de apresentar uma recomendação.
->
-> O primeiro output esperado da nova sessão **não é código**. É: leitura do estado atual, diagnóstico da infraestrutura, opções, trade-offs, recomendação.
+> 6. identifique a Fase B como próxima fase;
+> 7. respeite as heurísticas das seções 26 e 27;
+> 8. não reabra decisões da Fase A sem divergência real no código;
+> 9. verifique `git status`/baseline antes de qualquer rodada;
+> 10. continue a partir do próximo trabalho ainda não concluído (seção 28).
 
 ---
 
-## 28. Regra de manutenção deste arquivo
+## 30. Regra de manutenção deste arquivo
 
 Este `HANDOFF.md` deve continuar sendo atualizado quando:
 
