@@ -1,13 +1,17 @@
 package br.com.smartdispatch.repository;
 
 import br.com.smartdispatch.enums.CategoriaChamado;
+import br.com.smartdispatch.enums.PerfilUsuario;
 import br.com.smartdispatch.enums.PrioridadeChamado;
 import br.com.smartdispatch.enums.StatusChamado;
 import br.com.smartdispatch.enums.TipoChamado;
+import br.com.smartdispatch.model.BaseOperacional;
 import br.com.smartdispatch.model.Chamado;
 import br.com.smartdispatch.model.Contrato;
 import br.com.smartdispatch.model.OrdemServico;
+import br.com.smartdispatch.model.Tecnico;
 import br.com.smartdispatch.model.Unidade;
+import br.com.smartdispatch.model.Usuario;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
@@ -182,6 +186,181 @@ class OrdemServicoRepositoryTest {
         assertThat(resultado).isEmpty();
     }
 
+    @Test
+    void deveConfirmarTecnicoAtribuidoQuandoEscoposCorrespondem() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-005", unidadeA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.005@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+
+        OrdemServico ordemServicoA = new OrdemServico();
+        ordemServicoA.setNumeroOrdemServico("OS-INT-005");
+        ordemServicoA.setChamado(chamadoA);
+        ordemServicoA.setUnidadeAtendimento(unidadeA);
+        ordemServicoA.setTecnico(tecnicoA);
+        entityManager.persist(ordemServicoA);
+
+        entityManager.flush();
+
+        Long ordemServicoId = ordemServicoA.getId();
+        Long usuarioId = usuarioA.getId();
+        Long chamadoId = chamadoA.getId();
+        Long contratoId = contratoA.getId();
+
+        entityManager.clear();
+
+        boolean resultado = ordemServicoRepository
+                .existsByIdAndTecnicoUsuarioIdAndChamadoIdAndChamadoUnidadeContratoIdAndChamadoStatusNot(
+                        ordemServicoId,
+                        usuarioId,
+                        chamadoId,
+                        contratoId,
+                        StatusChamado.FINALIZADO
+                );
+
+        assertThat(resultado).isTrue();
+    }
+
+    @Test
+    void deveNegarTecnicoAtribuidoQuandoUsuarioNaoCorresponde() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-006", unidadeA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.006@teste.local"
+        );
+        Usuario usuarioB = persistirUsuario(
+                "Usuario Teste B",
+                "usuario.b.006@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+
+        OrdemServico ordemServicoA = new OrdemServico();
+        ordemServicoA.setNumeroOrdemServico("OS-INT-006");
+        ordemServicoA.setChamado(chamadoA);
+        ordemServicoA.setUnidadeAtendimento(unidadeA);
+        ordemServicoA.setTecnico(tecnicoA);
+        entityManager.persist(ordemServicoA);
+
+        entityManager.flush();
+
+        Long ordemServicoId = ordemServicoA.getId();
+        Long usuarioIdIncorreto = usuarioB.getId();
+        Long chamadoId = chamadoA.getId();
+        Long contratoId = contratoA.getId();
+
+        entityManager.clear();
+
+        boolean resultado = ordemServicoRepository
+                .existsByIdAndTecnicoUsuarioIdAndChamadoIdAndChamadoUnidadeContratoIdAndChamadoStatusNot(
+                        ordemServicoId,
+                        usuarioIdIncorreto,
+                        chamadoId,
+                        contratoId,
+                        StatusChamado.FINALIZADO
+                );
+
+        assertThat(resultado).isFalse();
+    }
+
+    @Test
+    void deveNegarTecnicoAtribuidoQuandoContratoNaoCorresponde() {
+        Contrato contratoA = persistirContrato();
+        Contrato contratoB = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-007", unidadeA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.007@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+
+        OrdemServico ordemServicoA = new OrdemServico();
+        ordemServicoA.setNumeroOrdemServico("OS-INT-007");
+        ordemServicoA.setChamado(chamadoA);
+        ordemServicoA.setUnidadeAtendimento(unidadeA);
+        ordemServicoA.setTecnico(tecnicoA);
+        entityManager.persist(ordemServicoA);
+
+        entityManager.flush();
+
+        Long ordemServicoId = ordemServicoA.getId();
+        Long usuarioId = usuarioA.getId();
+        Long chamadoId = chamadoA.getId();
+        Long contratoIdIncorreto = contratoB.getId();
+
+        entityManager.clear();
+
+        boolean resultado = ordemServicoRepository
+                .existsByIdAndTecnicoUsuarioIdAndChamadoIdAndChamadoUnidadeContratoIdAndChamadoStatusNot(
+                        ordemServicoId,
+                        usuarioId,
+                        chamadoId,
+                        contratoIdIncorreto,
+                        StatusChamado.FINALIZADO
+                );
+
+        assertThat(resultado).isFalse();
+    }
+
+    @Test
+    void deveNegarTecnicoAtribuidoQuandoChamadoEstaFinalizado() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-008", unidadeA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.008@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+
+        OrdemServico ordemServicoA = new OrdemServico();
+        ordemServicoA.setNumeroOrdemServico("OS-INT-008");
+        ordemServicoA.setChamado(chamadoA);
+        ordemServicoA.setUnidadeAtendimento(unidadeA);
+        ordemServicoA.setTecnico(tecnicoA);
+        entityManager.persist(ordemServicoA);
+
+        chamadoA.setStatus(StatusChamado.FINALIZADO);
+
+        entityManager.flush();
+
+        Long ordemServicoId = ordemServicoA.getId();
+        Long usuarioId = usuarioA.getId();
+        Long chamadoId = chamadoA.getId();
+        Long contratoId = contratoA.getId();
+
+        entityManager.clear();
+
+        boolean resultado = ordemServicoRepository
+                .existsByIdAndTecnicoUsuarioIdAndChamadoIdAndChamadoUnidadeContratoIdAndChamadoStatusNot(
+                        ordemServicoId,
+                        usuarioId,
+                        chamadoId,
+                        contratoId,
+                        StatusChamado.FINALIZADO
+                );
+
+        assertThat(resultado).isFalse();
+    }
+
     private Contrato persistirContrato() {
         Contrato contrato = new Contrato();
         entityManager.persist(contrato);
@@ -225,5 +404,35 @@ class OrdemServicoRepositoryTest {
         ordemServico.setUnidadeAtendimento(unidadeAtendimento);
         entityManager.persist(ordemServico);
         return ordemServico;
+    }
+
+    private Usuario persistirUsuario(String nome, String email) {
+        Usuario usuario = new Usuario();
+        usuario.setNome(nome);
+        usuario.setEmail(email);
+        usuario.setPerfil(PerfilUsuario.TECNICO);
+        usuario.setSenha("senha-teste");
+        usuario.setAtivo(true);
+        entityManager.persist(usuario);
+        return usuario;
+    }
+
+    private BaseOperacional persistirBaseOperacional(Contrato contrato) {
+        BaseOperacional baseOperacional = new BaseOperacional();
+        baseOperacional.setContrato(contrato);
+        entityManager.persist(baseOperacional);
+        return baseOperacional;
+    }
+
+    private Tecnico persistirTecnico(
+            Usuario usuario,
+            BaseOperacional baseOperacional
+    ) {
+        Tecnico tecnico = new Tecnico();
+        tecnico.setUsuario(usuario);
+        tecnico.setBaseOperacional(baseOperacional);
+        tecnico.setAtivo(true);
+        entityManager.persist(tecnico);
+        return tecnico;
     }
 }
