@@ -614,6 +614,546 @@ class OrdemServicoRepositoryTest {
         assertThat(resultado).isFalse();
     }
 
+    @Test
+    void deveConfirmarQuandoNumeroOrdemServicoJaExiste() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-016", unidadeA);
+        persistirOrdemServico("OS-INT-016", chamadoA, unidadeA);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        boolean resultado = ordemServicoRepository
+                .existsByNumeroOrdemServico("OS-INT-016");
+
+        assertThat(resultado).isTrue();
+    }
+
+    @Test
+    void deveNegarQuandoNumeroOrdemServicoNaoExiste() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-017", unidadeA);
+        persistirOrdemServico("OS-INT-017", chamadoA, unidadeA);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        boolean resultado = ordemServicoRepository
+                .existsByNumeroOrdemServico("OS-INEXISTENTE");
+
+        assertThat(resultado).isFalse();
+    }
+
+    @Test
+    void deveConfirmarQuandoNumeroPertenceAOutraOrdem() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-018", unidadeA);
+        persistirOrdemServico("OS-INT-018-A", chamadoA, unidadeA);
+        OrdemServico ordemServicoB =
+                persistirOrdemServico("OS-INT-018-B", chamadoA, unidadeA);
+
+        entityManager.flush();
+
+        Long ordemServicoIdB = ordemServicoB.getId();
+
+        entityManager.clear();
+
+        boolean resultado = ordemServicoRepository
+                .existsByNumeroOrdemServicoAndIdNot(
+                        "OS-INT-018-A",
+                        ordemServicoIdB
+                );
+
+        assertThat(resultado).isTrue();
+    }
+
+    @Test
+    void deveNegarQuandoNumeroPertenceAPropriaOrdem() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-019", unidadeA);
+        OrdemServico ordemServicoA =
+                persistirOrdemServico("OS-INT-019", chamadoA, unidadeA);
+
+        entityManager.flush();
+
+        Long ordemServicoIdA = ordemServicoA.getId();
+
+        entityManager.clear();
+
+        boolean resultado = ordemServicoRepository
+                .existsByNumeroOrdemServicoAndIdNot(
+                        "OS-INT-019",
+                        ordemServicoIdA
+                );
+
+        assertThat(resultado).isFalse();
+    }
+
+    @Test
+    void deveListarSomenteOrdensAbertasDoTecnico() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.020@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+        Usuario usuarioB = persistirUsuario(
+                "Usuario Teste B",
+                "usuario.b.020@teste.local"
+        );
+        Tecnico tecnicoB =
+                persistirTecnico(usuarioB, baseOperacionalA);
+
+        Chamado chamadoA = persistirChamado("CH-INT-020-A", unidadeA);
+        Chamado chamadoB = persistirChamado("CH-INT-020-B", unidadeA);
+        Chamado chamadoC = persistirChamado("CH-INT-020-C", unidadeA);
+
+        OrdemServico ordemServicoA = persistirOrdemServicoComTecnico(
+                "OS-INT-020-A",
+                chamadoA,
+                unidadeA,
+                tecnicoA,
+                null,
+                null
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-020-B",
+                chamadoB,
+                unidadeA,
+                tecnicoA,
+                LocalDateTime.of(2026, 8, 23, 9, 0),
+                LocalDateTime.of(2026, 8, 23, 10, 0)
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-020-C",
+                chamadoC,
+                unidadeA,
+                tecnicoB,
+                null,
+                null
+        );
+
+        entityManager.flush();
+
+        Long tecnicoAId = tecnicoA.getId();
+        Long contratoAId = contratoA.getId();
+        Long ordemServicoIdA = ordemServicoA.getId();
+
+        entityManager.clear();
+
+        List<OrdemServico> resultado = ordemServicoRepository
+                .findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+                        tecnicoAId,
+                        contratoAId
+                );
+
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).getId()).isEqualTo(ordemServicoIdA);
+    }
+
+    @Test
+    void deveListarMultiplasOrdensAbertasDoMesmoTecnico() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.021@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+
+        Chamado chamadoA = persistirChamado("CH-INT-021-A", unidadeA);
+        Chamado chamadoB = persistirChamado("CH-INT-021-B", unidadeA);
+
+        OrdemServico ordemServicoA = persistirOrdemServicoComTecnico(
+                "OS-INT-021-A",
+                chamadoA,
+                unidadeA,
+                tecnicoA,
+                null,
+                null
+        );
+        OrdemServico ordemServicoB = persistirOrdemServicoComTecnico(
+                "OS-INT-021-B",
+                chamadoB,
+                unidadeA,
+                tecnicoA,
+                null,
+                null
+        );
+
+        entityManager.flush();
+
+        Long tecnicoAId = tecnicoA.getId();
+        Long contratoAId = contratoA.getId();
+        Long ordemServicoIdA = ordemServicoA.getId();
+        Long ordemServicoIdB = ordemServicoB.getId();
+
+        entityManager.clear();
+
+        List<OrdemServico> resultado = ordemServicoRepository
+                .findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+                        tecnicoAId,
+                        contratoAId
+                );
+
+        assertThat(resultado).hasSize(2);
+        assertThat(resultado)
+                .extracting(OrdemServico::getId)
+                .containsExactlyInAnyOrder(ordemServicoIdA, ordemServicoIdB);
+    }
+
+    @Test
+    void deveContarCheckoutsDesdeDataInicialIncluindoLimite() {
+        LocalDateTime dataInicial = LocalDateTime.of(2026, 8, 23, 10, 0);
+
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.022@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+
+        Chamado chamadoA = persistirChamado("CH-INT-022-A", unidadeA);
+        Chamado chamadoB = persistirChamado("CH-INT-022-B", unidadeA);
+        Chamado chamadoC = persistirChamado("CH-INT-022-C", unidadeA);
+
+        persistirOrdemServicoComTecnico(
+                "OS-INT-022-A",
+                chamadoA,
+                unidadeA,
+                tecnicoA,
+                LocalDateTime.of(2026, 8, 23, 9, 0),
+                LocalDateTime.of(2026, 8, 23, 9, 59)
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-022-B",
+                chamadoB,
+                unidadeA,
+                tecnicoA,
+                LocalDateTime.of(2026, 8, 23, 9, 30),
+                LocalDateTime.of(2026, 8, 23, 10, 0)
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-022-C",
+                chamadoC,
+                unidadeA,
+                tecnicoA,
+                LocalDateTime.of(2026, 8, 23, 10, 30),
+                LocalDateTime.of(2026, 8, 23, 11, 0)
+        );
+
+        entityManager.flush();
+
+        Long tecnicoAId = tecnicoA.getId();
+        Long contratoAId = contratoA.getId();
+
+        entityManager.clear();
+
+        long resultado = ordemServicoRepository
+                .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                        tecnicoAId,
+                        contratoAId,
+                        dataInicial
+                );
+
+        assertThat(resultado).isEqualTo(2);
+    }
+
+    @Test
+    void deveRespeitarTecnicoNaContagemDeCheckouts() {
+        LocalDateTime dataInicial = LocalDateTime.of(2026, 8, 23, 10, 0);
+
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.023@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+        Usuario usuarioB = persistirUsuario(
+                "Usuario Teste B",
+                "usuario.b.023@teste.local"
+        );
+        Tecnico tecnicoB =
+                persistirTecnico(usuarioB, baseOperacionalA);
+
+        Chamado chamadoA = persistirChamado("CH-INT-023-A", unidadeA);
+        Chamado chamadoB = persistirChamado("CH-INT-023-B", unidadeA);
+
+        persistirOrdemServicoComTecnico(
+                "OS-INT-023-A",
+                chamadoA,
+                unidadeA,
+                tecnicoA,
+                LocalDateTime.of(2026, 8, 23, 10, 30),
+                LocalDateTime.of(2026, 8, 23, 11, 0)
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-023-B",
+                chamadoB,
+                unidadeA,
+                tecnicoB,
+                LocalDateTime.of(2026, 8, 23, 10, 30),
+                LocalDateTime.of(2026, 8, 23, 11, 0)
+        );
+
+        entityManager.flush();
+
+        Long tecnicoAId = tecnicoA.getId();
+        Long contratoAId = contratoA.getId();
+
+        entityManager.clear();
+
+        long resultado = ordemServicoRepository
+                .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                        tecnicoAId,
+                        contratoAId,
+                        dataInicial
+                );
+
+        assertThat(resultado).isEqualTo(1);
+    }
+
+    @Test
+    void deveContarAtribuicoesComInicioInclusivoEFimExclusivo() {
+        LocalDateTime inicio = LocalDateTime.of(2026, 8, 23, 10, 0);
+        LocalDateTime fim = LocalDateTime.of(2026, 8, 23, 12, 0);
+
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.024@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+
+        Chamado chamadoA = persistirChamado("CH-INT-024-A", unidadeA);
+        Chamado chamadoB = persistirChamado("CH-INT-024-B", unidadeA);
+        Chamado chamadoC = persistirChamado("CH-INT-024-C", unidadeA);
+        Chamado chamadoD = persistirChamado("CH-INT-024-D", unidadeA);
+        Chamado chamadoIgnorada =
+                persistirChamado("CH-INT-024-IGN", unidadeA);
+
+        persistirOrdemServicoComTecnico(
+                "OS-INT-024-A",
+                chamadoA,
+                unidadeA,
+                tecnicoA,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 9, 59)
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-024-B",
+                chamadoB,
+                unidadeA,
+                tecnicoA,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 10, 0)
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-024-C",
+                chamadoC,
+                unidadeA,
+                tecnicoA,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 11, 0)
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-024-D",
+                chamadoD,
+                unidadeA,
+                tecnicoA,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 12, 0)
+        );
+        OrdemServico ordemServicoIgnorada = persistirOrdemServicoComTecnico(
+                "OS-INT-024-IGN",
+                chamadoIgnorada,
+                unidadeA,
+                tecnicoA,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 8, 0)
+        );
+
+        entityManager.flush();
+
+        Long tecnicoAId = tecnicoA.getId();
+        Long contratoAId = contratoA.getId();
+        Long ordemServicoIdIgnorada = ordemServicoIgnorada.getId();
+
+        entityManager.clear();
+
+        long resultado = ordemServicoRepository
+                .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                        tecnicoAId,
+                        contratoAId,
+                        ordemServicoIdIgnorada,
+                        inicio,
+                        fim
+                );
+
+        assertThat(resultado).isEqualTo(2);
+    }
+
+    @Test
+    void deveIgnorarOrdemInformadaNaContagemDeAtribuicoes() {
+        LocalDateTime inicio = LocalDateTime.of(2026, 8, 23, 10, 0);
+        LocalDateTime fim = LocalDateTime.of(2026, 8, 23, 12, 0);
+
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.025@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+
+        Chamado chamadoA = persistirChamado("CH-INT-025-A", unidadeA);
+        Chamado chamadoB = persistirChamado("CH-INT-025-B", unidadeA);
+
+        OrdemServico ordemServicoA = persistirOrdemServicoComTecnico(
+                "OS-INT-025-A",
+                chamadoA,
+                unidadeA,
+                tecnicoA,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 10, 30)
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-025-B",
+                chamadoB,
+                unidadeA,
+                tecnicoA,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 11, 0)
+        );
+
+        entityManager.flush();
+
+        Long tecnicoAId = tecnicoA.getId();
+        Long contratoAId = contratoA.getId();
+        Long ordemServicoIdIgnorada = ordemServicoA.getId();
+
+        entityManager.clear();
+
+        long resultado = ordemServicoRepository
+                .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                        tecnicoAId,
+                        contratoAId,
+                        ordemServicoIdIgnorada,
+                        inicio,
+                        fim
+                );
+
+        assertThat(resultado).isEqualTo(1);
+    }
+
+    @Test
+    void deveRespeitarTecnicoNaContagemDeAtribuicoes() {
+        LocalDateTime inicio = LocalDateTime.of(2026, 8, 23, 10, 0);
+        LocalDateTime fim = LocalDateTime.of(2026, 8, 23, 12, 0);
+
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Usuario usuarioA = persistirUsuario(
+                "Usuario Teste A",
+                "usuario.a.026@teste.local"
+        );
+        BaseOperacional baseOperacionalA =
+                persistirBaseOperacional(contratoA);
+        Tecnico tecnicoA =
+                persistirTecnico(usuarioA, baseOperacionalA);
+        Usuario usuarioB = persistirUsuario(
+                "Usuario Teste B",
+                "usuario.b.026@teste.local"
+        );
+        Tecnico tecnicoB =
+                persistirTecnico(usuarioB, baseOperacionalA);
+
+        Chamado chamadoA = persistirChamado("CH-INT-026-A", unidadeA);
+        Chamado chamadoB = persistirChamado("CH-INT-026-B", unidadeA);
+        Chamado chamadoIgnorada =
+                persistirChamado("CH-INT-026-IGN", unidadeA);
+
+        persistirOrdemServicoComTecnico(
+                "OS-INT-026-A",
+                chamadoA,
+                unidadeA,
+                tecnicoA,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 10, 30)
+        );
+        persistirOrdemServicoComTecnico(
+                "OS-INT-026-B",
+                chamadoB,
+                unidadeA,
+                tecnicoB,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 10, 30)
+        );
+        OrdemServico ordemServicoIgnorada = persistirOrdemServicoComTecnico(
+                "OS-INT-026-IGN",
+                chamadoIgnorada,
+                unidadeA,
+                tecnicoA,
+                null,
+                null,
+                LocalDateTime.of(2026, 8, 23, 8, 0)
+        );
+
+        entityManager.flush();
+
+        Long tecnicoAId = tecnicoA.getId();
+        Long contratoAId = contratoA.getId();
+        Long ordemServicoIdIgnorada = ordemServicoIgnorada.getId();
+
+        entityManager.clear();
+
+        long resultado = ordemServicoRepository
+                .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                        tecnicoAId,
+                        contratoAId,
+                        ordemServicoIdIgnorada,
+                        inicio,
+                        fim
+                );
+
+        assertThat(resultado).isEqualTo(1);
+    }
+
     private Contrato persistirContrato() {
         Contrato contrato = new Contrato();
         entityManager.persist(contrato);
@@ -667,6 +1207,26 @@ class OrdemServicoRepositoryTest {
             LocalDateTime dataCheckIn,
             LocalDateTime dataCheckOut
     ) {
+        return persistirOrdemServicoComTecnico(
+                numeroOrdemServico,
+                chamado,
+                unidadeAtendimento,
+                tecnico,
+                dataCheckIn,
+                dataCheckOut,
+                null
+        );
+    }
+
+    private OrdemServico persistirOrdemServicoComTecnico(
+            String numeroOrdemServico,
+            Chamado chamado,
+            Unidade unidadeAtendimento,
+            Tecnico tecnico,
+            LocalDateTime dataCheckIn,
+            LocalDateTime dataCheckOut,
+            LocalDateTime dataAtribuicaoTecnico
+    ) {
         OrdemServico ordemServico = new OrdemServico();
         ordemServico.setNumeroOrdemServico(numeroOrdemServico);
         ordemServico.setChamado(chamado);
@@ -674,6 +1234,7 @@ class OrdemServicoRepositoryTest {
         ordemServico.setTecnico(tecnico);
         ordemServico.setDataCheckIn(dataCheckIn);
         ordemServico.setDataCheckOut(dataCheckOut);
+        ordemServico.setDataAtribuicaoTecnico(dataAtribuicaoTecnico);
         entityManager.persist(ordemServico);
         return ordemServico;
     }
