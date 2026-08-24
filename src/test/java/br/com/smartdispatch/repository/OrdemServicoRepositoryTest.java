@@ -18,6 +18,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -86,5 +87,143 @@ class OrdemServicoRepositoryTest {
         assertThat(ordemServicoEncontrada.getChamado()).isNotNull();
         assertThat(ordemServicoEncontrada.getChamado().getId())
                 .isEqualTo(chamadoId);
+    }
+
+    @Test
+    void deveBuscarOrdemQuandoIdChamadoEContratoCorrespondem() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-002", unidadeA);
+        OrdemServico ordemServicoA =
+                persistirOrdemServico("OS-INT-002", chamadoA, unidadeA);
+
+        entityManager.flush();
+
+        Long ordemServicoId = ordemServicoA.getId();
+        Long chamadoId = chamadoA.getId();
+        Long contratoId = contratoA.getId();
+
+        entityManager.clear();
+
+        Optional<OrdemServico> resultado = ordemServicoRepository
+                .findByIdAndChamadoIdAndChamadoUnidadeContratoId(
+                        ordemServicoId,
+                        chamadoId,
+                        contratoId
+                );
+
+        assertThat(resultado).isPresent();
+
+        OrdemServico ordemServicoEncontrada = resultado.get();
+
+        assertThat(ordemServicoEncontrada.getId())
+                .isEqualTo(ordemServicoId);
+        assertThat(ordemServicoEncontrada.getChamado().getId())
+                .isEqualTo(chamadoId);
+        assertThat(
+                ordemServicoEncontrada.getChamado()
+                        .getUnidade()
+                        .getContrato()
+                        .getId()
+        ).isEqualTo(contratoId);
+    }
+
+    @Test
+    void deveRetornarVazioQuandoContratoNaoCorresponde() {
+        Contrato contratoA = persistirContrato();
+        Contrato contratoB = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-003", unidadeA);
+        OrdemServico ordemServicoA =
+                persistirOrdemServico("OS-INT-003", chamadoA, unidadeA);
+
+        entityManager.flush();
+
+        Long ordemServicoId = ordemServicoA.getId();
+        Long chamadoId = chamadoA.getId();
+        Long contratoIdIncorreto = contratoB.getId();
+
+        entityManager.clear();
+
+        Optional<OrdemServico> resultado = ordemServicoRepository
+                .findByIdAndChamadoIdAndChamadoUnidadeContratoId(
+                        ordemServicoId,
+                        chamadoId,
+                        contratoIdIncorreto
+                );
+
+        assertThat(resultado).isEmpty();
+    }
+
+    @Test
+    void deveRetornarVazioQuandoChamadoNaoCorresponde() {
+        Contrato contratoA = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Chamado chamadoA = persistirChamado("CH-INT-004-A", unidadeA);
+        Chamado chamadoB = persistirChamado("CH-INT-004-B", unidadeA);
+        OrdemServico ordemServicoA =
+                persistirOrdemServico("OS-INT-004", chamadoA, unidadeA);
+
+        entityManager.flush();
+
+        Long ordemServicoId = ordemServicoA.getId();
+        Long chamadoIdIncorreto = chamadoB.getId();
+        Long contratoId = contratoA.getId();
+
+        entityManager.clear();
+
+        Optional<OrdemServico> resultado = ordemServicoRepository
+                .findByIdAndChamadoIdAndChamadoUnidadeContratoId(
+                        ordemServicoId,
+                        chamadoIdIncorreto,
+                        contratoId
+                );
+
+        assertThat(resultado).isEmpty();
+    }
+
+    private Contrato persistirContrato() {
+        Contrato contrato = new Contrato();
+        entityManager.persist(contrato);
+        return contrato;
+    }
+
+    private Unidade persistirUnidade(Contrato contrato) {
+        Unidade unidade = new Unidade();
+        unidade.setContrato(contrato);
+        entityManager.persist(unidade);
+        return unidade;
+    }
+
+    private Chamado persistirChamado(String numeroChamado, Unidade unidade) {
+        Chamado chamado = new Chamado();
+        chamado.setNumeroChamado(numeroChamado);
+        chamado.setLinkChamadoOsti(
+                "https://teste.local/chamado/" + numeroChamado
+        );
+        chamado.setUnidade(unidade);
+        chamado.setTipo(TipoChamado.INCIDENTE);
+        chamado.setCategoria(CategoriaChamado.OUTROS);
+        chamado.setPrioridade(PrioridadeChamado.MEDIA);
+        chamado.setStatus(StatusChamado.ABERTO);
+        chamado.setDescricao("Chamado para teste de integração");
+        chamado.setDataAbertura(
+                LocalDateTime.of(2026, 8, 23, 10, 0)
+        );
+        entityManager.persist(chamado);
+        return chamado;
+    }
+
+    private OrdemServico persistirOrdemServico(
+            String numeroOrdemServico,
+            Chamado chamado,
+            Unidade unidadeAtendimento
+    ) {
+        OrdemServico ordemServico = new OrdemServico();
+        ordemServico.setNumeroOrdemServico(numeroOrdemServico);
+        ordemServico.setChamado(chamado);
+        ordemServico.setUnidadeAtendimento(unidadeAtendimento);
+        entityManager.persist(ordemServico);
+        return ordemServico;
     }
 }
