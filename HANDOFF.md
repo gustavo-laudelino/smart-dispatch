@@ -1,6 +1,6 @@
 # Smart Dispatch — Handoff
 
-Última atualização: 2026-08-23
+Última atualização: 2026-08-26
 
 Este arquivo é o documento de **continuidade técnica** do projeto. A intenção é que um novo agente/PM consiga abrir o repositório, ler `CLAUDE.md` + este arquivo, e entender onde estamos e como chegamos aqui — sem depender do histórico de chat anterior. `CLAUDE.md` é "como trabalhar neste projeto" (permanente); este arquivo é "tudo que o próximo agente precisa saber sobre o estado atual" (muda com frequência).
 
@@ -35,9 +35,10 @@ Este arquivo é o documento de **continuidade técnica** do projeto. A intençã
   - Testes unitários: **CONCLUÍDOS.**
   - Testes de integração:
     - **Fase A — infraestrutura: CONCLUÍDA.**
-    - **Fase B — repositories: PRÓXIMO PASSO.**
+    - **Fase B — repositories (JPA/Spring Data): CONCLUÍDA.**
+    - Fase C — HTTP/Security: **PRÓXIMO PASSO.**
 
-A ETAPA 6 como um todo **não** está concluída — só a parte unitária e a infraestrutura de integração (Fase A).
+A ETAPA 6 como um todo **não** está concluída — faltam Fase C (HTTP/Security), Fase D (fluxos críticos integrados) e Fase E (fechamento).
 
 ---
 
@@ -300,6 +301,8 @@ Todos os 9 repositories atuais: `BaseOperacionalRepository`, `ChamadoRepository`
 - alimentam diretamente `SugestaoTecnicoService` (janelas temporais) e `AutorizacaoService` (checagens de vínculo/atribuição);
 - Mockito não prova que essas queries derivadas realmente geram o SQL esperado pelo Spring Data — só um teste contra banco real prova isso.
 
+**Fase B — CONCLUÍDA.** Integração executada contra PostgreSQL real de teste (`smart_dispatch_test`), com `@DataJpaTest` configurado e funcional. Padrão de fixture usado em todas as classes: `persist` → `flush` → guardar IDs → `clear` → repository real; isolamento por rollback automático de cada teste (sem cleanup manual). Todos os 8 repositories com queries próprias estão cobertos: `OrdemServicoRepository`, `ChamadoRepository`, `TecnicoRepository`, `BaseOperacionalRepository`, `UnidadeRepository`, `UsuarioRepository`, `HistoricoChamadoRepository`, `ComentarioChamadoRepository`. `ContratoRepository` permanece sem classe de integração própria — não declara nenhuma query derivada, só herda `JpaRepository`. Suíte final no fechamento da fase: **231 testes, 0 failures, 0 errors**. Convenção adotada: um commit por classe de integração concluída.
+
 ---
 
 ## 15. Inventário de controllers
@@ -430,14 +433,14 @@ O objetivo é testar o que mocks não conseguem provar: queries reais do Spring 
 11. `JWT_SECRET`/`TEST_JWT_SECRET` já disponíveis corretamente no CI;
 12. `spring-boot-starter-data-jpa-test` já adicionado com scope test.
 
-**Fase A concluída, revisada e commitada.** Não reabrir essas decisões durante a Fase B sem motivo técnico concreto ou tarefa explícita.
+**Fase A concluída, revisada e commitada.** Não reabrir essas decisões sem motivo técnico concreto ou tarefa explícita.
 
 ---
 
 ## 23. Ordem recomendada de integração
 
 - **Fase A — infraestrutura: CONCLUÍDA.**
-- **Fase B — repositories de maior risco:** `OrdemServicoRepository`, `ChamadoRepository`, `TecnicoRepository` (ver seção 14 para o porquê). Validar queries derivadas, escopo por contrato, filtros e janelas temporais contra banco real. Depois avaliar custo/benefício dos demais repositories.
+- **Fase B — repositories: CONCLUÍDA.** Os 8 repositories com queries próprias (ver seção 14) têm classe de integração contra PostgreSQL real; `ContratoRepository` ficou de fora por não declarar query própria.
 - **Fase C — HTTP/Security:** `SecurityFilterChain` real, JWT, mappings, status HTTP, serialização, `@PreAuthorize`, matriz de acesso. Não criar `ControllerTest` trivial que só chama o método Java diretamente (isso não testa nada que valha a pena).
 - **Fase D — fluxos críticos integrados:** login, acesso autenticado, chamado, ordem de serviço, check-in/check-out, autorização por perfil/contrato.
 - **Fase E — fechamento:** suíte completa, CI verde, Swagger acessível, smoke tests necessários — só então considerar a ETAPA 6 encerrada.
@@ -493,7 +496,7 @@ Heurísticas, não regras mecânicas.
 2. Repository integration deve provar PostgreSQL real.
 3. Persistir apenas as entidades mínimas necessárias para satisfazer os mappings JPA do cenário.
 4. Não criar cleanup manual quando transação/rollback do slice de teste já garantir isolamento adequado.
-5. Quando o objetivo for provar leitura real do banco e isso acrescentar valor ao cenário, considerar `save` → `flush` → `clear` do persistence context → `query`, para reduzir a possibilidade de o first-level cache do Hibernate mascarar a leitura real. **Não** é regra obrigatória para todos os testes — usar somente quando acrescentar valor ao comportamento validado.
+5. Quando o objetivo for provar leitura real do banco e isso acrescentar valor ao cenário, considerar `persist` → `flush` → guardar IDs → `clear` → `query`, para reduzir a possibilidade de o first-level cache do Hibernate mascarar a leitura real. **Não** é regra obrigatória para todos os testes — usar somente quando acrescentar valor ao comportamento validado.
 6. Começar por queries simples para provar a infraestrutura. Depois avançar para queries de maior risco.
 7. Não transformar o primeiro teste de integração em busca por coverage.
 8. Na futura camada HTTP/security, priorizar o fluxo real relevante ao Smart Dispatch. Para cenários críticos de segurança, deve ser possível validar: Bearer JWT → `JwtDecoder` → `SecurityFilterChain` → `usuarioId` → banco → perfil atual → `ROLE` → `@PreAuthorize`. `@WithMockUser` pode ser usado em cenários específicos, mas não deve substituir esse fluxo quando ele próprio for o comportamento sob teste.
@@ -502,21 +505,9 @@ Heurísticas, não regras mecânicas.
 
 ## 28. Próximo passo exato
 
-A Fase A está concluída. O próximo trabalho é iniciar a Fase B de forma controlada.
+Fases A e B concluídas. O próximo trabalho é a Fase C — HTTP/Security (`SecurityFilterChain` real, JWT, mappings, status HTTP, serialização, `@PreAuthorize`, matriz de acesso — ver seção 23). A especificação fechada da primeira rodada da Fase C ainda não foi definida; deve ser entregue pelo PM antes de qualquer implementação, conforme as heurísticas das seções 26 e 27.
 
-**Primeira rodada da Fase B:** criar SOMENTE `src/test/java/br/com/smartdispatch/repository/OrdemServicoRepositoryTest.java`.
-
-**Primeiro objetivo:**
-
-- provar que `@DataJpaTest` sobe;
-- usar PostgreSQL real de teste;
-- persistir entidades JPA reais;
-- executar uma query real simples do `OrdemServicoRepository`;
-- confirmar isolamento/rollback;
-- não iniciar ainda queries complexas;
-- não perseguir coverage.
-
-A primeira classe/teste deverá ser especificada pelo PM antes da implementação, conforme as heurísticas das seções 26 e 27.
+**Pendência registrada, não bloqueante:** o estudo aprofundado de `@DataJpaTest`, `EntityManager`, `persist`/`flush`/`clear`, rollback e o fluxo JPA em geral segue como pendência planejada — foi adiado por decisão do usuário durante a Fase B. Não tratar como concluído e não deixar que bloqueie o início da Fase C.
 
 ---
 
@@ -525,12 +516,12 @@ A primeira classe/teste deverá ser especificada pelo PM antes da implementaçã
 > Antes de implementar:
 > 1. leia `CLAUDE.md`;
 > 2. leia este `HANDOFF.md` inteiro;
-> 3. confirme o marco de 164 testes unitários verdes;
-> 4. confirme que a Fase A de integração está concluída;
+> 3. confirme o marco de 231 testes verdes (164 unitários + 67 de integração de repositories);
+> 4. confirme que as Fases A e B de integração estão concluídas;
 > 5. confirme que a ETAPA 6 continua aberta;
-> 6. identifique a Fase B como próxima fase;
+> 6. identifique a Fase C (HTTP/Security) como próxima fase;
 > 7. respeite as heurísticas das seções 26 e 27;
-> 8. não reabra decisões da Fase A sem divergência real no código;
+> 8. não reabra decisões das Fases A/B sem divergência real no código;
 > 9. verifique `git status`/baseline antes de qualquer rodada;
 > 10. continue a partir do próximo trabalho ainda não concluído (seção 28).
 
