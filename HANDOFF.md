@@ -1,6 +1,6 @@
 # Smart Dispatch — Handoff
 
-Última atualização: 2026-08-26
+Última atualização: 2026-08-31
 
 Este arquivo é o documento de **continuidade técnica** do projeto. A intenção é que um novo agente/PM consiga abrir o repositório, ler `CLAUDE.md` + este arquivo, e entender onde estamos e como chegamos aqui — sem depender do histórico de chat anterior. `CLAUDE.md` é "como trabalhar neste projeto" (permanente); este arquivo é "tudo que o próximo agente precisa saber sobre o estado atual" (muda com frequência).
 
@@ -31,14 +31,18 @@ Este arquivo é o documento de **continuidade técnica** do projeto. A intençã
 - **ETAPA 3 — regras de Chamado:** concluída.
 - **ETAPA 4 — regras de Ordem de Serviço:** concluída.
 - **ETAPA 5 — matriz final de segurança:** concluída.
-- **ETAPA 6 — testes/build/Swagger/CI:** **EM ANDAMENTO.**
+- **ETAPA 6 — testes/build/Swagger/CI:** **CONCLUÍDA.**
   - Testes unitários: **CONCLUÍDOS.**
   - Testes de integração:
     - **Fase A — infraestrutura: CONCLUÍDA.**
     - **Fase B — repositories (JPA/Spring Data): CONCLUÍDA.**
-    - Fase C — HTTP/Security: **PRÓXIMO PASSO.**
+    - **Fase C — HTTP/Security: CONCLUÍDA.**
+    - **Fase D — fluxos críticos integrados: CONCLUÍDA.**
+    - **Fase E — fechamento (OpenAPI, build final, auditoria de gaps): CONCLUÍDA.**
 
-A ETAPA 6 como um todo **não** está concluída — faltam Fase C (HTTP/Security), Fase D (fluxos críticos integrados) e Fase E (fechamento).
+O ciclo planejado até a ETAPA 6 está **concluído por inteiro** (ver seção 27 para o marco final de testes e seções 24-26 para o detalhamento de cada fase). Próximas evoluções do projeto devem ser definidas em uma nova rodada de planejamento antes de qualquer implementação — este documento não antecipa uma ETAPA 7.
+
+**Importante: a conclusão da ETAPA 6 não é o encerramento do Smart Dispatch.** O produto continua em desenvolvimento. O que a ETAPA 6 fecha é a estratégia de testes/build/validação do estado atual do backend — ainda haverá refinamento de regras de negócio, continuidade do frontend, e integração frontend/backend. Ver seção 32 para o detalhamento dessa distinção.
 
 ---
 
@@ -81,7 +85,7 @@ Sem `ApplicationContext` do Spring, sem banco, sem HTTP em nenhum dos 164.
 | JwtConfigTest | 2 |
 | OpenApiConfigTest | 1 |
 
-Isto **não** é "100% de cobertura de código". O marco é: todas as 14 classes de service possuem suíte própria, e as 4 classes de configuração com comportamento unitariamente relevante também estão protegidas. Controllers e repositories **não** têm teste unitário — deliberadamente (ver seção 24).
+Isto **não** é "100% de cobertura de código". O marco é: todas as 14 classes de service possuem suíte própria, e as 4 classes de configuração com comportamento unitariamente relevante também estão protegidas. Controllers e repositories **não** têm teste unitário — deliberadamente (ver seção 28).
 
 ---
 
@@ -309,7 +313,7 @@ Todos os 9 repositories atuais: `BaseOperacionalRepository`, `ChamadoRepository`
 
 Todos os 11 controllers atuais: `AuthController`, `BaseOperacionalController`, `ChamadoController`, `ChamadoFeedController`, `ComentarioChamadoController`, `ContratoController`, `HistoricoChamadoController`, `OrdemServicoController`, `TecnicoController`, `UnidadeController`, `UsuarioController` — confirmado por listagem de arquivos.
 
-Nenhum controller documentado endpoint por endpoint aqui — isso é trabalho da fase de integração. **Nenhum controller tem teste ainda** (nem unitário nem de integração) — a validação de mapping HTTP, serialização, status code e `@PreAuthorize` está planejada exclusivamente para a fase de integração/web (ver seção 22-23).
+Nenhum controller documentado endpoint por endpoint aqui. Todos os 11 controllers têm cobertura de integração HTTP real desde a Fase C (ver seção 24) — mapping HTTP, serialização, status code e `@PreAuthorize` validados via `MockMvc` contra `SecurityFilterChain`/JWT/banco reais, sem mocks de segurança. Controllers continuam **sem** teste unitário — decisão deliberada preservada (ver seção 28): validar `@PreAuthorize` e mapping HTTP por instanciação direta do controller, sem Spring, não prova nada sobre segurança real; a Fase C supriu exatamente essa lacuna com infraestrutura de integração de verdade.
 
 ---
 
@@ -345,11 +349,13 @@ app.jwt.expiration-seconds=43200
 
 ## 17. POM / infraestrutura de teste atual
 
-Dependências relevantes hoje (`pom.xml`): `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-security`, `spring-boot-starter-oauth2-resource-server`, `postgresql` (runtime), `springdoc-openapi-starter-webmvc-ui` 3.0.3, `spring-boot-starter-test` (scope test — traz JUnit 5, Mockito, AssertJ) e `spring-boot-starter-data-jpa-test` (scope test).
+Dependências relevantes hoje (`pom.xml`): `spring-boot-starter-web`, `spring-boot-starter-data-jpa`, `spring-boot-starter-security`, `spring-boot-starter-oauth2-resource-server`, `postgresql` (runtime), `springdoc-openapi-starter-webmvc-ui` 3.0.3, `spring-boot-starter-test` (scope test — traz JUnit 5, Mockito, AssertJ), `spring-boot-starter-data-jpa-test` (scope test) e `spring-boot-starter-webmvc-test` (scope test).
 
 `spring-boot-starter-data-jpa-test` foi adicionado na Fase A: no Spring Boot 4.0.6, a infraestrutura de `@DataJpaTest` **não** vem mais dentro de `spring-boot-starter-test`/`spring-boot-test-autoconfigure` — foi extraída para esse starter próprio, necessário para repository integration (Fase B).
 
-**Confirmado que atualmente NÃO usamos:** H2, Testcontainers, `spring-security-test` explícito.
+`spring-boot-starter-webmvc-test` foi adicionado na Fase C, pelo mesmo motivo: `@AutoConfigureMockMvc` também foi extraído de `spring-boot-starter-test`/`spring-boot-test-autoconfigure` nessa versão do Boot e passou a exigir esse starter próprio. Confirmado via `mvn dependency:tree` e inspeção direta dos jars antes de adicionar — sem esse starter, `@AutoConfigureMockMvc` simplesmente não existe no classpath.
+
+**Confirmado que atualmente NÃO usamos:** H2, Testcontainers, `spring-security-test` explícito (decisão mantida — a Fase C não precisou dele; ver seção 28).
 
 **Decisão vigente (Fase A, concluída):**
 
@@ -401,6 +407,8 @@ Lido de `.github/workflows/ci.yml`.
 3. **Senha inicial/reset `"cto"`** — hardcoded em `UsuarioService` para criação e reset de senha. Decisão MVP conhecida.
 4. **Busca de OS ativa sem isolamento por contrato** (`OrdemServicoRepository.findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull`) — um técnico pode ter uma OS ativa "vazando" de outro contrato nesse fluxo específico de check-in. Decisão/limitação MVP, não bug.
 5. **Autenticação definitiva do frontend** — ainda não implementada; segue no roadmap.
+6. **OpenAPI / login sem override de security** — a operação `POST /auth/login` no documento `/v3/api-docs` gerado não recebe o `security: []` esperado da anotação `@Operation(security = {})` nesta versão do springdoc (o campo `security` fica ausente na operação, o que semanticamente herda o requisito global `bearerAuth`). Comportamento real de runtime está correto (`/auth/login` é `permitAll()` de fato); é uma imprecisão de documentação, não uma falha de segurança. **IMPORTANTE**, não bloqueante. Detalhes na seção 26.
+7. **`npm audit` do frontend** — 3 vulnerabilidades foram reportadas pelo npm nas dependências do frontend durante a Fase E. Não bloquearam `npm ci`/`lint`/`build`; nenhuma correção foi feita. Dívida técnica registrada para avaliação futura — severidade real não afirmada sem rodar/registrar um `npm audit` detalhado.
 
 Nenhum item desta lista deve ser corrigido automaticamente — cada um exige decisão explícita antes de qualquer alteração de produção ou de CI.
 
@@ -410,7 +418,8 @@ Nenhum item desta lista deve ser corrigido automaticamente — cada um exige dec
 
 - React 19, TypeScript, Vite.
 - Autenticação definitiva ainda é roadmap — um teste temporário com token hardcoded foi usado no passado e já foi revertido; não faz parte da implementação atual.
-- Frontend **não** é foco da fase atual (backend/testes). Não alterar durante a integração do backend sem solicitação explícita.
+- Frontend **não** foi alterado durante toda a ETAPA 6 (backend/testes). Continua fora de escopo até solicitação explícita.
+- `npm ci`, `npm run lint` e `npm run build` verificados com sucesso na Fase E (seção 26) — consistente com o job `frontend` do CI (seção 18).
 
 ---
 
@@ -441,13 +450,121 @@ O objetivo é testar o que mocks não conseguem provar: queries reais do Spring 
 
 - **Fase A — infraestrutura: CONCLUÍDA.**
 - **Fase B — repositories: CONCLUÍDA.** Os 8 repositories com queries próprias (ver seção 14) têm classe de integração contra PostgreSQL real; `ContratoRepository` ficou de fora por não declarar query própria.
-- **Fase C — HTTP/Security:** `SecurityFilterChain` real, JWT, mappings, status HTTP, serialização, `@PreAuthorize`, matriz de acesso. Não criar `ControllerTest` trivial que só chama o método Java diretamente (isso não testa nada que valha a pena).
-- **Fase D — fluxos críticos integrados:** login, acesso autenticado, chamado, ordem de serviço, check-in/check-out, autorização por perfil/contrato.
-- **Fase E — fechamento:** suíte completa, CI verde, Swagger acessível, smoke tests necessários — só então considerar a ETAPA 6 encerrada.
+- **Fase C — HTTP/Security: CONCLUÍDA.** `SecurityFilterChain` real, JWT, mappings, status HTTP, serialização, `@PreAuthorize`, matriz de acesso — os 11 controllers cobertos. Detalhamento completo na seção 24.
+- **Fase D — fluxos críticos integrados: CONCLUÍDA.** Login real, acesso autenticado, chamado, ordem de serviço, check-in/check-out, encerramento automático, alteração de perfil/vínculo, ciclo de senha — 6 jornadas de ponta a ponta. Detalhamento completo na seção 25.
+- **Fase E — fechamento: CONCLUÍDA.** Suíte completa verde, `clean verify` verde, OpenAPI/Swagger validado via HTTP real, frontend (`npm ci`/`lint`/`build`) verificado, auditoria final de gaps sem achado crítico. Detalhamento completo na seção 26. **A ETAPA 6 está encerrada** (ver seção 27 para o marco final de testes).
 
 ---
 
-## 24. Testes que não devem ser criados por impulso
+## 24. Fase C — HTTP/Security (fechamento)
+
+**CONCLUÍDA.** 109 testes de integração HTTP real (`@SpringBootTest` + `@AutoConfigureMockMvc` + `@ActiveProfiles("test")` + PostgreSQL real de teste), distribuídos em 11 classes:
+
+| Classe | Testes |
+|---|---|
+| `HttpSecurityIntegrationTest` | 7 |
+| `UsuarioHttpSecurityIntegrationTest` | 12 |
+| `TecnicoHttpSecurityIntegrationTest` | 5 |
+| `ChamadoHttpSecurityIntegrationTest` | 10 |
+| `OrdemServicoHttpSecurityIntegrationTest` | 20 |
+| `ContratoHttpSecurityIntegrationTest` | 11 |
+| `BaseOperacionalHttpSecurityIntegrationTest` | 11 |
+| `UnidadeHttpSecurityIntegrationTest` | 11 |
+| `ChamadoFeedHttpSecurityIntegrationTest` | 8 |
+| `ComentarioChamadoHttpSecurityIntegrationTest` | 8 |
+| `HistoricoChamadoHttpSecurityIntegrationTest` | 6 |
+
+Essa camada valida, com infraestrutura real (nenhum mock de segurança em nenhuma dessas classes):
+
+- requisição HTTP real via `MockMvc`, contexto Spring real;
+- `SecurityFilterChain` real;
+- JWT real, gerado por `TokenService` real;
+- `@PreAuthorize`/`AutorizacaoService` reais;
+- perfil atual lido do banco (não da claim do token) — a regra da seção 7 provada em HTTP de ponta a ponta;
+- isolamento operacional por contrato (técnico só acessa recursos do próprio contrato);
+- a matriz 401/403/2xx dos 11 controllers.
+
+Dependência necessária: `spring-boot-starter-webmvc-test` (ver seção 17).
+
+---
+
+## 25. Fase D — Fluxos críticos integrados (fechamento)
+
+**CONCLUÍDA.** 6 testes ("jornadas") de ponta a ponta, em 2 classes: `DispatchCriticalFlowIntegrationTest` (3 jornadas) e `UsuarioCriticalFlowIntegrationTest` (3 jornadas).
+
+Diferença em relação à Fase C: a Fase C prova a matriz de autorização endpoint a endpoint; a Fase D prova **sequências completas de negócio** atravessando várias camadas e várias requisições reais, com login real via `POST /auth/login` em cada passo autenticado — nenhuma jornada gera JWT diretamente via `TokenService`. O único acesso direto ao banco/`EntityManager` em cada jornada é o bootstrap mínimo do usuário ADMIN/gestor inicial (senha via `PasswordEncoder` real); toda mutação de estado subsequente passa pela API real.
+
+**Jornadas protegidas:**
+
+1. **Ciclo completo de despacho** — login → contrato → base → unidade → técnico → chamado → OS → atribuição → check-in → check-out → histórico → estado final do `Chamado` no banco (`AGUARDANDO_ANALISE`, conforme `recalcularStatusOperacionalDoChamado`, seção 10).
+2. **Conflito de check-in / encerramento automático** — técnico com OS ativa tenta check-in em outra OS sem `encerrarCheckInAnterior` → `409 Conflict`; repete com `encerrarCheckInAnterior=true` → OS anterior encerrada automaticamente, nova OS ativa, histórico `ATENDIMENTO_FINALIZADO_AUTOMATICAMENTE` registrado.
+3. **Isolamento operacional de ponta a ponta** — técnico do Contrato A só enxerga o próprio contrato (`GET /contratos`) e os próprios chamados (`GET /chamados`), provado por conteúdo (não só status); acesso ao Contrato B bloqueado com `403`.
+4. **JWT antigo após alteração de perfil** — JWT emitido como `TECNICO` recebe `403` em `GET /usuarios`; ADMIN altera o usuário para `CTO`; **sem novo login**, o mesmo JWT antigo passa a receber `200 OK` — prova de ponta a ponta a decisão da seção 7 (identidade no token, autorização no banco).
+5. **Ciclo completo de senha** — login com senha inicial (`"cto"`) → alteração própria via `PATCH /usuarios/me/senha` → login com senha antiga falha (`401`) → login com senha nova funciona (`200`) → reset administrativo → login com a senha personalizada falha (`401`) → login com a senha padrão de reset (`"cto"`) funciona (`200`).
+6. **Ciclo gestor → técnico → gestor** — `CTO` sem `Tecnico` associado → alterado para `TECNICO` (vínculo criado) → alterado de volta para `CTO` (vínculo preservado, `Tecnico.ativo=false`, seção 5) → alterado novamente para `TECNICO` (mesmo vínculo histórico reutilizado, não um segundo `Tecnico` — provado via `TecnicoRepository.findByUsuarioId`, que é um `Optional` singular: se um segundo vínculo tivesse sido criado por engano, a própria chamada teria lançado erro de resultado não-único).
+
+Em todas as 6 jornadas: `flush` + `clear` foram usados nos pontos em que uma mutação de entidade precisava ser relida via repository, para evitar falso positivo por first-level cache do Hibernate — mesmo padrão de risco identificado e corrigido durante a Fase C.
+
+---
+
+## 26. Fase E — Fechamento
+
+**CONCLUÍDA.**
+
+**OpenAPI/Swagger HTTP smoke** (`OpenApiHttpSmokeIntegrationTest`, 3 testes) — valida o documento `/v3/api-docs` real servido pela aplicação (não apenas a configuração do bean isolada, que já era coberta por `OpenApiConfigTest`):
+
+- documento público (`200 OK` sem token), `info.title == "Smart Dispatch API"`, `info.version == "v1"`;
+- `components.securitySchemes.bearerAuth` com `type=http`, `scheme=bearer`, `bearerFormat=JWT`;
+- presença das rotas críticas no documento (`/auth/login`, `/usuarios`, `/contratos`, `/contratos/{contratoId}/chamados`, `/contratos/{contratoId}/chamados/{chamadoId}/ordens-servico`).
+
+**Build final:**
+
+- `mvn clean test` — `BUILD SUCCESS`;
+- `mvn clean verify` — `BUILD SUCCESS` (empacota o jar executável com sucesso).
+
+**Frontend** (`frontend/`) — verificado localmente, consistente com o job `frontend` do CI (seção 18):
+
+- `npm ci` — sucesso;
+- `npm run lint` — sucesso;
+- `npm run build` — sucesso.
+
+**Auditoria final de gaps** — inventário cruzado de 14 services, 11 controllers, 9 repositories, 4 configs contra as camadas de teste (unitário, repository integration, HTTP/Security, fluxos críticos): **nenhum gap crítico adicional identificado**. Todos os componentes têm proteção relevante na(s) camada(s) apropriada(s).
+
+**Pendências não bloqueantes registradas nesta rodada** (ver também seção 20, itens 6 e 7):
+
+1. **OpenAPI / login** — a operação `POST /auth/login` (real, `permitAll()` no `SecurityConfig`) não recebe o override `security: []` esperado da anotação `@Operation(security = {})` nesta versão do springdoc — o campo `security` fica ausente na operação, o que pela semântica do OpenAPI 3.x significa "herda o requisito global `bearerAuth`". Consequência: o Swagger pode sugerir que `/auth/login` exige bearer, quando na prática não exige. Classificação: **IMPORTANTE** — não é falha de segurança, não bloqueia o sistema, não bloqueou a ETAPA 6.
+2. **Frontend / `npm audit`** — 3 vulnerabilidades foram reportadas pelo npm nas dependências do frontend durante `npm ci`. Não bloquearam `npm ci`/`lint`/`build`. Dívida técnica registrada para avaliação futura.
+
+---
+
+## 27. Marco final de testes — ETAPA 6
+
+```
+Tests run: 349
+Failures: 0
+Errors: 0
+Skipped: 0
+BUILD SUCCESS
+```
+
+**Distribuição dos 349 testes:**
+
+| Camada | Execuções |
+|---|---|
+| Testes unitários (services + configs, seção 3) | 164 |
+| Integração de repository/JPA (Fase B, seção 14) | 67 |
+| HTTP/Security (Fase C, seção 24) | 109 |
+| Fluxos críticos integrados (Fase D, seção 25) | 6 |
+| OpenAPI/Swagger HTTP smoke (Fase E, seção 26) | 3 |
+| **Total** | **349** |
+
+Este é o baseline atual do backend. Números anteriores (164 → 231 → 265 → 340) registrados em seções específicas ao longo deste documento são marcos históricos de fases já fechadas, não o estado atual.
+
+**Este é o baseline atual de qualidade do backend.** A suíte protege o comportamento implementado até este marco e deverá acompanhar futuras alterações funcionais e de regras de negócio — não é um número congelado. Mudanças futuras de regra podem exigir adaptação de testes existentes (não só criação de testes novos); isso é **esperado** em uma suíte de regressão, não um sinal de instabilidade ou de retrabalho indevido. Ver seção 32.
+
+---
+
+## 28. Testes que não devem ser criados por impulso
 
 - não reabrir a fase de testes unitários sem motivo concreto;
 - não criar `ControllerTest` que só chama método Java e verifica delegação ao service;
@@ -456,11 +573,11 @@ O objetivo é testar o que mocks não conseguem provar: queries reais do Spring 
 - não perseguir cobertura artificial;
 - não adicionar dezenas de testes de repository sem priorização (ver seção 14);
 - não mudar produção para facilitar teste;
-- não adicionar H2, Testcontainers ou novas dependências de teste sem necessidade técnica e tarefa explícita — H2 e Testcontainers não fazem parte da estratégia atual aprovada (seção 22); `spring-security-test` ainda não é uma decisão definitiva para toda a fase futura, sua necessidade será analisada quando chegarmos à camada HTTP/security (Fase C).
+- não adicionar H2, Testcontainers ou novas dependências de teste sem necessidade técnica e tarefa explícita — H2 e Testcontainers não fazem parte da estratégia atual aprovada (seção 22); a Fase C confirmou que `spring-security-test` **não** foi necessário (MockMvc + `SecurityFilterChain` real bastaram) — não adicionar sem nova decisão explícita.
 
 ---
 
-## 25. Histórico de decisões importantes (por quê, não só o quê)
+## 29. Histórico de decisões importantes (por quê, não só o quê)
 
 - Mocks foram usados para toda dependência **externa à unidade** sob teste — nunca para a própria classe testada.
 - Quando uma especificação de teste parecia desatualizada frente ao comportamento real do código (ex.: `FACTOR_BEARER`, tipo do header `alg` em `JwtConfigTest`, data fixa expirada), o **comportamento real da produção prevaleceu** — o teste foi adaptado, a produção nunca foi tocada para "confirmar" a especificação.
@@ -468,10 +585,13 @@ O objetivo é testar o que mocks não conseguem provar: queries reais do Spring 
 - `JwtConfigTest` usa encoder/decoder **reais** (Nimbus) para um teste de round-trip completo, em vez de mockar — o objetivo era provar que os beans realmente produzem um JWT válido e mutuamente compatível, não só que os métodos são chamados.
 - Os testes unitários deliberadamente **não** testam se uma query Spring Data gera o SQL certo — isso é reservado para a fase de integração, onde um banco real pode provar isso.
 - Controllers deliberadamente ficaram fora da fase unitária — testar `@PreAuthorize`, mapping HTTP e serialização por instanciação direta do controller (sem Spring) não prova nada sobre segurança real.
+- Na Fase C, descoberto que `@AutoConfigureMockMvc` também foi extraído de `spring-boot-starter-test` no Spring Boot 4.0.6 (mesmo padrão de modularização do `@DataJpaTest` na Fase A) — resolvido adicionando `spring-boot-starter-webmvc-test`, confirmado via inspeção direta dos jars antes de adicionar a dependência.
+- Na Fase D, o risco de first-level cache mascarar uma releitura pós-mutação (já identificado numa correção pontual da Fase C) se repetiu nas jornadas que alteram perfil/vínculo ou estado de OS — resolvido com o mesmo padrão `flush` → `clear` → releitura via repository.
+- Na Fase E, ao escrever o smoke test de OpenAPI, descoberto que `@Operation(security = {})` no `AuthController` não produz o override esperado no `/v3/api-docs` gerado (campo `security` fica ausente, não vazio) — a decisão foi **não afirmar no teste** um comportamento que o código atual não reflete (documentado como pendência IMPORTANTE, seção 20 item 6, em vez de forçar a asserção ou alterar produção).
 
 ---
 
-## 26. Padrão de trabalho do PM
+## 30. Padrão de trabalho do PM
 
 Heurísticas de engenharia, não burocracia absoluta — aplicar julgamento técnico conforme complexidade e risco da tarefa.
 
@@ -488,7 +608,7 @@ Heurísticas de engenharia, não burocracia absoluta — aplicar julgamento téc
 
 ---
 
-## 27. Convenções da fase de integração
+## 31. Convenções da fase de integração
 
 Heurísticas, não regras mecânicas.
 
@@ -499,35 +619,45 @@ Heurísticas, não regras mecânicas.
 5. Quando o objetivo for provar leitura real do banco e isso acrescentar valor ao cenário, considerar `persist` → `flush` → guardar IDs → `clear` → `query`, para reduzir a possibilidade de o first-level cache do Hibernate mascarar a leitura real. **Não** é regra obrigatória para todos os testes — usar somente quando acrescentar valor ao comportamento validado.
 6. Começar por queries simples para provar a infraestrutura. Depois avançar para queries de maior risco.
 7. Não transformar o primeiro teste de integração em busca por coverage.
-8. Na futura camada HTTP/security, priorizar o fluxo real relevante ao Smart Dispatch. Para cenários críticos de segurança, deve ser possível validar: Bearer JWT → `JwtDecoder` → `SecurityFilterChain` → `usuarioId` → banco → perfil atual → `ROLE` → `@PreAuthorize`. `@WithMockUser` pode ser usado em cenários específicos, mas não deve substituir esse fluxo quando ele próprio for o comportamento sob teste.
+8. Na camada HTTP/security (Fase C, concluída), o fluxo real priorizado foi exatamente o relevante ao Smart Dispatch: Bearer JWT → `JwtDecoder` → `SecurityFilterChain` → `usuarioId` → banco → perfil atual → `ROLE` → `@PreAuthorize`. `@WithMockUser` não foi usado em nenhuma classe de integração deste projeto — o fluxo real acima é, ele próprio, o comportamento sob teste em todas as 109 + 6 execuções das Fases C e D.
 
 ---
 
-## 28. Próximo passo exato
+## 32. Próximo passo exato
 
-Fases A e B concluídas. O próximo trabalho é a Fase C — HTTP/Security (`SecurityFilterChain` real, JWT, mappings, status HTTP, serialização, `@PreAuthorize`, matriz de acesso — ver seção 23). A especificação fechada da primeira rodada da Fase C ainda não foi definida; deve ser entregue pelo PM antes de qualquer implementação, conforme as heurísticas das seções 26 e 27.
+**O ciclo planejado até a ETAPA 6 está concluído.** Fases A, B, C, D e E — todas fechadas (seções 22, 14, 24, 25 e 26). Não há uma "próxima fase" pré-definida neste documento: a ETAPA 6 era o horizonte de planejamento vigente, e ele foi cumprido por inteiro.
 
-**Pendência registrada, não bloqueante:** o estudo aprofundado de `@DataJpaTest`, `EntityManager`, `persist`/`flush`/`clear`, rollback e o fluxo JPA em geral segue como pendência planejada — foi adiado por decisão do usuário durante a Fase B. Não tratar como concluído e não deixar que bloqueie o início da Fase C.
+**A conclusão da ETAPA 6 não representa o encerramento do Smart Dispatch.** Representa o fechamento da estratégia de testes, build e validação do estado atual do backend. O produto continua em desenvolvimento — ainda haverá:
+
+- refinamento de regras de negócio no backend;
+- continuidade do desenvolvimento do frontend;
+- integração frontend/backend (autenticação definitiva do frontend, seção 21, é um exemplo já conhecido).
+
+Os 349 testes (seção 27) são a baseline atual de regressão, não um teto definitivo. À medida que regras de negócio forem refinadas, é **esperado** que parte dos testes existentes precise ser adaptada — isso é o funcionamento normal de uma suíte de regressão acompanhando um produto vivo, não uma falha da suíte nem motivo para reabrir fases já fechadas sem necessidade.
+
+Próximas evoluções do projeto (nova etapa, nova funcionalidade, refinamento de regra, autenticação definitiva do frontend, integração frontend/backend, ou qualquer outra iniciativa) devem ser definidas em uma **nova rodada de planejamento explícita** pelo PM antes de qualquer implementação — este documento deliberadamente não antecipa nem inventa um roadmap técnico além do que já foi decidido (não há ETAPA 7 aqui). As dívidas/pendências não bloqueantes conhecidas hoje estão na seção 20; nenhuma delas, por si só, define a próxima iniciativa.
+
+**Pendência registrada, não bloqueante:** o estudo aprofundado de `@DataJpaTest`, `EntityManager`, `persist`/`flush`/`clear`, rollback e o fluxo JPA em geral segue como pendência planejada — foi adiado por decisão do usuário durante a Fase B e **continua pendente e não bloqueante** até hoje. Isso é estudo, não pendência de implementação; não impediu a conclusão de nenhuma fase da ETAPA 6.
 
 ---
 
-## 29. Bootstrap para próxima sessão
+## 33. Bootstrap para próxima sessão
 
-> Antes de implementar:
+> Antes de implementar qualquer coisa nova:
 > 1. leia `CLAUDE.md`;
 > 2. leia este `HANDOFF.md` inteiro;
-> 3. confirme o marco de 231 testes verdes (164 unitários + 67 de integração de repositories);
-> 4. confirme que as Fases A e B de integração estão concluídas;
-> 5. confirme que a ETAPA 6 continua aberta;
-> 6. identifique a Fase C (HTTP/Security) como próxima fase;
-> 7. respeite as heurísticas das seções 26 e 27;
-> 8. não reabra decisões das Fases A/B sem divergência real no código;
+> 3. confirme o marco de 349 testes verdes (164 unitários + 67 repository/JPA + 109 HTTP/Security + 6 fluxos críticos + 3 OpenAPI — seção 27);
+> 4. confirme que a ETAPA 6 está **concluída** (Fases A a E, seção 2);
+> 5. confirme que não existe uma "próxima fase" pré-definida — a próxima iniciativa depende de nova decisão explícita do PM (seção 32);
+> 6. lembre que a conclusão da ETAPA 6 não é o encerramento do produto — o Smart Dispatch continua em desenvolvimento (refinamento de regras, frontend, integração frontend/backend), e os 349 testes são a baseline de regressão atual, não um teto (seção 32);
+> 7. respeite as heurísticas das seções 30 e 31;
+> 8. não reabra decisões de nenhuma fase já fechada sem divergência real no código ou tarefa explícita — mas esteja pronto para **adaptar** testes existentes quando uma mudança de regra de negócio legítima exigir, já que isso é esperado numa suíte de regressão (seção 27);
 > 9. verifique `git status`/baseline antes de qualquer rodada;
-> 10. continue a partir do próximo trabalho ainda não concluído (seção 28).
+> 10. se o pedido for uma nova funcionalidade/etapa, trate como Modo B (`CLAUDE.md`) — mapear, apresentar plano, aguardar aprovação antes de implementar.
 
 ---
 
-## 30. Regra de manutenção deste arquivo
+## 34. Regra de manutenção deste arquivo
 
 Este `HANDOFF.md` deve continuar sendo atualizado quando:
 
