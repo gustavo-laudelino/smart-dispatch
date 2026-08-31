@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -519,6 +520,236 @@ class ChamadoServiceTest {
         verifyNoInteractions(historicoChamadoService);
     }
 
+    @Test
+    void devePermitirCtoEditarChamadoFinalizado() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade Central");
+        Chamado chamado = criarChamadoValido(14L, unidade, StatusChamado.FINALIZADO);
+
+        ChamadoRequest request = criarRequestParaChamado(chamado);
+        request.setDescricao("Descrição atualizada pelo CTO");
+
+        when(chamadoRepository.findByIdAndUnidadeContratoId(chamado.getId(), contratoId))
+                .thenReturn(Optional.of(chamado));
+
+        when(unidadeService.buscarPorId(contratoId, unidade.getId()))
+                .thenReturn(unidade);
+
+        when(
+                chamadoRepository.existsByNumeroChamadoAndUnidadeContratoIdAndIdNot(
+                        request.getNumeroChamado(),
+                        contratoId,
+                        chamado.getId()
+                )
+        ).thenReturn(false);
+
+        when(chamadoRepository.save(any(Chamado.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Authentication authentication = authenticationComRole("ROLE_CTO");
+
+        // Act
+        ChamadoResponse response = chamadoService.atualizar(
+                contratoId,
+                chamado.getId(),
+                request,
+                authentication
+        );
+
+        // Assert
+        assertEquals("Descrição atualizada pelo CTO", response.getDescricao());
+
+        verify(chamadoRepository).save(any(Chamado.class));
+
+        verify(historicoChamadoService).registrar(
+                any(Chamado.class),
+                isNull(),
+                eq(TipoEventoChamado.DADOS_CHAMADO_ALTERADOS),
+                anyString()
+        );
+    }
+
+    @Test
+    void deveRegistrarHistoricoAoAlterarNumeroChamadoEUnidade() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Unidade unidadeOriginal = criarUnidade(5L, contratoId, "Unidade Central");
+        Unidade novaUnidade = criarUnidade(6L, contratoId, "Unidade Norte");
+
+        Chamado chamado = criarChamadoValido(14L, unidadeOriginal, StatusChamado.ABERTO);
+
+        ChamadoRequest request = criarRequestParaChamado(chamado);
+        request.setNumeroChamado("CH-NOVO-14");
+        request.setUnidadeId(novaUnidade.getId());
+
+        when(chamadoRepository.findByIdAndUnidadeContratoId(chamado.getId(), contratoId))
+                .thenReturn(Optional.of(chamado));
+
+        when(unidadeService.buscarPorId(contratoId, novaUnidade.getId()))
+                .thenReturn(novaUnidade);
+
+        when(
+                chamadoRepository.existsByNumeroChamadoAndUnidadeContratoIdAndIdNot(
+                        "CH-NOVO-14",
+                        contratoId,
+                        chamado.getId()
+                )
+        ).thenReturn(false);
+
+        when(chamadoRepository.save(any(Chamado.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Authentication authentication = authenticationComRole("ROLE_ADMIN");
+
+        // Act
+        ChamadoResponse response = chamadoService.atualizar(
+                contratoId, chamado.getId(), request, authentication
+        );
+
+        // Assert
+        assertEquals("CH-NOVO-14", response.getNumeroChamado());
+        assertEquals(novaUnidade.getId(), response.getUnidadeId());
+
+        verify(chamadoRepository).save(any(Chamado.class));
+
+        ArgumentCaptor<String> descricaoCaptor = ArgumentCaptor.forClass(String.class);
+
+        verify(historicoChamadoService).registrar(
+                any(Chamado.class),
+                isNull(),
+                eq(TipoEventoChamado.DADOS_CHAMADO_ALTERADOS),
+                descricaoCaptor.capture()
+        );
+
+        String descricao = descricaoCaptor.getValue();
+        assertTrue(descricao.contains("número do chamado de CH-14 para CH-NOVO-14"));
+        assertTrue(descricao.contains("unidade de Unidade Central para Unidade Norte"));
+    }
+
+    @Test
+    void deveRegistrarHistoricoAoPreencherPatrimonioEAlterarTipoECategoria() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade Central");
+        Chamado chamado = criarChamadoValido(14L, unidade, StatusChamado.ABERTO);
+        chamado.setNumeroPatrimonio(null);
+
+        ChamadoRequest request = criarRequestParaChamado(chamado);
+        request.setNumeroPatrimonio("PAT-NOVO-14");
+        request.setTipo(TipoChamado.REQUISICAO);
+        request.setCategoria(CategoriaChamado.INSTALACAO_DE_PROGRAMAS);
+
+        when(chamadoRepository.findByIdAndUnidadeContratoId(chamado.getId(), contratoId))
+                .thenReturn(Optional.of(chamado));
+
+        when(unidadeService.buscarPorId(contratoId, unidade.getId()))
+                .thenReturn(unidade);
+
+        when(
+                chamadoRepository.existsByNumeroChamadoAndUnidadeContratoIdAndIdNot(
+                        request.getNumeroChamado(),
+                        contratoId,
+                        chamado.getId()
+                )
+        ).thenReturn(false);
+
+        when(chamadoRepository.save(any(Chamado.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Authentication authentication = authenticationComRole("ROLE_ADMIN");
+
+        // Act
+        ChamadoResponse response = chamadoService.atualizar(
+                contratoId, chamado.getId(), request, authentication
+        );
+
+        // Assert
+        assertEquals("PAT-NOVO-14", response.getNumeroPatrimonio());
+        assertEquals(TipoChamado.REQUISICAO, response.getTipo());
+        assertEquals(CategoriaChamado.INSTALACAO_DE_PROGRAMAS, response.getCategoria());
+
+        ArgumentCaptor<String> descricaoCaptor = ArgumentCaptor.forClass(String.class);
+
+        verify(historicoChamadoService).registrar(
+                any(Chamado.class),
+                isNull(),
+                eq(TipoEventoChamado.DADOS_CHAMADO_ALTERADOS),
+                descricaoCaptor.capture()
+        );
+
+        String descricao = descricaoCaptor.getValue();
+        assertTrue(descricao.contains("patrimônio de não informado para PAT-NOVO-14"));
+        assertTrue(descricao.contains("tipo de Incidente para Requisição"));
+        assertTrue(descricao.contains("categoria de Outros para Instalação de programas"));
+    }
+
+    @Test
+    void deveRegistrarHistoricoAoPreencherSolicitanteAnteriormenteAusente() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade Central");
+        Chamado chamado = criarChamadoValido(14L, unidade, StatusChamado.ABERTO);
+
+        ChamadoRequest request = criarRequestParaChamado(chamado);
+
+        chamado.setSolicitante(null);
+
+        Solicitante novoSolicitante = new Solicitante();
+        novoSolicitante.setNome("Maria Solicitante");
+        novoSolicitante.setEmail("maria@exemplo.com");
+        novoSolicitante.setTelefone("11988887777");
+        novoSolicitante.setIdentificacao("98765432100");
+
+        request.setSolicitante(novoSolicitante);
+
+        when(chamadoRepository.findByIdAndUnidadeContratoId(chamado.getId(), contratoId))
+                .thenReturn(Optional.of(chamado));
+
+        when(unidadeService.buscarPorId(contratoId, unidade.getId()))
+                .thenReturn(unidade);
+
+        when(
+                chamadoRepository.existsByNumeroChamadoAndUnidadeContratoIdAndIdNot(
+                        request.getNumeroChamado(),
+                        contratoId,
+                        chamado.getId()
+                )
+        ).thenReturn(false);
+
+        when(chamadoRepository.save(any(Chamado.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Authentication authentication = authenticationComRole("ROLE_ADMIN");
+
+        // Act
+        ChamadoResponse response = chamadoService.atualizar(
+                contratoId, chamado.getId(), request, authentication
+        );
+
+        // Assert
+        assertEquals("Maria Solicitante", response.getSolicitante().getNome());
+
+        ArgumentCaptor<String> descricaoCaptor = ArgumentCaptor.forClass(String.class);
+
+        verify(historicoChamadoService).registrar(
+                any(Chamado.class),
+                isNull(),
+                eq(TipoEventoChamado.DADOS_CHAMADO_ALTERADOS),
+                descricaoCaptor.capture()
+        );
+
+        String descricao = descricaoCaptor.getValue();
+        assertTrue(descricao.contains("solicitante de não informado para Maria Solicitante"));
+        assertTrue(descricao.contains("e-mail do solicitante atualizado"));
+        assertTrue(descricao.contains("telefone do solicitante atualizado"));
+        assertTrue(descricao.contains("identificação do solicitante atualizada"));
+    }
+
     // ---------------------------------------------------------------
     // atualizarStatus()
     // ---------------------------------------------------------------
@@ -760,6 +991,99 @@ class ChamadoServiceTest {
 
         verify(chamadoRepository, never()).save(any(Chamado.class));
         verifyNoInteractions(historicoChamadoService);
+    }
+
+    @Test
+    void devePermitirCtoAlterarStatusDeChamadoFinalizado() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Long chamadoId = 14L;
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade Central");
+
+        Chamado chamado = new Chamado();
+        chamado.setId(chamadoId);
+        chamado.setUnidade(unidade);
+        chamado.setStatus(StatusChamado.FINALIZADO);
+        chamado.setDataFinalizacao(LocalDateTime.of(2026, 1, 1, 12, 0));
+
+        when(chamadoRepository.findByIdAndUnidadeContratoId(chamadoId, contratoId))
+                .thenReturn(Optional.of(chamado));
+
+        when(chamadoRepository.save(any(Chamado.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Authentication authentication = authenticationComRole("ROLE_CTO");
+
+        StatusChamadoRequest request = new StatusChamadoRequest();
+        request.setStatus(StatusChamado.AGUARDANDO_ANALISE);
+
+        // Act
+        ChamadoResponse response = chamadoService.atualizarStatus(
+                contratoId, chamadoId, request, authentication
+        );
+
+        // Assert
+        assertEquals(StatusChamado.AGUARDANDO_ANALISE, response.getStatus());
+        assertNull(response.getDataFinalizacao());
+
+        verify(chamadoRepository).save(any(Chamado.class));
+
+        verify(historicoChamadoService).registrar(
+                eq(chamado),
+                isNull(),
+                eq(TipoEventoChamado.STATUS_ALTERADO),
+                anyString()
+        );
+    }
+
+    @Test
+    void devePermitirGestorCancelarChamadoEmAtendimento() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Long chamadoId = 14L;
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade Central");
+
+        Chamado chamado = new Chamado();
+        chamado.setId(chamadoId);
+        chamado.setUnidade(unidade);
+        chamado.setStatus(StatusChamado.EM_ATENDIMENTO);
+
+        when(chamadoRepository.findByIdAndUnidadeContratoId(chamadoId, contratoId))
+                .thenReturn(Optional.of(chamado));
+
+        when(chamadoRepository.save(any(Chamado.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Authentication authentication = authenticationComRole("ROLE_ADMIN");
+
+        StatusChamadoRequest request = new StatusChamadoRequest();
+        request.setStatus(StatusChamado.CANCELADO);
+
+        // Act
+        ChamadoResponse response = chamadoService.atualizarStatus(
+                contratoId, chamadoId, request, authentication
+        );
+
+        // Assert
+        assertEquals(StatusChamado.CANCELADO, response.getStatus());
+
+        verify(chamadoRepository).save(any(Chamado.class));
+
+        ArgumentCaptor<String> descricaoCaptor = ArgumentCaptor.forClass(String.class);
+
+        verify(historicoChamadoService).registrar(
+                eq(chamado),
+                isNull(),
+                eq(TipoEventoChamado.STATUS_ALTERADO),
+                descricaoCaptor.capture()
+        );
+
+        assertEquals(
+                "Status alterado de Em atendimento para Cancelado.",
+                descricaoCaptor.getValue()
+        );
     }
 
     // ---------------------------------------------------------------
