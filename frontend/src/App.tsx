@@ -273,6 +273,10 @@ function App() {
         return null;
     }
 
+    // TypeScript não propaga o estreitamento de `sessao` para dentro de
+    // funções aninhadas declaradas depois do guard acima (ex.: adicionarComentario).
+    const usuarioLogado = sessao;
+
     function alterarContrato(
         contratoId: string
     ) {
@@ -521,7 +525,7 @@ function App() {
             await adicionarComentarioApi(
                 chamadoSelecionado.contratoId,
                 chamadoSelecionado.id,
-                1,
+                usuarioLogado.usuarioId,
                 ordemServicoId,
                 texto
             );

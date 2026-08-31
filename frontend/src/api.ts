@@ -1,3 +1,5 @@
+import { apiFetch } from "./auth/apiFetch";
+
 import type {
     BaseOperacional,
     Chamado,
@@ -55,7 +57,7 @@ export async function login(
 }
 
 export async function buscarContratos(): Promise<Contrato[]> {
-    const response = await fetch(`${API_BASE_URL}/contratos`);
+    const response = await apiFetch(`${API_BASE_URL}/contratos`);
 
     if (!response.ok) {
         throw new Error("Erro ao buscar contratos");
@@ -83,7 +85,7 @@ export async function buscarChamados(
         );
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/chamados?${parametros.toString()}`
     );
 
@@ -99,7 +101,7 @@ export async function buscarDetalhesChamado(
     contratoId: number,
     chamadoId: number
 ): Promise<Chamado> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}`
     );
 
@@ -115,7 +117,7 @@ export async function atualizarChamado(
     chamadoId: number,
     chamadoRequest: ChamadoRequest
 ): Promise<Chamado> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}`,
         {
             method: "PUT",
@@ -140,7 +142,7 @@ export async function buscarOrdensServico(
     contratoId: number,
     chamadoId: number
 ): Promise<OrdemServico[]> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico`
     );
 
@@ -156,7 +158,7 @@ export async function buscarSugestoesTecnicos(
     chamadoId: number,
     ordemServicoId: number
 ): Promise<SugestaoTecnico[]> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}/sugestoes-tecnicos`
     );
 
@@ -174,7 +176,7 @@ export async function buscarComentarios(
     contratoId: number,
     chamadoId: number
 ): Promise<ComentarioChamado[]> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/comentarios`
     );
 
@@ -189,7 +191,7 @@ export async function buscarHistoricoChamado(
     contratoId: number,
     chamadoId: number
 ): Promise<HistoricoChamado[]> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/historico`
     );
 
@@ -208,7 +210,7 @@ export async function iniciarAtendimento(
     chamadoId: number,
     ordemServicoId: number
 ): Promise<void> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}/check-in`,
         {
             method: "POST",
@@ -233,7 +235,7 @@ export async function finalizarAtendimento(
     chamadoId: number,
     ordemServicoId: number
 ): Promise<void> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}/check-out`,
         {
             method: "POST",
@@ -254,7 +256,7 @@ export async function adicionarComentario(
     ordemServicoId: number | null,
     texto: string
 ): Promise<void> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/comentarios`,
         {
             method: "POST",
@@ -279,7 +281,7 @@ export async function adicionarComentario(
 export async function buscarUnidades(
     contratoId: number
 ): Promise<Unidade[]> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/unidades`
     );
 
@@ -294,7 +296,7 @@ export async function criarChamado(
     contratoId: number,
     chamadoRequest: ChamadoRequest
 ): Promise<Chamado> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados`,
         {
             method: "POST",
@@ -317,7 +319,7 @@ export async function criarChamado(
 export async function buscarBasesOperacionais(
     contratoId: number
 ): Promise<BaseOperacional[]> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/bases`
     );
 
@@ -332,7 +334,7 @@ export async function buscarTecnicos(
     contratoId: number,
     baseId: number
 ): Promise<Tecnico[]> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/bases/${baseId}/tecnicos`
     );
 
@@ -348,7 +350,7 @@ export async function criarOrdemServico(
     chamadoId: number,
     ordemServicoRequest: OrdemServicoRequest
 ): Promise<OrdemServico> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico`,
         {
             method: "POST",
@@ -375,7 +377,7 @@ export async function atualizarOrdemServico(
     ordemServicoId: number,
     ordemServicoRequest: OrdemServicoRequest
 ): Promise<OrdemServico> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}`,
         {
             method: "PUT",
@@ -401,7 +403,7 @@ export async function atualizarStatusChamado(
     chamadoId: number,
     status: StatusChamadoManual
 ): Promise<Chamado> {
-    const response = await fetch(
+    const response = await apiFetch(
         `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/status`,
         {
             method: "PATCH",
