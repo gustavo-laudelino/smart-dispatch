@@ -4,17 +4,33 @@ import br.com.smartdispatch.enums.CategoriaChamado;
 import br.com.smartdispatch.enums.PrioridadeChamado;
 import br.com.smartdispatch.enums.TipoChamado;
 import br.com.smartdispatch.model.Solicitante;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class ChamadoRequest {
 
+    @NotBlank
     private String numeroChamado;
+
+    @NotBlank
     private String linkChamadoOsti;
+
+    @NotNull
     private Long unidadeId;
+
     private Solicitante solicitante;
     private String numeroPatrimonio;
+
+    @NotNull
     private TipoChamado tipo;
+
+    @NotNull
     private CategoriaChamado categoria;
+
+    @NotNull
     private PrioridadeChamado prioridade;
+
+    @NotBlank
     private String descricao;
 
     public ChamadoRequest() {

@@ -16,6 +16,9 @@ import br.com.smartdispatch.service.TokenService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -24,10 +27,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -224,6 +229,186 @@ class ChamadoHttpSecurityIntegrationTest {
         assertEquals(PrioridadeChamado.ALTA, chamadoPersistido.getPrioridade());
         assertEquals(
                 "Descrição atualizada via teste HTTP",
+                chamadoPersistido.getDescricao()
+        );
+    }
+
+    @Test
+    @Transactional
+    void devePermitirCriarChamadoComCamposOpcionaisNulos() throws Exception {
+        Fixture fixture = criarFixture();
+
+        mockMvc.perform(
+                        post(
+                                "/contratos/{contratoId}/chamados",
+                                fixture.contratoAId()
+                        )
+                                .header(
+                                        "Authorization",
+                                        "Bearer " + fixture.tokenAdmin()
+                                )
+                                .contentType("application/json")
+                                .content(
+                                        "{"
+                                                + "\"numeroChamado\":\"CH-HTTP-002\","
+                                                + "\"linkChamadoOsti\":\"https://teste.local/chamado/CH-HTTP-002\","
+                                                + "\"unidadeId\":" + fixture.unidadeAId() + ","
+                                                + "\"solicitante\":null,"
+                                                + "\"numeroPatrimonio\":null,"
+                                                + "\"tipo\":\"INCIDENTE\","
+                                                + "\"categoria\":\"OUTROS\","
+                                                + "\"prioridade\":\"MEDIA\","
+                                                + "\"descricao\":\"Chamado criado sem campos opcionais\""
+                                                + "}"
+                                )
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.numeroChamado").value("CH-HTTP-002"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("requestsDeCriacaoInvalidos")
+    @Transactional
+    void deveRejeitarCriacaoDeChamadoComCampoObrigatorioInvalido(
+            String descricaoCaso,
+            String payloadTemplate
+    ) throws Exception {
+        Fixture fixture = criarFixture();
+
+        String payload = payloadTemplate.replace(
+                "{UNIDADE_ID}",
+                String.valueOf(fixture.unidadeAId())
+        );
+
+        mockMvc.perform(
+                        post(
+                                "/contratos/{contratoId}/chamados",
+                                fixture.contratoAId()
+                        )
+                                .header(
+                                        "Authorization",
+                                        "Bearer " + fixture.tokenAdmin()
+                                )
+                                .contentType("application/json")
+                                .content(payload)
+                )
+                .andExpect(status().isBadRequest());
+    }
+
+    private static Stream<Arguments> requestsDeCriacaoInvalidos() {
+        String numeroChamadoValido = "\"CH-HTTP-VALIDACAO\"";
+        String linkChamadoOstiValido = "\"https://teste.local/chamado/validacao\"";
+        String unidadeIdValido = "{UNIDADE_ID}";
+        String tipoValido = "\"INCIDENTE\"";
+        String categoriaValida = "\"OUTROS\"";
+        String prioridadeValida = "\"MEDIA\"";
+        String descricaoValida = "\"Descrição de validação\"";
+
+        return Stream.of(
+                Arguments.of(
+                        "numeroChamado nulo",
+                        payload("null", linkChamadoOstiValido, unidadeIdValido, tipoValido, categoriaValida, prioridadeValida, descricaoValida)
+                ),
+                Arguments.of(
+                        "numeroChamado em branco",
+                        payload("\"   \"", linkChamadoOstiValido, unidadeIdValido, tipoValido, categoriaValida, prioridadeValida, descricaoValida)
+                ),
+                Arguments.of(
+                        "linkChamadoOsti nulo",
+                        payload(numeroChamadoValido, "null", unidadeIdValido, tipoValido, categoriaValida, prioridadeValida, descricaoValida)
+                ),
+                Arguments.of(
+                        "linkChamadoOsti em branco",
+                        payload(numeroChamadoValido, "\"   \"", unidadeIdValido, tipoValido, categoriaValida, prioridadeValida, descricaoValida)
+                ),
+                Arguments.of(
+                        "unidadeId nulo",
+                        payload(numeroChamadoValido, linkChamadoOstiValido, "null", tipoValido, categoriaValida, prioridadeValida, descricaoValida)
+                ),
+                Arguments.of(
+                        "tipo nulo",
+                        payload(numeroChamadoValido, linkChamadoOstiValido, unidadeIdValido, "null", categoriaValida, prioridadeValida, descricaoValida)
+                ),
+                Arguments.of(
+                        "categoria nula",
+                        payload(numeroChamadoValido, linkChamadoOstiValido, unidadeIdValido, tipoValido, "null", prioridadeValida, descricaoValida)
+                ),
+                Arguments.of(
+                        "prioridade nula",
+                        payload(numeroChamadoValido, linkChamadoOstiValido, unidadeIdValido, tipoValido, categoriaValida, "null", descricaoValida)
+                ),
+                Arguments.of(
+                        "descricao nula",
+                        payload(numeroChamadoValido, linkChamadoOstiValido, unidadeIdValido, tipoValido, categoriaValida, prioridadeValida, "null")
+                ),
+                Arguments.of(
+                        "descricao em branco",
+                        payload(numeroChamadoValido, linkChamadoOstiValido, unidadeIdValido, tipoValido, categoriaValida, prioridadeValida, "\"   \"")
+                )
+        );
+    }
+
+    private static String payload(
+            String numeroChamado,
+            String linkChamadoOsti,
+            String unidadeId,
+            String tipo,
+            String categoria,
+            String prioridade,
+            String descricao
+    ) {
+        return "{"
+                + "\"numeroChamado\":" + numeroChamado + ","
+                + "\"linkChamadoOsti\":" + linkChamadoOsti + ","
+                + "\"unidadeId\":" + unidadeId + ","
+                + "\"tipo\":" + tipo + ","
+                + "\"categoria\":" + categoria + ","
+                + "\"prioridade\":" + prioridade + ","
+                + "\"descricao\":" + descricao
+                + "}";
+    }
+
+    @Test
+    @Transactional
+    void deveRejeitarAtualizacaoDeChamadoComCampoObrigatorioInvalidoSemAlterarDados()
+            throws Exception {
+        Fixture fixture = criarFixture();
+
+        mockMvc.perform(
+                        put(
+                                "/contratos/{contratoId}/chamados/{chamadoId}",
+                                fixture.contratoAId(),
+                                fixture.chamadoAId()
+                        )
+                                .header(
+                                        "Authorization",
+                                        "Bearer " + fixture.tokenAdmin()
+                                )
+                                .contentType("application/json")
+                                .content(
+                                        "{"
+                                                + "\"numeroChamado\":\"CH-HTTP-001\","
+                                                + "\"linkChamadoOsti\":\"https://teste.local/chamado/CH-HTTP-001\","
+                                                + "\"unidadeId\":" + fixture.unidadeAId() + ","
+                                                + "\"tipo\":\"INCIDENTE\","
+                                                + "\"categoria\":\"OUTROS\","
+                                                + "\"prioridade\":\"ALTA\","
+                                                + "\"descricao\":\"   \""
+                                                + "}"
+                                )
+                )
+                .andExpect(status().isBadRequest());
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Chamado chamadoPersistido = chamadoRepository
+                .findById(fixture.chamadoAId())
+                .orElseThrow();
+
+        assertEquals(PrioridadeChamado.MEDIA, chamadoPersistido.getPrioridade());
+        assertEquals(
+                "Chamado para teste de integração HTTP",
                 chamadoPersistido.getDescricao()
         );
     }

@@ -3,6 +3,7 @@ package br.com.smartdispatch.controller;
 import br.com.smartdispatch.dto.ChamadoRequest;
 import br.com.smartdispatch.dto.ChamadoResponse;
 import br.com.smartdispatch.service.ChamadoService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import br.com.smartdispatch.dto.StatusChamadoRequest;
@@ -29,7 +30,7 @@ public class ChamadoController {
     @ResponseStatus(HttpStatus.CREATED)
     public ChamadoResponse criar(
             @PathVariable Long contratoId,
-            @RequestBody ChamadoRequest request
+            @Valid @RequestBody ChamadoRequest request
     ) {
         return chamadoService.criar(
                 contratoId,
@@ -59,7 +60,7 @@ public class ChamadoController {
     public ChamadoResponse atualizar(
             @PathVariable Long contratoId,
             @PathVariable Long chamadoId,
-            @RequestBody ChamadoRequest request,
+            @Valid @RequestBody ChamadoRequest request,
             Authentication authentication
     ) {
         return chamadoService.atualizar(
