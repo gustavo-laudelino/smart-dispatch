@@ -301,6 +301,32 @@ class UsuarioServiceTest {
     }
 
     // ---------------------------------------------------------------
+    // buscarPorId()
+    // ---------------------------------------------------------------
+
+    @Test
+    void deveLancarNotFoundAoBuscarUsuarioInexistente() {
+
+        // Arrange
+        Long usuarioId = 99L;
+
+        when(usuarioRepository.findById(usuarioId))
+                .thenReturn(Optional.empty());
+
+        // Act
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> usuarioService.buscarPorId(usuarioId)
+        );
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("Usuário não encontrado", exception.getReason());
+
+        verifyNoInteractions(tecnicoRepository);
+    }
+
+    // ---------------------------------------------------------------
     // atualizar()
     // ---------------------------------------------------------------
 
@@ -828,6 +854,32 @@ class UsuarioServiceTest {
         verifyNoInteractions(tecnicoRepository);
     }
 
+    @Test
+    void deveLancarNotFoundAoAtualizarStatusDeUsuarioInexistente() {
+
+        // Arrange
+        Long usuarioId = 99L;
+
+        when(usuarioRepository.findById(usuarioId))
+                .thenReturn(Optional.empty());
+
+        AtualizarStatusUsuarioRequest request = new AtualizarStatusUsuarioRequest();
+        request.setAtivo(true);
+
+        // Act
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> usuarioService.atualizarStatus(usuarioId, request)
+        );
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("Usuário não encontrado", exception.getReason());
+
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+        verifyNoInteractions(tecnicoRepository);
+    }
+
     @ParameterizedTest
     @CsvSource({
             "TECNICO, true",
@@ -937,6 +989,29 @@ class UsuarioServiceTest {
     // ---------------------------------------------------------------
     // resetarSenha()
     // ---------------------------------------------------------------
+
+    @Test
+    void deveLancarNotFoundAoResetarSenhaDeUsuarioInexistente() {
+
+        // Arrange
+        Long usuarioId = 99L;
+
+        when(usuarioRepository.findById(usuarioId))
+                .thenReturn(Optional.empty());
+
+        // Act
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> usuarioService.resetarSenha(usuarioId)
+        );
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals("Usuário não encontrado", exception.getReason());
+
+        verifyNoInteractions(passwordEncoder);
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+    }
 
     @Test
     void deveResetarSenhaParaPadraoCto() {

@@ -11,6 +11,7 @@ import br.com.smartdispatch.model.Contrato;
 import br.com.smartdispatch.model.Tecnico;
 import br.com.smartdispatch.model.Unidade;
 import br.com.smartdispatch.model.Usuario;
+import br.com.smartdispatch.repository.ChamadoRepository;
 import br.com.smartdispatch.service.TokenService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -24,8 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -38,6 +42,9 @@ class ChamadoHttpSecurityIntegrationTest {
 
     @Autowired
     private TokenService tokenService;
+
+    @Autowired
+    private ChamadoRepository chamadoRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -156,6 +163,73 @@ class ChamadoHttpSecurityIntegrationTest {
 
     @Test
     @Transactional
+    void devePermitirGestorBuscarChamadoPorId() throws Exception {
+        Fixture fixture = criarFixture();
+
+        mockMvc.perform(
+                        get(
+                                "/contratos/{contratoId}/chamados/{chamadoId}",
+                                fixture.contratoAId(),
+                                fixture.chamadoAId()
+                        )
+                                .header(
+                                        "Authorization",
+                                        "Bearer " + fixture.tokenAdmin()
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(fixture.chamadoAId()))
+                .andExpect(jsonPath("$.numeroChamado").value("CH-HTTP-001"));
+    }
+
+    @Test
+    @Transactional
+    void devePermitirGestorAtualizarChamadoExistente() throws Exception {
+        Fixture fixture = criarFixture();
+
+        mockMvc.perform(
+                        put(
+                                "/contratos/{contratoId}/chamados/{chamadoId}",
+                                fixture.contratoAId(),
+                                fixture.chamadoAId()
+                        )
+                                .header(
+                                        "Authorization",
+                                        "Bearer " + fixture.tokenAdmin()
+                                )
+                                .contentType("application/json")
+                                .content(
+                                        "{"
+                                                + "\"numeroChamado\":\"CH-HTTP-001\","
+                                                + "\"linkChamadoOsti\":\"https://teste.local/chamado/CH-HTTP-001\","
+                                                + "\"unidadeId\":" + fixture.unidadeAId() + ","
+                                                + "\"tipo\":\"INCIDENTE\","
+                                                + "\"categoria\":\"OUTROS\","
+                                                + "\"prioridade\":\"ALTA\","
+                                                + "\"descricao\":\"Descrição atualizada via teste HTTP\""
+                                                + "}"
+                                )
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.prioridade").value("ALTA"))
+                .andExpect(jsonPath("$.descricao").value("Descrição atualizada via teste HTTP"));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        Chamado chamadoPersistido = chamadoRepository
+                .findById(fixture.chamadoAId())
+                .orElseThrow();
+
+        assertEquals(PrioridadeChamado.ALTA, chamadoPersistido.getPrioridade());
+        assertEquals(
+                "Descrição atualizada via teste HTTP",
+                chamadoPersistido.getDescricao()
+        );
+    }
+
+    @Test
+    @Transactional
     void deveBloquearTecnicoTentandoFinalizarChamadoDoProprioContrato()
             throws Exception {
         Fixture fixture = criarFixture();
@@ -253,7 +327,8 @@ class ChamadoHttpSecurityIntegrationTest {
             String tokenCto,
             String tokenTecnicoA,
             String tokenTecnicoInternoA,
-            String tokenTecnicoB
+            String tokenTecnicoB,
+            Long unidadeAId
     ) {
     }
 
@@ -310,7 +385,8 @@ class ChamadoHttpSecurityIntegrationTest {
                 tokenService.gerarToken(cto),
                 tokenService.gerarToken(usuarioTecnicoA),
                 tokenService.gerarToken(usuarioTecnicoInternoA),
-                tokenService.gerarToken(usuarioTecnicoB)
+                tokenService.gerarToken(usuarioTecnicoB),
+                unidadeA.getId()
         );
     }
 
