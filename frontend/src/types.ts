@@ -181,3 +181,32 @@ export type Pagina<T> = {
     numberOfElements: number;
     empty: boolean;
 };
+
+export type PerfilUsuario =
+    | "ADMIN"
+    | "CTO"
+    | "TECNICO"
+    | "TECNICO_INTERNO";
+
+export type LoginRequest = {
+    email: string;
+    senha: string;
+};
+
+export type LoginResponse = {
+    token: string;
+    tipo: string;
+    expiraEmSegundos: number;
+    usuarioId: number;
+    nome: string;
+    email: string;
+    perfil: PerfilUsuario;
+};
+
+export type AuthSession = {
+    token: string;
+    usuarioId: number;
+    nome: string;
+    email: string;
+    perfil: PerfilUsuario;
+};

@@ -6,6 +6,8 @@ import type {
     Contrato,
     ErroResponse,
     HistoricoChamado,
+    LoginRequest,
+    LoginResponse,
     OrdemServico,
     OrdemServicoRequest,
     StatusChamadoManual,
@@ -30,6 +32,26 @@ async function extrairMensagemErro(response: Response): Promise<string> {
     } catch {
         return "Ocorreu um erro inesperado";
     }
+}
+
+export async function login(
+    request: LoginRequest
+): Promise<LoginResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+    });
+
+    if (!response.ok) {
+        const mensagemErro = await extrairMensagemErro(response);
+
+        throw new Error(mensagemErro);
+    }
+
+    return response.json();
 }
 
 export async function buscarContratos(): Promise<Contrato[]> {
