@@ -24,6 +24,7 @@ import {
 import ServiceOrderList from "./components/ServiceOrderList";
 import TicketDetails from "./components/TicketDetails";
 import TicketFeed from "./components/TicketFeed";
+import { useAuth } from "./auth/AuthContext";
 
 import type {
     Chamado,
@@ -43,6 +44,17 @@ type OrdemData =
     | "MAIS_ANTIGOS";
 
 const TAMANHO_PAGINA = 10;
+
+function obterIniciais(nome: string): string {
+    const partes = nome.trim().split(/\s+/);
+
+    const iniciais = partes
+        .slice(0, 2)
+        .map((parte) => parte.charAt(0).toUpperCase())
+        .join("");
+
+    return iniciais || "?";
+}
 
 function App() {
     const [contratos, setContratos] =
@@ -252,6 +264,14 @@ function App() {
     }, [
         carregarChamados,
     ]);
+
+    const { sessao, logout } = useAuth();
+
+    if (!sessao) {
+        // AuthGate (main.tsx) só monta App quando há sessão;
+        // este guard existe apenas para o TypeScript estreitar o tipo abaixo.
+        return null;
+    }
 
     function alterarContrato(
         contratoId: string
@@ -589,19 +609,27 @@ function App() {
 
                 <div className="sidebar-footer">
                     <div className="sidebar-profile-avatar">
-                        CTO
+                        {obterIniciais(sessao.nome)}
                     </div>
 
                     <div className="sidebar-profile-content">
                         <strong>
-                            Visão operacional
+                            {sessao.nome}
                         </strong>
 
                         <span>
-                            Centro de Tecnologia
-                            Operacional
+                            {sessao.perfil.replace("_", " ")}
                         </span>
                     </div>
+
+                    <button
+                        type="button"
+                        className="logout-button"
+                        onClick={logout}
+                        title="Sair"
+                    >
+                        ⎋
+                    </button>
                 </div>
             </aside>
 
