@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -490,6 +491,106 @@ class AutorizacaoServiceTest {
                 "Usuário não possui acesso a este contrato",
                 exception.getReason()
         );
+    }
+
+    // ---------------------------------------------------------------
+    // resolverTecnicoIdEfetivo()
+    // ---------------------------------------------------------------
+
+    @Test
+    void deveRetornarTecnicoIdSolicitadoQuandoMeusForFalse() {
+
+        // Arrange
+        Authentication authentication = criarAuthenticationJwt(10L, "ROLE_ADMIN");
+
+        // Act
+        Long resultado =
+                autorizacaoService.resolverTecnicoIdEfetivo(authentication, 7L, false);
+
+        // Assert
+        assertEquals(7L, resultado);
+
+        verifyNoInteractions(tecnicoRepository);
+    }
+
+    @Test
+    void deveRetornarNullQuandoMeusForFalseESemTecnicoIdSolicitado() {
+
+        // Arrange
+        Authentication authentication = criarAuthenticationJwt(10L, "ROLE_TECNICO");
+
+        // Act
+        Long resultado =
+                autorizacaoService.resolverTecnicoIdEfetivo(authentication, null, false);
+
+        // Assert
+        assertNull(resultado);
+
+        verifyNoInteractions(tecnicoRepository);
+    }
+
+    @Test
+    void deveResolverTecnicoIdDoUsuarioAutenticadoQuandoMeusForTrue() {
+
+        // Arrange
+        // usuarioId e tecnico.id propositalmente diferentes, para provar
+        // que a resolução usa o id do Tecnico, não o claim usuarioId do JWT.
+        Long usuarioId = 10L;
+        Long tecnicoIdReal = 999L;
+
+        Contrato contrato = criarContrato(1L, "Cidade Teste");
+        BaseOperacional base = criarBaseOperacional(6L, contrato, "Base Central");
+        Tecnico tecnico = criarTecnico(tecnicoIdReal, base, true);
+
+        Authentication authentication = criarAuthenticationJwt(usuarioId, "ROLE_TECNICO");
+
+        when(tecnicoRepository.findByUsuarioId(usuarioId))
+                .thenReturn(Optional.of(tecnico));
+
+        // Act
+        Long resultado =
+                autorizacaoService.resolverTecnicoIdEfetivo(authentication, 123L, true);
+
+        // Assert
+        assertEquals(tecnicoIdReal, resultado);
+        assertNotEquals(usuarioId, resultado);
+
+        verify(tecnicoRepository).findByUsuarioId(usuarioId);
+    }
+
+    @Test
+    void deveRetornarNullQuandoMeusForTrueEUsuarioNaoTiverTecnicoVinculado() {
+
+        // Arrange
+        Long usuarioId = 10L;
+
+        Authentication authentication = criarAuthenticationJwt(usuarioId, "ROLE_ADMIN");
+
+        when(tecnicoRepository.findByUsuarioId(usuarioId))
+                .thenReturn(Optional.empty());
+
+        // Act
+        Long resultado =
+                autorizacaoService.resolverTecnicoIdEfetivo(authentication, null, true);
+
+        // Assert
+        assertNull(resultado);
+    }
+
+    @Test
+    void deveRetornarNullQuandoMeusForTrueEAuthenticationNaoForJwt() {
+
+        // Arrange
+        Authentication authentication = new TestingAuthenticationToken("usuario", null);
+
+        // Act
+        Long resultado =
+                autorizacaoService.resolverTecnicoIdEfetivo(authentication, null, true);
+
+        // Assert
+        assertNull(resultado);
+
+        verifyNoInteractions(tecnicoRepository);
     }
 
     // ---------------------------------------------------------------

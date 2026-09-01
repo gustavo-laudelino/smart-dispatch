@@ -70,7 +70,9 @@ export async function buscarChamados(
     contratoId: string,
     page: number,
     size: number,
-    direction: "asc" | "desc"
+    direction: "asc" | "desc",
+    tecnicoId?: number,
+    meus?: boolean
 ): Promise<Pagina<Chamado>> {
     const parametros = new URLSearchParams({
         page: String(page),
@@ -85,6 +87,20 @@ export async function buscarChamados(
         );
     }
 
+    if (tecnicoId !== undefined) {
+        parametros.set(
+            "tecnicoId",
+            String(tecnicoId)
+        );
+    }
+
+    if (meus) {
+        parametros.set(
+            "meus",
+            "true"
+        );
+    }
+
     const response = await apiFetch(
         `${API_BASE_URL}/chamados?${parametros.toString()}`
     );
@@ -93,6 +109,20 @@ export async function buscarChamados(
         throw new Error(
             "Erro ao buscar chamados"
         );
+    }
+
+    return response.json();
+}
+
+export async function buscarTecnicosPorContrato(
+    contratoId: number
+): Promise<Tecnico[]> {
+    const response = await apiFetch(
+        `${API_BASE_URL}/contratos/${contratoId}/tecnicos`
+    );
+
+    if (!response.ok) {
+        throw new Error("Erro ao buscar técnicos");
     }
 
     return response.json();

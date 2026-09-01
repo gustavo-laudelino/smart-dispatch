@@ -6,6 +6,7 @@ import {
 import type {
     Chamado,
     Contrato,
+    Tecnico,
 } from "../types";
 
 import {
@@ -52,6 +53,17 @@ type TicketFeedProps = {
     aoSelecionarChamado: (
         chamado: Chamado
     ) => void;
+
+    perfilTecnico: boolean;
+
+    tecnicoSelecionado: string;
+    tecnicosDoContrato: Tecnico[];
+    aoAlterarTecnico: (
+        tecnicoId: string
+    ) => void;
+
+    meusChamados: boolean;
+    aoAlternarMeusChamados: () => void;
 };
 
 const STATUS_OPTIONS: {
@@ -202,6 +214,12 @@ function TicketFeed({
                         aoAlterarPagina,
                         aoAlternarOrdenacao,
                         aoSelecionarChamado,
+                        perfilTecnico,
+                        tecnicoSelecionado,
+                        tecnicosDoContrato,
+                        aoAlterarTecnico,
+                        meusChamados,
+                        aoAlternarMeusChamados,
                     }: TicketFeedProps) {
     const [
         termoBusca,
@@ -333,7 +351,7 @@ function TicketFeed({
                                 title="Selecionar contrato"
                             >
                                 <option value="todos">
-                                    Todos contratos
+                                    Contratos
                                 </option>
 
                                 {contratos.map(
@@ -354,6 +372,75 @@ function TicketFeed({
                                 )}
                             </select>
                         </label>
+
+                        {!perfilTecnico && (
+                            <label className="feed-inline-select feed-technician-button">
+                                <span className="sr-only">
+                                    Técnico
+                                </span>
+
+                                <select
+                                    value={
+                                        tecnicoSelecionado
+                                    }
+                                    onChange={(event) =>
+                                        aoAlterarTecnico(
+                                            event.target.value
+                                        )
+                                    }
+                                    disabled={
+                                        contratoSelecionado ===
+                                        "todos"
+                                    }
+                                    aria-label="Filtrar por técnico"
+                                    title={
+                                        contratoSelecionado ===
+                                        "todos"
+                                            ? "Selecione um contrato para filtrar por técnico"
+                                            : "Filtrar por técnico"
+                                    }
+                                >
+                                    <option value="todos">
+                                        Técnicos
+                                    </option>
+
+                                    {tecnicosDoContrato.map(
+                                        (tecnico) => (
+                                            <option
+                                                key={
+                                                    tecnico.id
+                                                }
+                                                value={
+                                                    tecnico.id
+                                                }
+                                            >
+                                                {
+                                                    tecnico.nome
+                                                }
+                                            </option>
+                                        )
+                                    )}
+                                </select>
+                            </label>
+                        )}
+
+                        {perfilTecnico && (
+                            <label
+                                className="feed-inline-select feed-my-tickets-toggle"
+                                title="Mostrar somente chamados relacionados a mim"
+                            >
+                                <input
+                                    type="checkbox"
+                                    checked={meusChamados}
+                                    onChange={
+                                        aoAlternarMeusChamados
+                                    }
+                                    aria-label="Meus chamados"
+                                />
+
+                                <span>Meus chamados</span>
+                            </label>
+                        )}
 
                         <label className="feed-inline-select feed-status-button">
                             <span className="sr-only">

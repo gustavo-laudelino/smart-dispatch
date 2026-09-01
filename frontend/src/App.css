@@ -4515,19 +4515,23 @@
   box-sizing: border-box;
   display: grid;
   grid-template-columns:
-    minmax(0, 1fr)
-    minmax(0, 1fr)
+    minmax(0, 0.85fr)
+    minmax(0, 1.3fr)
+    minmax(0, 0.85fr)
     38px;
 }
 
 .feed-contract-button,
-.feed-status-button {
+.feed-technician-button,
+.feed-status-button,
+.feed-my-tickets-toggle {
   width: 100%;
   min-width: 0;
   max-width: none;
 }
 
 .feed-contract-button select,
+.feed-technician-button select,
 .feed-status-button select {
   width: 100%;
   min-width: 0;
@@ -4536,6 +4540,50 @@
 
 .feed-sort-toggle {
   width: 38px;
+}
+
+/* Filtro por técnico (ADMIN/CTO) e "Meus chamados" (TECNICO),
+   na mesma linha dos demais filtros */
+
+.feed-my-tickets-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 31px;
+  padding: 0 4px;
+  cursor: pointer;
+}
+
+.feed-my-tickets-toggle span {
+  overflow: hidden;
+  color: #475569;
+  font-size: 8px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feed-my-tickets-toggle input {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #2563eb;
+}
+
+@media (max-width: 720px) {
+  .feed-inline-filters {
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .feed-sort-toggle {
+    width: 100%;
+  }
 }
 
 /* ================================

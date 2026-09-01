@@ -1,5 +1,6 @@
 package br.com.smartdispatch.service;
 
+import br.com.smartdispatch.model.Tecnico;
 import br.com.smartdispatch.repository.TecnicoRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -162,5 +163,32 @@ public class AutorizacaoService {
         }
 
         return contratoIdTecnico;
+    }
+
+    public Long resolverTecnicoIdEfetivo(
+            Authentication authentication,
+            Long tecnicoIdSolicitado,
+            boolean meus
+    ) {
+        if (!meus) {
+            return tecnicoIdSolicitado;
+        }
+
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuthentication)) {
+            return null;
+        }
+
+        Number usuarioId = jwtAuthentication
+                .getToken()
+                .getClaim("usuarioId");
+
+        if (usuarioId == null) {
+            return null;
+        }
+
+        return tecnicoRepository
+                .findByUsuarioId(usuarioId.longValue())
+                .map(Tecnico::getId)
+                .orElse(null);
     }
 }

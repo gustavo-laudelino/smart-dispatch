@@ -17,16 +17,32 @@ public class TecnicoService {
 
     private final TecnicoRepository tecnicoRepository;
     private final BaseOperacionalService baseOperacionalService;
+    private final ContratoService contratoService;
 
 
     public TecnicoService(
             TecnicoRepository tecnicoRepository,
-            BaseOperacionalService baseOperacionalService
+            BaseOperacionalService baseOperacionalService,
+            ContratoService contratoService
     ) {
         this.tecnicoRepository = tecnicoRepository;
         this.baseOperacionalService = baseOperacionalService;
+        this.contratoService = contratoService;
     }
 
+
+    @Transactional(readOnly = true)
+    public List<TecnicoResponse> listarPorContrato(
+            Long contratoId
+    ) {
+        contratoService.buscarPorId(contratoId);
+
+        return tecnicoRepository
+                .findByBaseOperacionalContratoIdAndAtivoTrue(contratoId)
+                .stream()
+                .map(this::converterParaResponse)
+                .toList();
+    }
 
     @Transactional(readOnly = true)
     public List<TecnicoResponse> listar(

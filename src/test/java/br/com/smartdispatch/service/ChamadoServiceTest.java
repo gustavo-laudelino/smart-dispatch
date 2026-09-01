@@ -284,7 +284,7 @@ class ChamadoServiceTest {
 
         // Act
         Page<ChamadoResponse> resultado =
-                chamadoService.listarFeed(contratoId, 0, 10, "desc");
+                chamadoService.listarFeed(contratoId, null, 0, 10, "desc");
 
         // Assert
         assertEquals(1, resultado.getTotalElements());
@@ -307,7 +307,7 @@ class ChamadoServiceTest {
 
         // Act
         Page<ChamadoResponse> resultado =
-                chamadoService.listarFeed(null, 0, 10, "desc");
+                chamadoService.listarFeed(null, null, 0, 10, "desc");
 
         // Assert
         assertEquals(1, resultado.getTotalElements());
@@ -333,8 +333,8 @@ class ChamadoServiceTest {
         ArgumentCaptor<Pageable> captor = ArgumentCaptor.forClass(Pageable.class);
 
         // Act
-        chamadoService.listarFeed(contratoId, 0, 10, "asc");
-        chamadoService.listarFeed(contratoId, 0, 10, "qualquer-outro-valor");
+        chamadoService.listarFeed(contratoId, null, 0, 10, "asc");
+        chamadoService.listarFeed(contratoId, null, 0, 10, "qualquer-outro-valor");
 
         // Assert
         verify(chamadoRepository, times(2))
@@ -351,6 +351,40 @@ class ChamadoServiceTest {
                 Sort.Direction.DESC,
                 paginacoes.get(1).getSort().getOrderFor("dataAbertura").getDirection()
         );
+    }
+
+    @Test
+    void deveDelegarParaRepositoryDeTecnicoQuandoTecnicoIdInformado() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Long tecnicoId = 7L;
+
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade Central");
+        Chamado chamado = criarChamadoValido(1L, unidade, StatusChamado.ATRIBUIDO);
+
+        Page<Chamado> pagina = new PageImpl<>(List.of(chamado));
+
+        when(
+                chamadoRepository.findByTecnicoAtualEContratoOpcional(
+                        eq(tecnicoId), eq(contratoId), any(Pageable.class)
+                )
+        ).thenReturn(pagina);
+
+        // Act
+        Page<ChamadoResponse> resultado =
+                chamadoService.listarFeed(contratoId, tecnicoId, 0, 10, "desc");
+
+        // Assert
+        assertEquals(1, resultado.getTotalElements());
+        assertEquals(chamado.getId(), resultado.getContent().get(0).getId());
+
+        verify(chamadoRepository).findByTecnicoAtualEContratoOpcional(
+                eq(tecnicoId), eq(contratoId), any(Pageable.class)
+        );
+        verify(chamadoRepository, never())
+                .findByUnidadeContratoId(any(Long.class), any(Pageable.class));
+        verify(chamadoRepository, never()).findAll(any(Pageable.class));
     }
 
     // ---------------------------------------------------------------

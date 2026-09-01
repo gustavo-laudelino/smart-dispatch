@@ -1,12 +1,17 @@
 package br.com.smartdispatch.repository;
 
 import br.com.smartdispatch.enums.CategoriaChamado;
+import br.com.smartdispatch.enums.PerfilUsuario;
 import br.com.smartdispatch.enums.PrioridadeChamado;
 import br.com.smartdispatch.enums.StatusChamado;
 import br.com.smartdispatch.enums.TipoChamado;
+import br.com.smartdispatch.model.BaseOperacional;
 import br.com.smartdispatch.model.Chamado;
 import br.com.smartdispatch.model.Contrato;
+import br.com.smartdispatch.model.OrdemServico;
+import br.com.smartdispatch.model.Tecnico;
 import br.com.smartdispatch.model.Unidade;
+import br.com.smartdispatch.model.Usuario;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.junit.jupiter.api.Test;
@@ -216,6 +221,157 @@ class ChamadoRepositoryTest {
         assertThat(resultado).isFalse();
     }
 
+    // ---------------------------------------------------------------
+    // findByTecnicoAtualEContratoOpcional()
+    // ---------------------------------------------------------------
+
+    @Test
+    void deveListarSomenteChamadosComOrdemDeServicoDoTecnicoFiltrado() {
+        Contrato contrato = persistirContrato();
+        Unidade unidade = persistirUnidade(contrato);
+        BaseOperacional base = persistirBaseOperacional(contrato);
+
+        Tecnico tecnicoA = persistirTecnico(
+                persistirUsuario("tecnico.a.repo@teste.local"), base
+        );
+        Tecnico tecnicoB = persistirTecnico(
+                persistirUsuario("tecnico.b.repo@teste.local"), base
+        );
+
+        Chamado chamadoDoTecnicoA = persistirChamado("CH-TEC-001", unidade);
+        persistirOrdemServico("OS-TEC-001", chamadoDoTecnicoA, tecnicoA);
+
+        Chamado chamadoDoTecnicoB = persistirChamado("CH-TEC-002", unidade);
+        persistirOrdemServico("OS-TEC-002", chamadoDoTecnicoB, tecnicoB);
+
+        Chamado chamadoSemTecnico = persistirChamado("CH-TEC-003", unidade);
+        persistirOrdemServico("OS-TEC-003", chamadoSemTecnico, null);
+
+        entityManager.flush();
+
+        Long tecnicoAId = tecnicoA.getId();
+        Long chamadoDoTecnicoAId = chamadoDoTecnicoA.getId();
+
+        entityManager.clear();
+
+        Page<Chamado> resultado = chamadoRepository
+                .findByTecnicoAtualEContratoOpcional(
+                        tecnicoAId, null, PageRequest.of(0, 10)
+                );
+
+        assertThat(resultado.getContent()).hasSize(1);
+        assertThat(resultado.getContent().get(0).getId())
+                .isEqualTo(chamadoDoTecnicoAId);
+        assertThat(resultado.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void deveListarChamadoUmaUnicaVezMesmoComMultiplasOrdensDoMesmoTecnico() {
+        Contrato contrato = persistirContrato();
+        Unidade unidade = persistirUnidade(contrato);
+        BaseOperacional base = persistirBaseOperacional(contrato);
+
+        Tecnico tecnico = persistirTecnico(
+                persistirUsuario("tecnico.multiplas@teste.local"), base
+        );
+
+        Chamado chamado = persistirChamado("CH-TEC-004", unidade);
+        persistirOrdemServico("OS-TEC-004-A", chamado, tecnico);
+        persistirOrdemServico("OS-TEC-004-B", chamado, tecnico);
+        persistirOrdemServico("OS-TEC-004-C", chamado, tecnico);
+
+        entityManager.flush();
+
+        Long tecnicoId = tecnico.getId();
+        Long chamadoId = chamado.getId();
+
+        entityManager.clear();
+
+        Page<Chamado> resultado = chamadoRepository
+                .findByTecnicoAtualEContratoOpcional(
+                        tecnicoId, null, PageRequest.of(0, 10)
+                );
+
+        assertThat(resultado.getContent()).hasSize(1);
+        assertThat(resultado.getContent().get(0).getId()).isEqualTo(chamadoId);
+        assertThat(resultado.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void deveRespeitarTecnicoIdEContratoIdCombinados() {
+        Contrato contratoA = persistirContrato();
+        Contrato contratoB = persistirContrato();
+        Unidade unidadeA = persistirUnidade(contratoA);
+        Unidade unidadeB = persistirUnidade(contratoB);
+        BaseOperacional baseA = persistirBaseOperacional(contratoA);
+
+        Tecnico tecnico = persistirTecnico(
+                persistirUsuario("tecnico.doiscontratos@teste.local"), baseA
+        );
+
+        Chamado chamadoContratoA = persistirChamado("CH-TEC-005-A", unidadeA);
+        persistirOrdemServico("OS-TEC-005-A", chamadoContratoA, tecnico);
+
+        Chamado chamadoContratoB = persistirChamado("CH-TEC-005-B", unidadeB);
+        persistirOrdemServico("OS-TEC-005-B", chamadoContratoB, tecnico);
+
+        entityManager.flush();
+
+        Long tecnicoId = tecnico.getId();
+        Long contratoAId = contratoA.getId();
+        Long chamadoContratoAId = chamadoContratoA.getId();
+
+        entityManager.clear();
+
+        Page<Chamado> resultado = chamadoRepository
+                .findByTecnicoAtualEContratoOpcional(
+                        tecnicoId, contratoAId, PageRequest.of(0, 10)
+                );
+
+        assertThat(resultado.getContent()).hasSize(1);
+        assertThat(resultado.getContent().get(0).getId())
+                .isEqualTo(chamadoContratoAId);
+    }
+
+    @Test
+    void devePaginarChamadosFiltradosPorTecnicoComTotalCorreto() {
+        Contrato contrato = persistirContrato();
+        Unidade unidade = persistirUnidade(contrato);
+        BaseOperacional base = persistirBaseOperacional(contrato);
+
+        Tecnico tecnico = persistirTecnico(
+                persistirUsuario("tecnico.paginacao@teste.local"), base
+        );
+
+        persistirOrdemServico(
+                "OS-TEC-006-1", persistirChamado("CH-TEC-006-1", unidade), tecnico
+        );
+        persistirOrdemServico(
+                "OS-TEC-006-2", persistirChamado("CH-TEC-006-2", unidade), tecnico
+        );
+        persistirOrdemServico(
+                "OS-TEC-006-3", persistirChamado("CH-TEC-006-3", unidade), tecnico
+        );
+        persistirOrdemServico(
+                "OS-TEC-006-X", persistirChamado("CH-TEC-006-X", unidade), null
+        );
+
+        entityManager.flush();
+
+        Long tecnicoId = tecnico.getId();
+
+        entityManager.clear();
+
+        Page<Chamado> resultado = chamadoRepository
+                .findByTecnicoAtualEContratoOpcional(
+                        tecnicoId, null, PageRequest.of(0, 2)
+                );
+
+        assertThat(resultado.getContent()).hasSize(2);
+        assertThat(resultado.getTotalElements()).isEqualTo(3);
+        assertThat(resultado.getTotalPages()).isEqualTo(2);
+    }
+
     @Test
     void deveListarTodosOsChamados() {
         Contrato contratoA = persistirContrato();
@@ -372,5 +528,46 @@ class ChamadoRepositoryTest {
         );
         entityManager.persist(chamado);
         return chamado;
+    }
+
+    private BaseOperacional persistirBaseOperacional(Contrato contrato) {
+        BaseOperacional base = new BaseOperacional();
+        base.setContrato(contrato);
+        entityManager.persist(base);
+        return base;
+    }
+
+    private Usuario persistirUsuario(String email) {
+        Usuario usuario = new Usuario();
+        usuario.setNome("Técnico Teste");
+        usuario.setEmail(email);
+        usuario.setPerfil(PerfilUsuario.TECNICO);
+        usuario.setSenha("senha-teste");
+        usuario.setAtivo(true);
+        entityManager.persist(usuario);
+        return usuario;
+    }
+
+    private Tecnico persistirTecnico(Usuario usuario, BaseOperacional base) {
+        Tecnico tecnico = new Tecnico();
+        tecnico.setUsuario(usuario);
+        tecnico.setBaseOperacional(base);
+        tecnico.setAtivo(true);
+        entityManager.persist(tecnico);
+        return tecnico;
+    }
+
+    private OrdemServico persistirOrdemServico(
+            String numeroOrdemServico,
+            Chamado chamado,
+            Tecnico tecnico
+    ) {
+        OrdemServico ordemServico = new OrdemServico();
+        ordemServico.setNumeroOrdemServico(numeroOrdemServico);
+        ordemServico.setChamado(chamado);
+        ordemServico.setTecnico(tecnico);
+        ordemServico.setUnidadeAtendimento(chamado.getUnidade());
+        entityManager.persist(ordemServico);
+        return ordemServico;
     }
 }

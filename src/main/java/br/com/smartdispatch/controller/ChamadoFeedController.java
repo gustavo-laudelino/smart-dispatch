@@ -29,6 +29,8 @@ public class ChamadoFeedController {
     @GetMapping("/chamados")
     public Page<ChamadoResponse> listarFeed(
             @RequestParam(required = false) Long contratoId,
+            @RequestParam(required = false) Long tecnicoId,
+            @RequestParam(defaultValue = "false") boolean meus,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "desc") String direction,
@@ -40,8 +42,16 @@ public class ChamadoFeedController {
                         contratoId
                 );
 
+        Long tecnicoIdEfetivo =
+                autorizacaoService.resolverTecnicoIdEfetivo(
+                        authentication,
+                        tecnicoId,
+                        meus
+                );
+
         return chamadoService.listarFeed(
                 contratoIdPermitido,
+                tecnicoIdEfetivo,
                 page,
                 size,
                 direction

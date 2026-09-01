@@ -12,6 +12,7 @@ import {
     buscarContratos,
     buscarDetalhesChamado,
     buscarOrdensServico,
+    buscarTecnicosPorContrato,
     finalizarAtendimento as finalizarAtendimentoApi,
     iniciarAtendimento as iniciarAtendimentoApi,
 } from "./api";
@@ -31,6 +32,7 @@ import type {
     ComentarioChamado,
     Contrato,
     OrdemServico,
+    Tecnico,
 } from "./types";
 
 import "./App.css";
@@ -57,6 +59,14 @@ function obterIniciais(nome: string): string {
 }
 
 function App() {
+    const { sessao, logout } = useAuth();
+
+    // Disponível aqui em cima (antes de qualquer hook) porque os efeitos
+    // de busca abaixo precisam saber o perfil para decidir tecnicoId vs. meus.
+    const perfilTecnico =
+        sessao?.perfil === "TECNICO" ||
+        sessao?.perfil === "TECNICO_INTERNO";
+
     const [contratos, setContratos] =
         useState<Contrato[]>([]);
 
@@ -135,6 +145,21 @@ function App() {
         setCriandoChamado,
     ] = useState(false);
 
+    const [
+        tecnicoSelecionado,
+        setTecnicoSelecionado,
+    ] = useState("todos");
+
+    const [
+        tecnicosDoContrato,
+        setTecnicosDoContrato,
+    ] = useState<Tecnico[]>([]);
+
+    const [
+        meusChamados,
+        setMeusChamados,
+    ] = useState(false);
+
     const [erro, setErro] =
         useState<string | null>(null);
 
@@ -205,6 +230,28 @@ function App() {
             });
     }, []);
 
+    useEffect(() => {
+        if (perfilTecnico) {
+            return;
+        }
+
+        if (contratoSelecionado === "todos") {
+            setTecnicosDoContrato([]);
+            return;
+        }
+
+        buscarTecnicosPorContrato(Number(contratoSelecionado))
+            .then((data) => {
+                setTecnicosDoContrato(data);
+            })
+            .catch((error: Error) => {
+                setErro(error.message);
+            });
+    }, [
+        contratoSelecionado,
+        perfilTecnico,
+    ]);
+
     const carregarChamados = useCallback(
         (
             limparDetalhe = true
@@ -226,11 +273,21 @@ function App() {
                 direction = "asc";
             }
 
+            const tecnicoIdParaBusca =
+                !perfilTecnico && tecnicoSelecionado !== "todos"
+                    ? Number(tecnicoSelecionado)
+                    : undefined;
+
+            const meusParaBusca =
+                perfilTecnico && meusChamados;
+
             buscarChamados(
                 contratoSelecionado,
                 paginaAtual,
                 TAMANHO_PAGINA,
-                direction
+                direction,
+                tecnicoIdParaBusca,
+                meusParaBusca
             )
                 .then((data) => {
                     setChamados(
@@ -256,6 +313,9 @@ function App() {
             contratoSelecionado,
             paginaAtual,
             ordemData,
+            perfilTecnico,
+            tecnicoSelecionado,
+            meusChamados,
         ]
     );
 
@@ -264,8 +324,6 @@ function App() {
     }, [
         carregarChamados,
     ]);
-
-    const { sessao, logout } = useAuth();
 
     if (!sessao) {
         // AuthGate (main.tsx) só monta App quando há sessão;
@@ -281,9 +339,28 @@ function App() {
         contratoId: string
     ) {
         setPaginaAtual(0);
+        setTecnicoSelecionado("todos");
 
         setContratoSelecionado(
             contratoId
+        );
+    }
+
+    function alterarTecnico(
+        tecnicoId: string
+    ) {
+        setPaginaAtual(0);
+
+        setTecnicoSelecionado(
+            tecnicoId
+        );
+    }
+
+    function alternarMeusChamados() {
+        setPaginaAtual(0);
+
+        setMeusChamados(
+            (atual) => !atual
         );
     }
 
@@ -749,6 +826,24 @@ function App() {
                                 }
                                 aoSelecionarChamado={
                                     selecionarChamado
+                                }
+                                perfilTecnico={
+                                    perfilTecnico
+                                }
+                                tecnicoSelecionado={
+                                    tecnicoSelecionado
+                                }
+                                tecnicosDoContrato={
+                                    tecnicosDoContrato
+                                }
+                                aoAlterarTecnico={
+                                    alterarTecnico
+                                }
+                                meusChamados={
+                                    meusChamados
+                                }
+                                aoAlternarMeusChamados={
+                                    alternarMeusChamados
                                 }
                             />
 

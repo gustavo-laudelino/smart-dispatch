@@ -137,6 +137,7 @@ public class ChamadoService {
     @Transactional(readOnly = true)
     public Page<ChamadoResponse> listarFeed(
             Long contratoId,
+            Long tecnicoId,
             int page,
             int size,
             String direction
@@ -160,7 +161,15 @@ public class ChamadoService {
 
         Page<Chamado> chamados;
 
-        if (contratoId != null) {
+        if (tecnicoId != null) {
+            chamados =
+                    chamadoRepository
+                            .findByTecnicoAtualEContratoOpcional(
+                                    tecnicoId,
+                                    contratoId,
+                                    pageable
+                            );
+        } else if (contratoId != null) {
             chamados =
                     chamadoRepository
                             .findByUnidadeContratoId(
