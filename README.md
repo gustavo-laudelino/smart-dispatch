@@ -40,7 +40,7 @@ flowchart LR
 
 O operador cria uma ordem de serviço e visualiza uma lista de técnicos classificados pelo sistema.
 
-A decisão final continua sendo humana, mas o sistema apresenta informações suficientes para tornar a escolha mais rápida e consistente.
+A decisão final continua sendo humana, mas o sistema apresenta informações suficientes para tornar a escolha mais rápida e consistente. O status do chamado (aberto, atribuído, em atendimento, aguardando análise...) é recalculado automaticamente pelo backend a cada mudança de estado das ordens de serviço vinculadas — nunca definido manualmente para esses estados.
 
 ---
 
@@ -62,7 +62,7 @@ Quanto **menor o score**, melhor a indicação.
 
 **Distância**
 
-É o critério de maior peso, pois o objetivo principal é reduzir quilômetros percorridos e custos de deslocamento.
+É o critério de maior peso, pois o objetivo principal é reduzir quilômetros percorridos e custos de deslocamento. Quando o técnico já possui atendimentos ativos, a distância é calculada a partir da unidade de atendimento mais próxima entre eles — não da base do técnico.
 
 **Ordens de serviço ativas**
 
@@ -76,7 +76,51 @@ Ajuda a equilibrar a distribuição diária entre os profissionais disponíveis.
 
 Considera a quantidade de atendimentos concluídos nos últimos 15 dias para evitar concentração recorrente de trabalho.
 
-A recomendação não utiliza inteligência artificial ou aprendizado de máquina. A regra é transparente e pode ser ajustada conforme as prioridades da operação.
+A recomendação não utiliza inteligência artificial ou aprendizado de máquina. A regra é transparente, determinística e pode ser ajustada conforme as prioridades da operação.
+
+---
+
+## Autenticação e autorização
+
+- Login via `POST /auth/login`, com JWT autoassinado (HMAC-SHA256, emitido pelo próprio backend — sem provedor de identidade externo).
+- O JWT carrega **identidade** (`usuarioId`), não autorização: o perfil (`ADMIN`, `CTO`, `TECNICO`, `TECNICO_INTERNO`) usado para decidir o que o usuário pode fazer é **sempre resolvido no banco a cada requisição**, nunca lido da claim do token.
+- Consequência prática: alterar o perfil de um usuário no banco reflete imediatamente em todas as suas requisições seguintes, mesmo com um token antigo ainda dentro da validade — não é preciso esperar o token expirar nem forçar logout.
+
+```mermaid
+sequenceDiagram
+    participant U as Usuário
+    participant F as Frontend
+    participant B as Backend
+    participant DB as PostgreSQL
+
+    U->>F: e-mail + senha
+    F->>B: POST /auth/login
+    B->>DB: valida credenciais (BCrypt)
+    B-->>F: JWT (identidade apenas)
+    F->>B: requisições com Bearer <token>
+    B->>DB: resolve perfil ATUAL do usuário
+    B-->>F: 200 / 403 conforme perfil real no banco
+```
+
+- `ADMIN`/`CTO` são perfis gestores, com acesso amplo. `TECNICO`/`TECNICO_INTERNO` têm acesso operacional escopado ao próprio contrato.
+- Toda rota sensível é protegida por `@PreAuthorize`, validado contra o `SecurityFilterChain` real em testes de integração (não simulado).
+
+---
+
+## Estratégia de testes
+
+O backend segue uma suíte em camadas, cada uma provando algo que a anterior não consegue:
+
+| Camada | O que prova | Ferramenta |
+|---|---|---|
+| Unitária | Regra de negócio isolada | JUnit 5 + Mockito, sem Spring/banco/HTTP |
+| Repository | Queries derivadas do Spring Data realmente geram o SQL esperado | `@DataJpaTest` contra PostgreSQL real |
+| HTTP/Security | `SecurityFilterChain`, JWT, `@PreAuthorize` e mapping HTTP de ponta a ponta | `@SpringBootTest` + `MockMvc`, sem mocks de segurança |
+| Fluxos críticos | Sequências completas de negócio atravessando várias requisições reais | `@SpringBootTest` + login real a cada passo |
+
+Nenhuma camada usa `@WithMockUser`: a autenticação/autorização testada é sempre o fluxo real (Bearer JWT → `JwtDecoder` → `SecurityFilterChain` → perfil atual no banco → `@PreAuthorize`).
+
+Baseline atual: **385 testes, 0 falhas** (`mvn test`).
 
 ---
 
@@ -91,17 +135,7 @@ O projeto foi concebido para gerar impacto principalmente em:
 - distribuição mais equilibrada dos atendimentos;
 - maior rastreabilidade das decisões.
 
-A economia real ainda será validada por meio de simulações e dados de uso.
-
-Uma etapa futura do projeto será comparar:
-
-```text
-Distribuição manual
-versus
-Distribuição sugerida pelo Smart Dispatch
-```
-
-Utilizando indicadores como quilômetros totais, custo estimado de combustível, tempo de deslocamento e carga por técnico.
+A economia real ainda será validada por meio de simulações e dados de uso — nenhum número de impacto é afirmado aqui como resultado comprovado.
 
 ---
 
@@ -137,22 +171,27 @@ Linha do tempo unificada com comentários humanos e eventos automáticos do sist
 
 ## Funcionalidades
 
+### Autenticação
+
+- login com JWT, sessão persistida no navegador;
+- perfil real resolvido do banco a cada requisição (seção acima);
+- ações e menus adaptados por perfil (gestor vs. técnico).
+
 ### Chamados
 
 - criação e edição;
 - associação com contrato e unidade;
 - dados do solicitante;
 - classificação por tipo, categoria e prioridade;
-- atualização de status;
-- busca por palavras-chave;
-- filtros por contrato e status;
+- atualização de status (automática para estados operacionais, manual para os demais);
+- busca por palavras-chave e filtros por contrato, status e técnico;
 - ordenação por data.
 
 ### Ordens de serviço
 
 - múltiplas ordens para o mesmo chamado;
 - definição da unidade de atendimento;
-- atribuição, troca e remoção de técnico;
+- atribuição, troca e remoção de técnico, com sugestão automática;
 - registro da data de atribuição;
 - bloqueio de alterações críticas após o check-in.
 
@@ -160,17 +199,14 @@ Linha do tempo unificada com comentários humanos e eventos automáticos do sist
 
 - check-in e check-out;
 - validação de técnico ativo;
-- detecção de outro atendimento em andamento;
-- encerramento automático do atendimento anterior;
+- detecção de outro atendimento em andamento, com encerramento automático opcional;
 - atualização automática do status do chamado.
 
 ### Rastreabilidade
 
-- comentários humanos;
-- eventos automáticos;
+- comentários humanos, vinculáveis a uma ordem de serviço específica;
+- eventos automáticos do sistema (criação, atribuição, início/fim de atendimento);
 - histórico de alterações;
-- registro de atribuições;
-- registro de início e término dos atendimentos;
 - timeline operacional em ordem cronológica.
 
 ---
@@ -186,21 +222,23 @@ flowchart TB
     CONTROLLER --> SERVICE[Services]
     SERVICE --> REPOSITORY[Repositories]
     REPOSITORY --> DATABASE[(PostgreSQL)]
+    FLYWAY[Flyway migrations] -. schema .-> DATABASE
 ```
 
 ### Backend
 
-- controllers para entrada e saída da API;
+- controllers para entrada e saída da API, autorização via `@PreAuthorize`;
 - services para regras de negócio;
-- repositories para persistência;
+- repositories para persistência (Spring Data JPA);
 - DTOs para os contratos da API;
-- entidades e enums para representar o domínio.
+- entidades e enums para representar o domínio;
+- schema de banco versionado e gerenciado por **Flyway** (Hibernate só valida, não altera schema — `ddl-auto=validate`).
 
 ### Frontend
 
 - componentes React;
 - tipagem com TypeScript;
-- consumo da API com Fetch;
+- consumo da API com um wrapper fino sobre `fetch` (injeta o Bearer token, trata expiração de sessão);
 - estados e filtros locais;
 - interface responsiva para acompanhamento operacional.
 
@@ -211,27 +249,27 @@ flowchart TB
 ### Backend
 
 - Java 21
-- Spring Boot
-- Spring Web
-- Spring Data JPA
+- Spring Boot 4
+- Spring Web, Spring Data JPA, Spring Security + OAuth2 Resource Server
 - Hibernate
 - PostgreSQL
+- Flyway
 - Maven
+- JUnit 5, Mockito, MockMvc
 
 ### Frontend
 
-- React
+- React 19
 - TypeScript
 - Vite
 - CSS
 - Fetch API
 
-### Ferramentas
+### Ferramentas / CI
 
-- Git
-- GitHub
+- Git, GitHub
 - IntelliJ IDEA
-- PostgreSQL
+- GitHub Actions — roda a suíte de backend (`mvn test`, contra PostgreSQL real efêmero) e o pipeline de frontend (`npm ci` / `lint` / `build`) a cada push e pull request para `main`.
 
 ---
 
@@ -239,13 +277,15 @@ flowchart TB
 
 Algumas decisões importantes tomadas durante o desenvolvimento:
 
+- autorização sempre resolvida a partir do perfil atual no banco, nunca confiando apenas na claim do JWT;
 - separação entre comentários humanos e eventos automáticos;
 - histórico vinculado ao chamado e, quando necessário, à ordem de serviço;
-- validação das entidades pelo contrato;
+- validação das entidades pelo contrato (isolamento operacional multi-tenant);
 - bloqueio de alterações operacionais após o check-in;
-- atualização automática do status do chamado;
-- ranking baseado em critérios objetivos;
-- configuração de credenciais, CORS e URL da API por variáveis de ambiente;
+- atualização automática do status do chamado, com prioridade fixa e testada entre os estados possíveis;
+- ranking baseado em critérios objetivos, sem IA/ML;
+- schema de banco gerenciado por Flyway, não por `ddl-auto` do Hibernate;
+- configuração de credenciais, CORS, JWT e URL da API por variáveis de ambiente — nenhum segredo no código;
 - commits pequenos e organizados por funcionalidade.
 
 ---
@@ -254,31 +294,39 @@ Algumas decisões importantes tomadas durante o desenvolvimento:
 
 ### Implementado
 
-- gestão de chamados;
-- busca e filtros;
+- autenticação e autorização (JWT + perfil resolvido do banco);
+- gestão de chamados, com busca e filtros (incluindo por técnico);
 - edição de chamado;
-- ordens de serviço;
-- ranking de técnicos;
-- atribuição, troca e remoção de técnico;
-- check-in e check-out;
-- comentários;
-- histórico automático;
+- ordens de serviço, com ranking e atribuição de técnico;
+- check-in e check-out, com atualização automática de status;
+- comentários e histórico automático;
 - timeline operacional;
+- schema de banco versionado (Flyway);
+- suíte de testes em camadas (385 testes) e CI;
 - configuração segura por variáveis de ambiente.
 
-### Próximas etapas
+### Limitações conhecidas da V1
 
-- estudo de economia de quilômetros;
-- painel com indicadores operacionais;
-- edição completa de ordens de serviço;
-- autenticação e autorização;
-- identificação do usuário responsável pelas ações;
-- telas de técnicos, unidades e contratos;
-- migrations de banco de dados;
-- ampliação dos testes automatizados;
-- busca global pelo backend;
-- paginação;
-- deploy da aplicação.
+Decisões e lacunas conscientes, não bugs não percebidos:
+
+- não há tela própria para cadastrar Contrato, Unidade, Base Operacional ou Técnico — hoje isso é feito via API/Swagger (ver seção de execução local para um atalho com dados de demonstração já semeados);
+- `numeroOrdemServico` tem unicidade **global**, não por contrato — decisão de MVP;
+- senha inicial/reset de usuário é fixa (`"cto"`) — decisão de MVP, não pensada para produção real;
+- inativar um usuário não revoga imediatamente um JWT já emitido (o acesso persiste até a expiração natural, até 12h);
+- o filtro de status e a busca textual do feed de chamados operam sobre a página já carregada (client-side), diferente dos filtros por contrato/técnico, que são aplicados no backend antes da paginação;
+- a Ordem de Serviço, hoje, sempre depende de um Chamado — não existe como recurso independente (ver roadmap abaixo).
+
+### Roadmap V2
+
+Direção já mapeada, ainda não implementada nesta versão:
+
+- Ordem de Serviço como recurso operacional independente do Chamado (pode nascer vinculada ou avulsa);
+- tela própria de Ordens de Serviço, com visão diária e semanal;
+- numeração automática de OS e de Chamado (interna), substituindo os números manuais/globais atuais;
+- recorrência de Ordem de Serviço (atividades periódicas);
+- evidências de atendimento (laudo, fotos, assinatura);
+- registro de presença do técnico na base, independente de atendimento a chamado;
+- evolução da arquitetura para suportar múltiplos tenants (hoje o isolamento é por contrato dentro de um único banco).
 
 ---
 
@@ -295,18 +343,24 @@ Algumas decisões importantes tomadas durante o desenvolvimento:
 
 ### Banco de dados
 
+O schema é criado e versionado automaticamente pelo **Flyway** ao subir a aplicação — não é preciso rodar nenhum DDL manual. Só é necessário criar o banco vazio:
+
 ```sql
 CREATE DATABASE smart_dispatch;
 ```
 
 ### Backend
 
-Configure as variáveis apresentadas no `.env.example`:
+Copie `.env.example` para `.env` (ou exporte as variáveis do jeito equivalente no seu sistema) e preencha:
 
 ```env
 DB_URL=jdbc:postgresql://localhost:5432/smart_dispatch
 DB_USERNAME=postgres
 DB_PASSWORD=change_me
+
+# Precisa ser uma string em Base64 (ex.: gere com `openssl rand -base64 32`)
+JWT_SECRET=change_me_base64_secret
+
 CORS_ALLOWED_ORIGINS=http://localhost:5173
 ```
 
@@ -315,6 +369,17 @@ Execute:
 ```bash
 mvn spring-boot:run
 ```
+
+Na primeira subida, o Flyway cria o schema e já popula um usuário administrador e um pequeno conjunto de dados de demonstração (um contrato, uma base operacional, uma unidade e um técnico), o suficiente para explorar o fluxo completo pela UI sem precisar do Swagger primeiro:
+
+| Perfil | E-mail | Senha |
+|---|---|---|
+| ADMIN | `admin@smartdispatch.local` | `cto` |
+| TECNICO | `tecnico@smartdispatch.local` | `cto` |
+
+Esse usuário e os dados de demonstração são seeds mantidos deliberadamente na cadeia padrão de migrations (`V2`/`V3`), para que o projeto seja demonstrável assim que clonado — uma decisão consciente para o estágio atual (portfólio, sem alvo de deploy real definido). Antes de qualquer implantação produtiva, essa estratégia deve ser revisada conforme os ambientes concretos daquele deploy.
+
+Documentação interativa da API (Swagger) disponível em `http://localhost:8080/swagger-ui.html` após subir o backend.
 
 ### Frontend
 
@@ -329,6 +394,14 @@ A variável esperada está documentada em `frontend/.env.example`:
 ```env
 VITE_API_URL=http://localhost:8080
 ```
+
+### Testes
+
+```bash
+mvn test
+```
+
+Usa um banco de teste separado (`smart_dispatch_test` por padrão, configurável via `TEST_DB_URL`/`TEST_DB_USERNAME`/`TEST_DB_PASSWORD`) — nunca o banco normal. O schema desse banco também é gerenciado pelo Flyway.
 
 </details>
 
