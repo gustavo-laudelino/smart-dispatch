@@ -64,6 +64,29 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
+        <!-- Flyway: dono do schema (cria/evolui). Hibernate passa a só validar
+             (ddl-auto=validate). Versões gerenciadas pelo BOM do Spring Boot 4.0.6
+             (flyway.version=11.14.1) — não fixadas manualmente. -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+
+        <!-- No Spring Boot 4.0.6 a autoconfiguração do Flyway (FlywayAutoConfiguration)
+             foi extraída para este módulo próprio, separado da biblioteca flyway-core —
+             mesmo padrão de modularização já visto em spring-boot-starter-data-jpa-test/
+             spring-boot-starter-webmvc-test. Confirmado no BOM: sem esta dependência,
+             flyway-core fica no classpath mas nenhuma migration é executada. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-flyway</artifactId>
+        </dependency>
+
         <!-- Suporte a @DataJpaTest: no Spring Boot 4, esse slice de teste
              não vem mais dentro de spring-boot-starter-test/spring-boot-test-autoconfigure,
              foi extraído para este starter próprio. -->
