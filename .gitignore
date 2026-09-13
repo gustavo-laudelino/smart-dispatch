@@ -61,3 +61,5 @@ build/
 CLAUDE.md
 HANDOFF.md
 BACKLOG.md
+AGENTS.md
+.claude/launch.json
