@@ -176,6 +176,8 @@ class HistoricoChamadoRepositoryTest {
         return unidade;
     }
 
+    private long proximoNumeroChamadoInterno = 100_000;
+
     private Chamado persistirChamado(String numeroChamado, Unidade unidade) {
         Chamado chamado = new Chamado();
         chamado.setNumeroChamado(numeroChamado);
@@ -183,6 +185,8 @@ class HistoricoChamadoRepositoryTest {
                 "https://teste.local/chamado/" + numeroChamado
         );
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
+        chamado.setNumeroChamadoInterno(proximoNumeroChamadoInterno++);
         chamado.setTipo(TipoChamado.INCIDENTE);
         chamado.setCategoria(CategoriaChamado.OUTROS);
         chamado.setPrioridade(PrioridadeChamado.MEDIA);

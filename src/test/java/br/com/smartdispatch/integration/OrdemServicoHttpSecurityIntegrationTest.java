@@ -56,7 +56,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
                         post(BASE_URL, fixture.contratoAId(), fixture.chamadoAId())
                                 .header("Authorization", "Bearer " + fixture.tokenAdmin())
                                 .contentType("application/json")
-                                .content("{\"numeroOrdemServico\":\"OS-HTTP-001\"}")
+                                .content("{}")
                 )
                 .andExpect(status().isCreated());
     }
@@ -70,7 +70,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
                         post(BASE_URL, fixture.contratoAId(), fixture.chamadoAId())
                                 .header("Authorization", "Bearer " + fixture.tokenCto())
                                 .contentType("application/json")
-                                .content("{\"numeroOrdemServico\":\"OS-HTTP-002\"}")
+                                .content("{}")
                 )
                 .andExpect(status().isCreated());
     }
@@ -84,7 +84,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
                         post(BASE_URL, fixture.contratoAId(), fixture.chamadoAId())
                                 .header("Authorization", "Bearer " + fixture.tokenTecnicoA())
                                 .contentType("application/json")
-                                .content("{\"numeroOrdemServico\":\"OS-HTTP-003\"}")
+                                .content("{}")
                 )
                 .andExpect(status().isForbidden());
     }
@@ -94,7 +94,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void devePermitirListarOrdemServicoComoAdmin() throws Exception {
         Fixture fixture = criarFixture();
         persistirOrdemServico(
-                "OS-HTTP-004",
+                4,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -114,7 +114,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void devePermitirListarOrdemServicoComoCto() throws Exception {
         Fixture fixture = criarFixture();
         persistirOrdemServico(
-                "OS-HTTP-005",
+                5,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -135,7 +135,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
             throws Exception {
         Fixture fixture = criarFixture();
         persistirOrdemServico(
-                "OS-HTTP-006",
+                6,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -156,7 +156,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
             throws Exception {
         Fixture fixture = criarFixture();
         persistirOrdemServico(
-                "OS-HTTP-007",
+                7,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -177,7 +177,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
             throws Exception {
         Fixture fixture = criarFixture();
         persistirOrdemServico(
-                "OS-HTTP-008",
+                8,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -201,7 +201,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
             throws Exception {
         Fixture fixture = criarFixture();
         persistirOrdemServico(
-                "OS-HTTP-009",
+                9,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -224,7 +224,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void devePermitirAtualizarOrdemServicoComoAdmin() throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-010",
+                10,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -242,7 +242,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
                                 .header("Authorization", "Bearer " + fixture.tokenAdmin())
                                 .contentType("application/json")
                                 .content(
-                                        "{\"numeroOrdemServico\":\"OS-HTTP-010-UPD\"}"
+                                        "{}"
                                 )
                 )
                 .andExpect(status().isOk());
@@ -253,7 +253,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void devePermitirAtualizarOrdemServicoComoCto() throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-011",
+                11,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -271,7 +271,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
                                 .header("Authorization", "Bearer " + fixture.tokenCto())
                                 .contentType("application/json")
                                 .content(
-                                        "{\"numeroOrdemServico\":\"OS-HTTP-011-UPD\"}"
+                                        "{}"
                                 )
                 )
                 .andExpect(status().isOk());
@@ -283,7 +283,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
             throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-012",
+                12,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -301,7 +301,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
                                 .header("Authorization", "Bearer " + fixture.tokenTecnicoA())
                                 .contentType("application/json")
                                 .content(
-                                        "{\"numeroOrdemServico\":\"OS-HTTP-012-UPD\"}"
+                                        "{}"
                                 )
                 )
                 .andExpect(status().isForbidden());
@@ -312,7 +312,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void devePermitirCheckInDoProprioTecnicoAtribuido() throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-013",
+                13,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 fixture.tecnicoA(),
@@ -340,7 +340,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
             throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-014",
+                14,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 fixture.tecnicoA(),
@@ -370,7 +370,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void deveBloquearCheckInDeTecnicoDeOutroContrato() throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-015",
+                15,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 fixture.tecnicoA(),
@@ -397,7 +397,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void devePermitirCheckInDoTecnicoInternoAtribuido() throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-016",
+                16,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 fixture.tecnicoInternoA(),
@@ -427,7 +427,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void devePermitirCheckOutDoProprioTecnicoAtribuido() throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-017",
+                17,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 fixture.tecnicoA(),
@@ -456,7 +456,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void deveBloquearCheckOutDeTecnicoNaoAtribuido() throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-018",
+                18,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 fixture.tecnicoA(),
@@ -484,7 +484,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void devePermitirListarSugestoesTecnicosComoAdmin() throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-019",
+                19,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -509,7 +509,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     void deveBloquearListarSugestoesTecnicosComoTecnico() throws Exception {
         Fixture fixture = criarFixture();
         OrdemServico os = persistirOrdemServico(
-                "OS-HTTP-020",
+                20,
                 fixture.chamadoA(),
                 fixture.unidadeA(),
                 null,
@@ -650,6 +650,8 @@ class OrdemServicoHttpSecurityIntegrationTest {
         return unidade;
     }
 
+    private long proximoNumeroChamadoInterno = 100_000;
+
     private Chamado persistirChamado(String numeroChamado, Unidade unidade) {
         Chamado chamado = new Chamado();
         chamado.setNumeroChamado(numeroChamado);
@@ -657,6 +659,8 @@ class OrdemServicoHttpSecurityIntegrationTest {
                 "https://teste.local/chamado/" + numeroChamado
         );
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
+        chamado.setNumeroChamadoInterno(proximoNumeroChamadoInterno++);
         chamado.setTipo(TipoChamado.INCIDENTE);
         chamado.setCategoria(CategoriaChamado.OUTROS);
         chamado.setPrioridade(PrioridadeChamado.MEDIA);
@@ -695,7 +699,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
     }
 
     private OrdemServico persistirOrdemServico(
-            String numeroOrdemServico,
+            long numeroOrdemServico,
             Chamado chamado,
             Unidade unidadeAtendimento,
             Tecnico tecnico,
@@ -709,6 +713,7 @@ class OrdemServicoHttpSecurityIntegrationTest {
         ordemServico.setTecnico(tecnico);
         ordemServico.setDataCheckIn(dataCheckIn);
         ordemServico.setDataCheckOut(dataCheckOut);
+        ordemServico.setData(java.time.LocalDate.now());
         entityManager.persist(ordemServico);
         return ordemServico;
     }

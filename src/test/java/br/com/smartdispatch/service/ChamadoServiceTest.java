@@ -63,6 +63,9 @@ class ChamadoServiceTest {
     @Mock
     private HistoricoChamadoService historicoChamadoService;
 
+    @Mock
+    private NumeracaoService numeracaoService;
+
     @InjectMocks
     private ChamadoService chamadoService;
 
@@ -156,6 +159,9 @@ class ChamadoServiceTest {
                     chamado.setId(99L);
                     return chamado;
                 });
+
+        when(numeracaoService.proximoNumeroChamadoInterno(any()))
+                .thenReturn(1L);
 
         // Act
         ChamadoResponse response = chamadoService.criar(contratoId, request);
@@ -918,6 +924,7 @@ class ChamadoServiceTest {
         Chamado chamado = new Chamado();
         chamado.setId(chamadoId);
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
         chamado.setStatus(StatusChamado.FINALIZADO);
         chamado.setDataFinalizacao(LocalDateTime.of(2026, 1, 1, 12, 0));
 
@@ -962,6 +969,7 @@ class ChamadoServiceTest {
         Chamado chamado = new Chamado();
         chamado.setId(chamadoId);
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
         chamado.setStatus(StatusChamado.AGUARDANDO_ANALISE);
 
         when(chamadoRepository.findByIdAndUnidadeContratoId(chamadoId, contratoId))
@@ -1005,6 +1013,7 @@ class ChamadoServiceTest {
         Chamado chamado = new Chamado();
         chamado.setId(chamadoId);
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
         chamado.setStatus(StatusChamado.PENDENTE);
 
         when(chamadoRepository.findByIdAndUnidadeContratoId(chamadoId, contratoId))
@@ -1038,6 +1047,7 @@ class ChamadoServiceTest {
         Chamado chamado = new Chamado();
         chamado.setId(chamadoId);
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
         chamado.setStatus(StatusChamado.FINALIZADO);
         chamado.setDataFinalizacao(LocalDateTime.of(2026, 1, 1, 12, 0));
 
@@ -1082,6 +1092,7 @@ class ChamadoServiceTest {
         Chamado chamado = new Chamado();
         chamado.setId(chamadoId);
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
         chamado.setStatus(StatusChamado.EM_ATENDIMENTO);
 
         when(chamadoRepository.findByIdAndUnidadeContratoId(chamadoId, contratoId))
@@ -1160,6 +1171,8 @@ class ChamadoServiceTest {
         chamado.setNumeroChamado("CH-" + id);
         chamado.setLinkChamadoOsti("http://osti.exemplo.com/" + id);
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
+        chamado.setNumeroChamadoInterno(id);
         chamado.setSolicitante(criarSolicitante());
         chamado.setNumeroPatrimonio("PAT-" + id);
         chamado.setTipo(TipoChamado.INCIDENTE);

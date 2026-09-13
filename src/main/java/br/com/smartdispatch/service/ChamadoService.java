@@ -35,12 +35,14 @@ public class ChamadoService {
     private final UnidadeService unidadeService;
     private final ContratoService contratoService;
     private final HistoricoChamadoService historicoChamadoService;
+    private final NumeracaoService numeracaoService;
 
     public ChamadoService(
             ChamadoRepository chamadoRepository,
             UnidadeService unidadeService,
             ContratoService contratoService,
-            HistoricoChamadoService historicoChamadoService
+            HistoricoChamadoService historicoChamadoService,
+            NumeracaoService numeracaoService
     ) {
         this.chamadoRepository =
                 chamadoRepository;
@@ -53,6 +55,8 @@ public class ChamadoService {
 
         this.historicoChamadoService =
                 historicoChamadoService;
+
+        this.numeracaoService = numeracaoService;
     }
 
     @Transactional
@@ -87,6 +91,20 @@ public class ChamadoService {
                 chamado,
                 request,
                 unidade
+        );
+
+        Contrato contrato =
+                unidade.getContrato();
+
+        chamado.setContrato(
+                contrato
+        );
+
+        chamado.setNumeroChamadoInterno(
+                numeracaoService
+                        .proximoNumeroChamadoInterno(
+                                contrato.getId()
+                        )
         );
 
         Chamado chamadoSalvo =
@@ -821,11 +839,12 @@ public class ChamadoService {
                 chamado.getUnidade();
 
         Contrato contrato =
-                unidade.getContrato();
+                chamado.getContrato();
 
         return new ChamadoResponse(
                 chamado.getId(),
                 chamado.getNumeroChamado(),
+                chamado.getNumeroChamadoInterno(),
                 chamado.getLinkChamadoOsti(),
                 unidade.getId(),
                 unidade.getNome(),

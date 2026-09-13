@@ -1,20 +1,27 @@
 package br.com.smartdispatch.dto;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 public class OrdemServicoRequest {
 
-    private String numeroOrdemServico;
+    private Long chamadoId;
     private Long tecnicoId;
     private Long unidadeAtendimentoId;
+    private String descricao;
+    private String numeroPatrimonio;
+    private LocalDate data;
+    private LocalTime hora;
 
     public OrdemServicoRequest() {
     }
 
-    public String getNumeroOrdemServico() {
-        return numeroOrdemServico;
+    public Long getChamadoId() {
+        return chamadoId;
     }
 
-    public void setNumeroOrdemServico(String numeroOrdemServico) {
-        this.numeroOrdemServico = numeroOrdemServico;
+    public void setChamadoId(Long chamadoId) {
+        this.chamadoId = chamadoId;
     }
 
     public Long getTecnicoId() {
@@ -33,4 +40,35 @@ public class OrdemServicoRequest {
         this.unidadeAtendimentoId = unidadeAtendimentoId;
     }
 
+    public String getDescricao() {
+        return descricao;
+    }
+
+    public void setDescricao(String descricao) {
+        this.descricao = descricao;
+    }
+
+    public String getNumeroPatrimonio() {
+        return numeroPatrimonio;
+    }
+
+    public void setNumeroPatrimonio(String numeroPatrimonio) {
+        this.numeroPatrimonio = numeroPatrimonio;
+    }
+
+    public LocalDate getData() {
+        return data;
+    }
+
+    public void setData(LocalDate data) {
+        this.data = data;
+    }
+
+    public LocalTime getHora() {
+        return hora;
+    }
+
+    public void setHora(LocalTime hora) {
+        this.hora = hora;
+    }
 }

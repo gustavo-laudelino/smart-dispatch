@@ -130,7 +130,7 @@ class HistoricoChamadoServiceTest {
 
         // Arrange
         Chamado chamado = criarChamado(1L);
-        OrdemServico ordemServico = criarOrdemServico(2L, "OS-100");
+        OrdemServico ordemServico = criarOrdemServico(2L, 100);
 
         // Act
         historicoChamadoService.registrar(
@@ -179,7 +179,7 @@ class HistoricoChamadoServiceTest {
         Long chamadoId = 10L;
 
         Chamado chamado = criarChamado(chamadoId);
-        OrdemServico ordemServico = criarOrdemServico(20L, "OS-300");
+        OrdemServico ordemServico = criarOrdemServico(20L, 300);
 
         HistoricoChamado historico1 = new HistoricoChamado();
         historico1.setId(1L);
@@ -225,7 +225,7 @@ class HistoricoChamadoServiceTest {
         HistoricoChamadoResponse response2 = resultado.get(1);
         assertEquals(2L, response2.getId());
         assertEquals(20L, response2.getOrdemServicoId());
-        assertEquals("OS-300", response2.getNumeroOrdemServico());
+        assertEquals(300, response2.getNumeroOrdemServico());
         assertEquals(TipoEventoChamado.ORDEM_SERVICO_CRIADA, response2.getTipoEvento());
         assertEquals("OS criada", response2.getDescricao());
         assertEquals(historico2.getDataEvento(), response2.getDataEvento());
@@ -244,7 +244,7 @@ class HistoricoChamadoServiceTest {
         return chamado;
     }
 
-    private OrdemServico criarOrdemServico(Long id, String numeroOrdemServico) {
+    private OrdemServico criarOrdemServico(Long id, long numeroOrdemServico) {
         OrdemServico ordemServico = new OrdemServico();
         ordemServico.setId(id);
         ordemServico.setNumeroOrdemServico(numeroOrdemServico);

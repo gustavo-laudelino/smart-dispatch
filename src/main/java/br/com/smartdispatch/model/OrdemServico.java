@@ -9,7 +9,9 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "ordens_servico")
@@ -19,14 +21,11 @@ public class OrdemServico {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private String numeroOrdemServico;
+    @Column(name = "numero_ordem_servico", nullable = false, unique = true)
+    private Long numeroOrdemServico;
 
     @ManyToOne
-    @JoinColumn(
-            name = "chamado_id",
-            nullable = false
-    )
+    @JoinColumn(name = "chamado_id")
     private Chamado chamado;
 
     @ManyToOne
@@ -39,6 +38,17 @@ public class OrdemServico {
             nullable = false
     )
     private Unidade unidadeAtendimento;
+
+    @Column(length = 2000)
+    private String descricao;
+
+    @Column(name = "numero_patrimonio")
+    private String numeroPatrimonio;
+
+    @Column(nullable = false)
+    private LocalDate data;
+
+    private LocalTime hora;
 
     private LocalDateTime dataAtribuicaoTecnico;
 
@@ -57,12 +67,12 @@ public class OrdemServico {
         this.id = id;
     }
 
-    public String getNumeroOrdemServico() {
+    public Long getNumeroOrdemServico() {
         return numeroOrdemServico;
     }
 
     public void setNumeroOrdemServico(
-            String numeroOrdemServico
+            Long numeroOrdemServico
     ) {
         this.numeroOrdemServico =
                 numeroOrdemServico;
@@ -93,6 +103,38 @@ public class OrdemServico {
     ) {
         this.unidadeAtendimento =
                 unidadeAtendimento;
+    }
+
+    public String getDescricao() {
+        return descricao;
+    }
+
+    public void setDescricao(String descricao) {
+        this.descricao = descricao;
+    }
+
+    public String getNumeroPatrimonio() {
+        return numeroPatrimonio;
+    }
+
+    public void setNumeroPatrimonio(String numeroPatrimonio) {
+        this.numeroPatrimonio = numeroPatrimonio;
+    }
+
+    public LocalDate getData() {
+        return data;
+    }
+
+    public void setData(LocalDate data) {
+        this.data = data;
+    }
+
+    public LocalTime getHora() {
+        return hora;
+    }
+
+    public void setHora(LocalTime hora) {
+        this.hora = hora;
     }
 
     public LocalDateTime getDataAtribuicaoTecnico() {

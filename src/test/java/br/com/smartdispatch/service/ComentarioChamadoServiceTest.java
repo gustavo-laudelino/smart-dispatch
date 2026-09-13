@@ -320,7 +320,7 @@ class ComentarioChamadoServiceTest {
 
         Chamado chamado = criarChamado(chamadoId, StatusChamado.FINALIZADO);
         Usuario autor = criarUsuario(usuarioId, "Gestor Teste");
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, "OS-100");
+        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, 100);
 
         when(chamadoService.buscarEntidadePorId(contratoId, chamadoId))
                 .thenReturn(chamado);
@@ -346,7 +346,7 @@ class ComentarioChamadoServiceTest {
 
         // Assert
         assertEquals(ordemServicoId, response.getOrdemServicoId());
-        assertEquals("OS-100", response.getNumeroOrdemServico());
+        assertEquals(100, response.getNumeroOrdemServico());
         assertEquals(chamadoId, response.getChamadoId());
         assertEquals(usuarioId, response.getAutorId());
         assertEquals("Gestor Teste", response.getAutorNome());
@@ -365,7 +365,7 @@ class ComentarioChamadoServiceTest {
         Chamado chamado = criarChamado(chamadoId, StatusChamado.ABERTO);
         Usuario autor1 = criarUsuario(20L, "Autor Um");
         Usuario autor2 = criarUsuario(21L, "Autor Dois");
-        OrdemServico ordemServico = criarOrdemServico(40L, "OS-200");
+        OrdemServico ordemServico = criarOrdemServico(40L, 200);
 
         ComentarioChamado comentario1 = new ComentarioChamado();
         comentario1.setId(1L);
@@ -409,7 +409,7 @@ class ComentarioChamadoServiceTest {
         ComentarioChamadoResponse response2 = resultado.get(1);
         assertEquals(2L, response2.getId());
         assertEquals(40L, response2.getOrdemServicoId());
-        assertEquals("OS-200", response2.getNumeroOrdemServico());
+        assertEquals(200, response2.getNumeroOrdemServico());
         assertEquals(21L, response2.getAutorId());
         assertEquals("Segundo comentário", response2.getTexto());
         assertEquals(comentario2.getDataCriacao(), response2.getDataCriacao());
@@ -435,7 +435,7 @@ class ComentarioChamadoServiceTest {
         return usuario;
     }
 
-    private OrdemServico criarOrdemServico(Long id, String numeroOrdemServico) {
+    private OrdemServico criarOrdemServico(Long id, long numeroOrdemServico) {
         OrdemServico ordemServico = new OrdemServico();
         ordemServico.setId(id);
         ordemServico.setNumeroOrdemServico(numeroOrdemServico);

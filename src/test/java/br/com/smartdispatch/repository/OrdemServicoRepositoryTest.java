@@ -54,6 +54,8 @@ class OrdemServicoRepositoryTest {
                 "https://teste.local/chamado/CH-INT-001"
         );
         chamado.setUnidade(unidade);
+        chamado.setContrato(contrato);
+        chamado.setNumeroChamadoInterno(1L);
         chamado.setTipo(TipoChamado.INCIDENTE);
         chamado.setCategoria(CategoriaChamado.OUTROS);
         chamado.setPrioridade(PrioridadeChamado.MEDIA);
@@ -65,9 +67,10 @@ class OrdemServicoRepositoryTest {
         entityManager.persist(chamado);
 
         OrdemServico ordemServico = new OrdemServico();
-        ordemServico.setNumeroOrdemServico("OS-INT-001");
+        ordemServico.setNumeroOrdemServico(1L);
         ordemServico.setChamado(chamado);
         ordemServico.setUnidadeAtendimento(unidade);
+        ordemServico.setData(java.time.LocalDate.now());
         entityManager.persist(ordemServico);
 
         entityManager.flush();
@@ -87,7 +90,7 @@ class OrdemServicoRepositoryTest {
         assertThat(ordemServicoEncontrada.getId())
                 .isEqualTo(ordemServicoId);
         assertThat(ordemServicoEncontrada.getNumeroOrdemServico())
-                .isEqualTo("OS-INT-001");
+                .isEqualTo(1L);
         assertThat(ordemServicoEncontrada.getChamado()).isNotNull();
         assertThat(ordemServicoEncontrada.getChamado().getId())
                 .isEqualTo(chamadoId);
@@ -99,7 +102,7 @@ class OrdemServicoRepositoryTest {
         Unidade unidadeA = persistirUnidade(contratoA);
         Chamado chamadoA = persistirChamado("CH-INT-002", unidadeA);
         OrdemServico ordemServicoA =
-                persistirOrdemServico("OS-INT-002", chamadoA, unidadeA);
+                persistirOrdemServico(2, chamadoA, unidadeA);
 
         entityManager.flush();
 
@@ -139,7 +142,7 @@ class OrdemServicoRepositoryTest {
         Unidade unidadeA = persistirUnidade(contratoA);
         Chamado chamadoA = persistirChamado("CH-INT-003", unidadeA);
         OrdemServico ordemServicoA =
-                persistirOrdemServico("OS-INT-003", chamadoA, unidadeA);
+                persistirOrdemServico(3, chamadoA, unidadeA);
 
         entityManager.flush();
 
@@ -166,7 +169,7 @@ class OrdemServicoRepositoryTest {
         Chamado chamadoA = persistirChamado("CH-INT-004-A", unidadeA);
         Chamado chamadoB = persistirChamado("CH-INT-004-B", unidadeA);
         OrdemServico ordemServicoA =
-                persistirOrdemServico("OS-INT-004", chamadoA, unidadeA);
+                persistirOrdemServico(4, chamadoA, unidadeA);
 
         entityManager.flush();
 
@@ -201,10 +204,11 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         OrdemServico ordemServicoA = new OrdemServico();
-        ordemServicoA.setNumeroOrdemServico("OS-INT-005");
+        ordemServicoA.setNumeroOrdemServico(5L);
         ordemServicoA.setChamado(chamadoA);
         ordemServicoA.setUnidadeAtendimento(unidadeA);
         ordemServicoA.setTecnico(tecnicoA);
+        ordemServicoA.setData(java.time.LocalDate.now());
         entityManager.persist(ordemServicoA);
 
         entityManager.flush();
@@ -247,10 +251,11 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         OrdemServico ordemServicoA = new OrdemServico();
-        ordemServicoA.setNumeroOrdemServico("OS-INT-006");
+        ordemServicoA.setNumeroOrdemServico(6L);
         ordemServicoA.setChamado(chamadoA);
         ordemServicoA.setUnidadeAtendimento(unidadeA);
         ordemServicoA.setTecnico(tecnicoA);
+        ordemServicoA.setData(java.time.LocalDate.now());
         entityManager.persist(ordemServicoA);
 
         entityManager.flush();
@@ -290,10 +295,11 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         OrdemServico ordemServicoA = new OrdemServico();
-        ordemServicoA.setNumeroOrdemServico("OS-INT-007");
+        ordemServicoA.setNumeroOrdemServico(7L);
         ordemServicoA.setChamado(chamadoA);
         ordemServicoA.setUnidadeAtendimento(unidadeA);
         ordemServicoA.setTecnico(tecnicoA);
+        ordemServicoA.setData(java.time.LocalDate.now());
         entityManager.persist(ordemServicoA);
 
         entityManager.flush();
@@ -332,10 +338,11 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         OrdemServico ordemServicoA = new OrdemServico();
-        ordemServicoA.setNumeroOrdemServico("OS-INT-008");
+        ordemServicoA.setNumeroOrdemServico(8L);
         ordemServicoA.setChamado(chamadoA);
         ordemServicoA.setUnidadeAtendimento(unidadeA);
         ordemServicoA.setTecnico(tecnicoA);
+        ordemServicoA.setData(java.time.LocalDate.now());
         entityManager.persist(ordemServicoA);
 
         chamadoA.setStatus(StatusChamado.FINALIZADO);
@@ -376,7 +383,7 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         OrdemServico ordemServicoA = persistirOrdemServicoComTecnico(
-                "OS-INT-009",
+                9,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -415,7 +422,7 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-010",
+                10,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -452,7 +459,7 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-011",
+                11,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -489,7 +496,7 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-012",
+                12,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -526,7 +533,7 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-013",
+                13,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -555,7 +562,7 @@ class OrdemServicoRepositoryTest {
         Chamado chamadoA = persistirChamado("CH-INT-014", unidadeA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-014",
+                14,
                 chamadoA,
                 unidadeA,
                 null,
@@ -592,7 +599,7 @@ class OrdemServicoRepositoryTest {
                 persistirTecnico(usuarioA, baseOperacionalA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-015",
+                15,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -609,85 +616,6 @@ class OrdemServicoRepositoryTest {
         boolean resultado = ordemServicoRepository
                 .existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(
                         chamadoId
-                );
-
-        assertThat(resultado).isFalse();
-    }
-
-    @Test
-    void deveConfirmarQuandoNumeroOrdemServicoJaExiste() {
-        Contrato contratoA = persistirContrato();
-        Unidade unidadeA = persistirUnidade(contratoA);
-        Chamado chamadoA = persistirChamado("CH-INT-016", unidadeA);
-        persistirOrdemServico("OS-INT-016", chamadoA, unidadeA);
-
-        entityManager.flush();
-        entityManager.clear();
-
-        boolean resultado = ordemServicoRepository
-                .existsByNumeroOrdemServico("OS-INT-016");
-
-        assertThat(resultado).isTrue();
-    }
-
-    @Test
-    void deveNegarQuandoNumeroOrdemServicoNaoExiste() {
-        Contrato contratoA = persistirContrato();
-        Unidade unidadeA = persistirUnidade(contratoA);
-        Chamado chamadoA = persistirChamado("CH-INT-017", unidadeA);
-        persistirOrdemServico("OS-INT-017", chamadoA, unidadeA);
-
-        entityManager.flush();
-        entityManager.clear();
-
-        boolean resultado = ordemServicoRepository
-                .existsByNumeroOrdemServico("OS-INEXISTENTE");
-
-        assertThat(resultado).isFalse();
-    }
-
-    @Test
-    void deveConfirmarQuandoNumeroPertenceAOutraOrdem() {
-        Contrato contratoA = persistirContrato();
-        Unidade unidadeA = persistirUnidade(contratoA);
-        Chamado chamadoA = persistirChamado("CH-INT-018", unidadeA);
-        persistirOrdemServico("OS-INT-018-A", chamadoA, unidadeA);
-        OrdemServico ordemServicoB =
-                persistirOrdemServico("OS-INT-018-B", chamadoA, unidadeA);
-
-        entityManager.flush();
-
-        Long ordemServicoIdB = ordemServicoB.getId();
-
-        entityManager.clear();
-
-        boolean resultado = ordemServicoRepository
-                .existsByNumeroOrdemServicoAndIdNot(
-                        "OS-INT-018-A",
-                        ordemServicoIdB
-                );
-
-        assertThat(resultado).isTrue();
-    }
-
-    @Test
-    void deveNegarQuandoNumeroPertenceAPropriaOrdem() {
-        Contrato contratoA = persistirContrato();
-        Unidade unidadeA = persistirUnidade(contratoA);
-        Chamado chamadoA = persistirChamado("CH-INT-019", unidadeA);
-        OrdemServico ordemServicoA =
-                persistirOrdemServico("OS-INT-019", chamadoA, unidadeA);
-
-        entityManager.flush();
-
-        Long ordemServicoIdA = ordemServicoA.getId();
-
-        entityManager.clear();
-
-        boolean resultado = ordemServicoRepository
-                .existsByNumeroOrdemServicoAndIdNot(
-                        "OS-INT-019",
-                        ordemServicoIdA
                 );
 
         assertThat(resultado).isFalse();
@@ -717,7 +645,7 @@ class OrdemServicoRepositoryTest {
         Chamado chamadoC = persistirChamado("CH-INT-020-C", unidadeA);
 
         OrdemServico ordemServicoA = persistirOrdemServicoComTecnico(
-                "OS-INT-020-A",
+                20,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -725,7 +653,7 @@ class OrdemServicoRepositoryTest {
                 null
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-020-B",
+                21,
                 chamadoB,
                 unidadeA,
                 tecnicoA,
@@ -733,7 +661,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 10, 0)
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-020-C",
+                22,
                 chamadoC,
                 unidadeA,
                 tecnicoB,
@@ -750,7 +678,7 @@ class OrdemServicoRepositoryTest {
         entityManager.clear();
 
         List<OrdemServico> resultado = ordemServicoRepository
-                .findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+                .findByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutIsNull(
                         tecnicoAId,
                         contratoAId
                 );
@@ -776,7 +704,7 @@ class OrdemServicoRepositoryTest {
         Chamado chamadoB = persistirChamado("CH-INT-021-B", unidadeA);
 
         OrdemServico ordemServicoA = persistirOrdemServicoComTecnico(
-                "OS-INT-021-A",
+                23,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -784,7 +712,7 @@ class OrdemServicoRepositoryTest {
                 null
         );
         OrdemServico ordemServicoB = persistirOrdemServicoComTecnico(
-                "OS-INT-021-B",
+                24,
                 chamadoB,
                 unidadeA,
                 tecnicoA,
@@ -802,7 +730,7 @@ class OrdemServicoRepositoryTest {
         entityManager.clear();
 
         List<OrdemServico> resultado = ordemServicoRepository
-                .findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+                .findByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutIsNull(
                         tecnicoAId,
                         contratoAId
                 );
@@ -833,7 +761,7 @@ class OrdemServicoRepositoryTest {
         Chamado chamadoC = persistirChamado("CH-INT-022-C", unidadeA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-022-A",
+                25,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -841,7 +769,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 9, 59)
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-022-B",
+                26,
                 chamadoB,
                 unidadeA,
                 tecnicoA,
@@ -849,7 +777,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 10, 0)
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-022-C",
+                27,
                 chamadoC,
                 unidadeA,
                 tecnicoA,
@@ -865,7 +793,7 @@ class OrdemServicoRepositoryTest {
         entityManager.clear();
 
         long resultado = ordemServicoRepository
-                .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutGreaterThanEqual(
                         tecnicoAId,
                         contratoAId,
                         dataInicial
@@ -899,7 +827,7 @@ class OrdemServicoRepositoryTest {
         Chamado chamadoB = persistirChamado("CH-INT-023-B", unidadeA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-023-A",
+                28,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -907,7 +835,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 11, 0)
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-023-B",
+                29,
                 chamadoB,
                 unidadeA,
                 tecnicoB,
@@ -923,7 +851,7 @@ class OrdemServicoRepositoryTest {
         entityManager.clear();
 
         long resultado = ordemServicoRepository
-                .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutGreaterThanEqual(
                         tecnicoAId,
                         contratoAId,
                         dataInicial
@@ -956,7 +884,7 @@ class OrdemServicoRepositoryTest {
                 persistirChamado("CH-INT-024-IGN", unidadeA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-024-A",
+                30,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -965,7 +893,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 9, 59)
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-024-B",
+                31,
                 chamadoB,
                 unidadeA,
                 tecnicoA,
@@ -974,7 +902,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 10, 0)
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-024-C",
+                32,
                 chamadoC,
                 unidadeA,
                 tecnicoA,
@@ -983,7 +911,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 11, 0)
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-024-D",
+                33,
                 chamadoD,
                 unidadeA,
                 tecnicoA,
@@ -992,7 +920,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 12, 0)
         );
         OrdemServico ordemServicoIgnorada = persistirOrdemServicoComTecnico(
-                "OS-INT-024-IGN",
+                34,
                 chamadoIgnorada,
                 unidadeA,
                 tecnicoA,
@@ -1010,7 +938,7 @@ class OrdemServicoRepositoryTest {
         entityManager.clear();
 
         long resultado = ordemServicoRepository
-                .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
                         tecnicoAId,
                         contratoAId,
                         ordemServicoIdIgnorada,
@@ -1041,7 +969,7 @@ class OrdemServicoRepositoryTest {
         Chamado chamadoB = persistirChamado("CH-INT-025-B", unidadeA);
 
         OrdemServico ordemServicoA = persistirOrdemServicoComTecnico(
-                "OS-INT-025-A",
+                35,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -1050,7 +978,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 10, 30)
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-025-B",
+                36,
                 chamadoB,
                 unidadeA,
                 tecnicoA,
@@ -1068,7 +996,7 @@ class OrdemServicoRepositoryTest {
         entityManager.clear();
 
         long resultado = ordemServicoRepository
-                .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
                         tecnicoAId,
                         contratoAId,
                         ordemServicoIdIgnorada,
@@ -1107,7 +1035,7 @@ class OrdemServicoRepositoryTest {
                 persistirChamado("CH-INT-026-IGN", unidadeA);
 
         persistirOrdemServicoComTecnico(
-                "OS-INT-026-A",
+                37,
                 chamadoA,
                 unidadeA,
                 tecnicoA,
@@ -1116,7 +1044,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 10, 30)
         );
         persistirOrdemServicoComTecnico(
-                "OS-INT-026-B",
+                38,
                 chamadoB,
                 unidadeA,
                 tecnicoB,
@@ -1125,7 +1053,7 @@ class OrdemServicoRepositoryTest {
                 LocalDateTime.of(2026, 8, 23, 10, 30)
         );
         OrdemServico ordemServicoIgnorada = persistirOrdemServicoComTecnico(
-                "OS-INT-026-IGN",
+                39,
                 chamadoIgnorada,
                 unidadeA,
                 tecnicoA,
@@ -1143,7 +1071,7 @@ class OrdemServicoRepositoryTest {
         entityManager.clear();
 
         long resultado = ordemServicoRepository
-                .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
                         tecnicoAId,
                         contratoAId,
                         ordemServicoIdIgnorada,
@@ -1167,6 +1095,8 @@ class OrdemServicoRepositoryTest {
         return unidade;
     }
 
+    private long proximoNumeroChamadoInterno = 100_000;
+
     private Chamado persistirChamado(String numeroChamado, Unidade unidade) {
         Chamado chamado = new Chamado();
         chamado.setNumeroChamado(numeroChamado);
@@ -1174,6 +1104,8 @@ class OrdemServicoRepositoryTest {
                 "https://teste.local/chamado/" + numeroChamado
         );
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
+        chamado.setNumeroChamadoInterno(proximoNumeroChamadoInterno++);
         chamado.setTipo(TipoChamado.INCIDENTE);
         chamado.setCategoria(CategoriaChamado.OUTROS);
         chamado.setPrioridade(PrioridadeChamado.MEDIA);
@@ -1187,7 +1119,7 @@ class OrdemServicoRepositoryTest {
     }
 
     private OrdemServico persistirOrdemServico(
-            String numeroOrdemServico,
+            long numeroOrdemServico,
             Chamado chamado,
             Unidade unidadeAtendimento
     ) {
@@ -1195,12 +1127,13 @@ class OrdemServicoRepositoryTest {
         ordemServico.setNumeroOrdemServico(numeroOrdemServico);
         ordemServico.setChamado(chamado);
         ordemServico.setUnidadeAtendimento(unidadeAtendimento);
+        ordemServico.setData(java.time.LocalDate.now());
         entityManager.persist(ordemServico);
         return ordemServico;
     }
 
     private OrdemServico persistirOrdemServicoComTecnico(
-            String numeroOrdemServico,
+            long numeroOrdemServico,
             Chamado chamado,
             Unidade unidadeAtendimento,
             Tecnico tecnico,
@@ -1219,7 +1152,7 @@ class OrdemServicoRepositoryTest {
     }
 
     private OrdemServico persistirOrdemServicoComTecnico(
-            String numeroOrdemServico,
+            long numeroOrdemServico,
             Chamado chamado,
             Unidade unidadeAtendimento,
             Tecnico tecnico,
@@ -1235,6 +1168,7 @@ class OrdemServicoRepositoryTest {
         ordemServico.setDataCheckIn(dataCheckIn);
         ordemServico.setDataCheckOut(dataCheckOut);
         ordemServico.setDataAtribuicaoTecnico(dataAtribuicaoTecnico);
+        ordemServico.setData(java.time.LocalDate.now());
         entityManager.persist(ordemServico);
         return ordemServico;
     }

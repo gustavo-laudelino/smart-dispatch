@@ -66,6 +66,35 @@ public class SugestaoTecnicoService {
                                 )
                         );
 
+        return listarSugestoesParaOrdem(contratoId, ordemServicoAlvo);
+    }
+
+    /** Rota canônica, por contrato — OS com ou sem Chamado. */
+    @Transactional(readOnly = true)
+    public List<SugestaoTecnicoResponse> listarSugestoes(
+            Long contratoId,
+            Long ordemServicoId
+    ) {
+        OrdemServico ordemServicoAlvo =
+                ordemServicoRepository
+                        .findByIdAndUnidadeAtendimentoContratoId(
+                                ordemServicoId,
+                                contratoId
+                        )
+                        .orElseThrow(
+                                () -> new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Ordem de serviço não encontrada."
+                                )
+                        );
+
+        return listarSugestoesParaOrdem(contratoId, ordemServicoAlvo);
+    }
+
+    private List<SugestaoTecnicoResponse> listarSugestoesParaOrdem(
+            Long contratoId,
+            OrdemServico ordemServicoAlvo
+    ) {
         Unidade unidadeDestino =
                 ordemServicoAlvo.getUnidadeAtendimento();
 
@@ -98,7 +127,7 @@ public class SugestaoTecnicoService {
                                 tecnico -> criarCandidato(
                                         tecnico,
                                         contratoId,
-                                        ordemServicoId,
+                                        ordemServicoAlvo.getId(),
                                         unidadeDestino,
                                         inicioPeriodo,
                                         inicioHoje,
@@ -141,7 +170,7 @@ public class SugestaoTecnicoService {
     ) {
         List<OrdemServico> ordensAtivas =
                 ordemServicoRepository
-                        .findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+                        .findByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutIsNull(
                                 tecnico.getId(),
                                 contratoId
                         )
@@ -169,7 +198,7 @@ public class SugestaoTecnicoService {
         int atribuicoesHoje =
                 Math.toIntExact(
                         ordemServicoRepository
-                                .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                                .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
                                         tecnico.getId(),
                                         contratoId,
                                         ordemServicoAlvoId,
@@ -181,7 +210,7 @@ public class SugestaoTecnicoService {
         int atendimentosUltimos15Dias =
                 Math.toIntExact(
                         ordemServicoRepository
-                                .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                                .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutGreaterThanEqual(
                                         tecnico.getId(),
                                         contratoId,
                                         inicioPeriodo

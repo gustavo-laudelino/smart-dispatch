@@ -109,7 +109,7 @@ public class HistoricoChamadoService {
                 historico.getOrdemServico();
 
         Long ordemServicoId = null;
-        String numeroOrdemServico = null;
+        Long numeroOrdemServico = null;
 
         if (ordemServico != null) {
             ordemServicoId =

@@ -36,6 +36,13 @@ public class Chamado {
     @JoinColumn(name = "unidade_id", nullable = false)
     private Unidade unidade;
 
+    @ManyToOne
+    @JoinColumn(name = "contrato_id", nullable = false)
+    private Contrato contrato;
+
+    @Column(name = "numero_chamado_interno", nullable = false)
+    private Long numeroChamadoInterno;
+
     @Embedded
     private Solicitante solicitante;
 
@@ -100,6 +107,22 @@ public class Chamado {
 
     public void setUnidade(Unidade unidade) {
         this.unidade = unidade;
+    }
+
+    public Contrato getContrato() {
+        return contrato;
+    }
+
+    public void setContrato(Contrato contrato) {
+        this.contrato = contrato;
+    }
+
+    public Long getNumeroChamadoInterno() {
+        return numeroChamadoInterno;
+    }
+
+    public void setNumeroChamadoInterno(Long numeroChamadoInterno) {
+        this.numeroChamadoInterno = numeroChamadoInterno;
     }
 
     public Solicitante getSolicitante() {

@@ -161,7 +161,7 @@ public class ComentarioChamadoService {
                 comentario.getOrdemServico();
 
         Long ordemServicoId = null;
-        String numeroOrdemServico = null;
+        Long numeroOrdemServico = null;
 
         if (ordemServico != null) {
             ordemServicoId = ordemServico.getId();

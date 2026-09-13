@@ -14,13 +14,13 @@ import org.springframework.data.domain.Pageable;
 
 public interface ChamadoRepository extends JpaRepository<Chamado, Long> {
 
-    @EntityGraph(attributePaths = {"unidade", "unidade.contrato"})
+    @EntityGraph(attributePaths = {"unidade", "contrato"})
     List<Chamado> findAll();
 
-    @EntityGraph(attributePaths = {"unidade", "unidade.contrato"})
+    @EntityGraph(attributePaths = {"unidade", "contrato"})
     Page<Chamado> findAll(Pageable pageable);
 
-    @EntityGraph(attributePaths = {"unidade", "unidade.contrato"})
+    @EntityGraph(attributePaths = {"unidade", "contrato"})
     Page<Chamado> findByUnidadeContratoId(
             Long contratoId,
             Pageable pageable
@@ -44,10 +44,10 @@ public interface ChamadoRepository extends JpaRepository<Chamado, Long> {
             Long chamadoId
     );
 
-    @EntityGraph(attributePaths = {"unidade", "unidade.contrato"})
+    @EntityGraph(attributePaths = {"unidade", "contrato"})
     @Query("""
             SELECT c FROM Chamado c
-            WHERE (:contratoId IS NULL OR c.unidade.contrato.id = :contratoId)
+            WHERE (:contratoId IS NULL OR c.contrato.id = :contratoId)
             AND EXISTS (
                 SELECT 1 FROM OrdemServico os
                 WHERE os.chamado = c

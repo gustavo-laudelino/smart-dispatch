@@ -12,7 +12,7 @@ public class ComentarioChamadoResponse {
     private String autorNome;
 
     private Long ordemServicoId;
-    private String numeroOrdemServico;
+    private Long numeroOrdemServico;
 
     private String texto;
     private LocalDateTime dataCriacao;
@@ -26,7 +26,7 @@ public class ComentarioChamadoResponse {
             Long autorId,
             String autorNome,
             Long ordemServicoId,
-            String numeroOrdemServico,
+            Long numeroOrdemServico,
             String texto,
             LocalDateTime dataCriacao
     ) {
@@ -60,7 +60,7 @@ public class ComentarioChamadoResponse {
         return ordemServicoId;
     }
 
-    public String getNumeroOrdemServico() {
+    public Long getNumeroOrdemServico() {
         return numeroOrdemServico;
     }
 

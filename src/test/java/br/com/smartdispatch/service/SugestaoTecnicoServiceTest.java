@@ -183,7 +183,7 @@ class SugestaoTecnicoServiceTest {
                 .thenReturn(List.of(tecnico));
 
         when(
-                ordemServicoRepository.findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+                ordemServicoRepository.findByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutIsNull(
                         tecnicoId, contratoId
                 )
         ).thenReturn(List.of());
@@ -193,7 +193,7 @@ class SugestaoTecnicoServiceTest {
 
         when(
                 ordemServicoRepository
-                        .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                        .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
                                 eq(tecnicoId), eq(contratoId), eq(ordemServicoId),
                                 any(LocalDateTime.class), any(LocalDateTime.class)
                         )
@@ -201,7 +201,7 @@ class SugestaoTecnicoServiceTest {
 
         when(
                 ordemServicoRepository
-                        .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                        .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutGreaterThanEqual(
                                 eq(tecnicoId), eq(contratoId), any(LocalDateTime.class)
                         )
         ).thenReturn(3L);
@@ -235,7 +235,7 @@ class SugestaoTecnicoServiceTest {
         ArgumentCaptor<LocalDateTime> inicioAmanhaCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
 
         verify(ordemServicoRepository)
-                .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
                         eq(tecnicoId), eq(contratoId), eq(ordemServicoId),
                         inicioHojeCaptor.capture(), inicioAmanhaCaptor.capture()
                 );
@@ -252,7 +252,7 @@ class SugestaoTecnicoServiceTest {
         ArgumentCaptor<LocalDateTime> inicioPeriodoCaptor = ArgumentCaptor.forClass(LocalDateTime.class);
 
         verify(ordemServicoRepository)
-                .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutGreaterThanEqual(
                         eq(tecnicoId), eq(contratoId), inicioPeriodoCaptor.capture()
                 );
 
@@ -293,7 +293,7 @@ class SugestaoTecnicoServiceTest {
                 .thenReturn(List.of(tecnico));
 
         when(
-                ordemServicoRepository.findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+                ordemServicoRepository.findByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutIsNull(
                         tecnicoId, contratoId
                 )
         ).thenReturn(List.of(ordemServicoAlvo, osA, osB));
@@ -306,7 +306,7 @@ class SugestaoTecnicoServiceTest {
 
         when(
                 ordemServicoRepository
-                        .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                        .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
                                 eq(tecnicoId), eq(contratoId), eq(ordemServicoId),
                                 any(LocalDateTime.class), any(LocalDateTime.class)
                         )
@@ -314,7 +314,7 @@ class SugestaoTecnicoServiceTest {
 
         when(
                 ordemServicoRepository
-                        .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                        .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutGreaterThanEqual(
                                 eq(tecnicoId), eq(contratoId), any(LocalDateTime.class)
                         )
         ).thenReturn(3L);
@@ -371,7 +371,7 @@ class SugestaoTecnicoServiceTest {
                 .thenReturn(List.of(tecnicoA, tecnicoB, tecnicoC, tecnicoD));
 
         when(
-                ordemServicoRepository.findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+                ordemServicoRepository.findByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutIsNull(
                         any(Long.class), eq(contratoId)
                 )
         ).thenReturn(List.of());
@@ -383,7 +383,7 @@ class SugestaoTecnicoServiceTest {
 
         when(
                 ordemServicoRepository
-                        .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                        .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
                                 any(Long.class), eq(contratoId), eq(ordemServicoId),
                                 any(LocalDateTime.class), any(LocalDateTime.class)
                         )
@@ -391,7 +391,7 @@ class SugestaoTecnicoServiceTest {
 
         when(
                 ordemServicoRepository
-                        .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                        .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutGreaterThanEqual(
                                 any(Long.class), eq(contratoId), any(LocalDateTime.class)
                         )
         ).thenReturn(0L);
@@ -449,7 +449,7 @@ class SugestaoTecnicoServiceTest {
                 .thenReturn(List.of(tecnico));
 
         when(
-                ordemServicoRepository.findByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutIsNull(
+                ordemServicoRepository.findByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutIsNull(
                         tecnicoId, contratoId
                 )
         ).thenReturn(List.of());
@@ -459,7 +459,7 @@ class SugestaoTecnicoServiceTest {
 
         when(
                 ordemServicoRepository
-                        .countByTecnicoIdAndChamadoUnidadeContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
+                        .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndIdNotAndDataAtribuicaoTecnicoGreaterThanEqualAndDataAtribuicaoTecnicoLessThan(
                                 eq(tecnicoId), eq(contratoId), eq(ordemServicoId),
                                 any(LocalDateTime.class), any(LocalDateTime.class)
                         )
@@ -467,7 +467,7 @@ class SugestaoTecnicoServiceTest {
 
         when(
                 ordemServicoRepository
-                        .countByTecnicoIdAndChamadoUnidadeContratoIdAndDataCheckOutGreaterThanEqual(
+                        .countByTecnicoIdAndUnidadeAtendimentoContratoIdAndDataCheckOutGreaterThanEqual(
                                 eq(tecnicoId), eq(contratoId), any(LocalDateTime.class)
                         )
         ).thenReturn(0L);

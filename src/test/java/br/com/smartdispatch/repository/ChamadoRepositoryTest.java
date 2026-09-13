@@ -239,13 +239,13 @@ class ChamadoRepositoryTest {
         );
 
         Chamado chamadoDoTecnicoA = persistirChamado("CH-TEC-001", unidade);
-        persistirOrdemServico("OS-TEC-001", chamadoDoTecnicoA, tecnicoA);
+        persistirOrdemServico(1, chamadoDoTecnicoA, tecnicoA);
 
         Chamado chamadoDoTecnicoB = persistirChamado("CH-TEC-002", unidade);
-        persistirOrdemServico("OS-TEC-002", chamadoDoTecnicoB, tecnicoB);
+        persistirOrdemServico(2, chamadoDoTecnicoB, tecnicoB);
 
         Chamado chamadoSemTecnico = persistirChamado("CH-TEC-003", unidade);
-        persistirOrdemServico("OS-TEC-003", chamadoSemTecnico, null);
+        persistirOrdemServico(3, chamadoSemTecnico, null);
 
         entityManager.flush();
 
@@ -276,9 +276,9 @@ class ChamadoRepositoryTest {
         );
 
         Chamado chamado = persistirChamado("CH-TEC-004", unidade);
-        persistirOrdemServico("OS-TEC-004-A", chamado, tecnico);
-        persistirOrdemServico("OS-TEC-004-B", chamado, tecnico);
-        persistirOrdemServico("OS-TEC-004-C", chamado, tecnico);
+        persistirOrdemServico(4, chamado, tecnico);
+        persistirOrdemServico(5, chamado, tecnico);
+        persistirOrdemServico(6, chamado, tecnico);
 
         entityManager.flush();
 
@@ -310,10 +310,10 @@ class ChamadoRepositoryTest {
         );
 
         Chamado chamadoContratoA = persistirChamado("CH-TEC-005-A", unidadeA);
-        persistirOrdemServico("OS-TEC-005-A", chamadoContratoA, tecnico);
+        persistirOrdemServico(7, chamadoContratoA, tecnico);
 
         Chamado chamadoContratoB = persistirChamado("CH-TEC-005-B", unidadeB);
-        persistirOrdemServico("OS-TEC-005-B", chamadoContratoB, tecnico);
+        persistirOrdemServico(8, chamadoContratoB, tecnico);
 
         entityManager.flush();
 
@@ -344,16 +344,16 @@ class ChamadoRepositoryTest {
         );
 
         persistirOrdemServico(
-                "OS-TEC-006-1", persistirChamado("CH-TEC-006-1", unidade), tecnico
+                9, persistirChamado("CH-TEC-006-1", unidade), tecnico
         );
         persistirOrdemServico(
-                "OS-TEC-006-2", persistirChamado("CH-TEC-006-2", unidade), tecnico
+                10, persistirChamado("CH-TEC-006-2", unidade), tecnico
         );
         persistirOrdemServico(
-                "OS-TEC-006-3", persistirChamado("CH-TEC-006-3", unidade), tecnico
+                11, persistirChamado("CH-TEC-006-3", unidade), tecnico
         );
         persistirOrdemServico(
-                "OS-TEC-006-X", persistirChamado("CH-TEC-006-X", unidade), null
+                12, persistirChamado("CH-TEC-006-X", unidade), null
         );
 
         entityManager.flush();
@@ -511,6 +511,8 @@ class ChamadoRepositoryTest {
         return unidade;
     }
 
+    private long proximoNumeroChamadoInterno = 100_000;
+
     private Chamado persistirChamado(String numeroChamado, Unidade unidade) {
         Chamado chamado = new Chamado();
         chamado.setNumeroChamado(numeroChamado);
@@ -518,6 +520,8 @@ class ChamadoRepositoryTest {
                 "https://teste.local/chamado/" + numeroChamado
         );
         chamado.setUnidade(unidade);
+        chamado.setContrato(unidade.getContrato());
+        chamado.setNumeroChamadoInterno(proximoNumeroChamadoInterno++);
         chamado.setTipo(TipoChamado.INCIDENTE);
         chamado.setCategoria(CategoriaChamado.OUTROS);
         chamado.setPrioridade(PrioridadeChamado.MEDIA);
@@ -558,7 +562,7 @@ class ChamadoRepositoryTest {
     }
 
     private OrdemServico persistirOrdemServico(
-            String numeroOrdemServico,
+            long numeroOrdemServico,
             Chamado chamado,
             Tecnico tecnico
     ) {
@@ -567,6 +571,7 @@ class ChamadoRepositoryTest {
         ordemServico.setChamado(chamado);
         ordemServico.setTecnico(tecnico);
         ordemServico.setUnidadeAtendimento(chamado.getUnidade());
+        ordemServico.setData(java.time.LocalDate.now());
         entityManager.persist(ordemServico);
         return ordemServico;
     }

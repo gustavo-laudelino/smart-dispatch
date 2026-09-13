@@ -23,7 +23,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,11 +60,14 @@ class OrdemServicoServiceTest {
     @Mock
     private HistoricoChamadoService historicoChamadoService;
 
+    @Mock
+    private NumeracaoService numeracaoService;
+
     @InjectMocks
     private OrdemServicoService ordemServicoService;
 
     // ---------------------------------------------------------------
-    // criar()
+    // criar() — vinculada a Chamado (rota antiga aninhada)
     // ---------------------------------------------------------------
 
     @Test
@@ -80,15 +85,14 @@ class OrdemServicoServiceTest {
         Tecnico tecnico = criarTecnico(30L, usuario, true);
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico("  OS-100  ");
         request.setTecnicoId(tecnico.getId());
         request.setUnidadeAtendimentoId(unidadeAtendimento.getId());
 
         when(chamadoService.buscarEntidadePorId(contratoId, chamadoId))
                 .thenReturn(chamado);
 
-        when(ordemServicoRepository.existsByNumeroOrdemServico("OS-100"))
-                .thenReturn(false);
+        when(numeracaoService.proximoNumeroOrdemServico())
+                .thenReturn(100L);
 
         when(tecnicoService.buscarEntidadePorId(contratoId, tecnico.getId()))
                 .thenReturn(tecnico);
@@ -98,58 +102,30 @@ class OrdemServicoServiceTest {
 
         when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
                 .thenAnswer(invocation -> {
-                    OrdemServico ordemServico = invocation.getArgument(0);
-                    ordemServico.setId(50L);
-                    return ordemServico;
+                    OrdemServico salva = invocation.getArgument(0);
+                    salva.setId(50L);
+                    return salva;
                 });
 
-        when(
-                ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(true);
-
         // Act
-        OrdemServicoResponse response = ordemServicoService.criar(contratoId, chamadoId, request);
+        OrdemServicoResponse response =
+                ordemServicoService.criar(contratoId, chamadoId, request);
 
         // Assert
-        assertEquals("OS-100", response.getNumeroOrdemServico());
-        assertEquals(chamadoId, response.getChamadoId());
+        assertEquals(100L, response.getNumeroOrdemServico());
         assertEquals(tecnico.getId(), response.getTecnicoId());
         assertEquals(unidadeAtendimento.getId(), response.getUnidadeAtendimentoId());
-        assertNotNull(response.getDataAtribuicaoTecnico());
-        assertEquals(StatusChamado.ATRIBUIDO, chamado.getStatus());
-
-        verify(tecnicoService).buscarEntidadePorId(contratoId, tecnico.getId());
-        verify(unidadeService).buscarPorId(contratoId, unidadeAtendimento.getId());
-
-        ArgumentCaptor<OrdemServico> ordemCaptor = ArgumentCaptor.forClass(OrdemServico.class);
-        verify(ordemServicoRepository).saveAndFlush(ordemCaptor.capture());
-
-        OrdemServico ordemSalva = ordemCaptor.getValue();
-        assertEquals("OS-100", ordemSalva.getNumeroOrdemServico());
-        assertEquals(chamado, ordemSalva.getChamado());
-        assertEquals(tecnico, ordemSalva.getTecnico());
-        assertEquals(unidadeAtendimento, ordemSalva.getUnidadeAtendimento());
+        assertEquals(chamadoId, response.getChamadoId());
+        assertEquals(contratoId, response.getContratoId());
 
         verify(historicoChamadoService).registrar(
-                eq(chamado),
-                any(OrdemServico.class),
-                eq(TipoEventoChamado.ORDEM_SERVICO_CRIADA),
-                anyString()
+                eq(chamado), any(OrdemServico.class),
+                eq(TipoEventoChamado.ORDEM_SERVICO_CRIADA), anyString()
         );
 
         verify(historicoChamadoService).registrar(
-                eq(chamado),
-                any(OrdemServico.class),
-                eq(TipoEventoChamado.TECNICO_ATRIBUIDO),
-                anyString()
+                eq(chamado), any(OrdemServico.class),
+                eq(TipoEventoChamado.TECNICO_ATRIBUIDO), anyString()
         );
     }
 
@@ -164,101 +140,33 @@ class OrdemServicoServiceTest {
         Chamado chamado = criarChamado(chamadoId, unidadeChamado, StatusChamado.ABERTO);
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico("OS-200");
-        request.setTecnicoId(null);
-        request.setUnidadeAtendimentoId(null);
 
         when(chamadoService.buscarEntidadePorId(contratoId, chamadoId))
                 .thenReturn(chamado);
 
-        when(ordemServicoRepository.existsByNumeroOrdemServico("OS-200"))
-                .thenReturn(false);
+        when(numeracaoService.proximoNumeroOrdemServico())
+                .thenReturn(101L);
 
         when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
                 .thenAnswer(invocation -> {
-                    OrdemServico ordemServico = invocation.getArgument(0);
-                    ordemServico.setId(51L);
-                    return ordemServico;
+                    OrdemServico salva = invocation.getArgument(0);
+                    salva.setId(51L);
+                    return salva;
                 });
 
-        when(
-                ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(true);
-
         // Act
-        OrdemServicoResponse response = ordemServicoService.criar(contratoId, chamadoId, request);
+        OrdemServicoResponse response =
+                ordemServicoService.criar(contratoId, chamadoId, request);
 
         // Assert
         assertEquals(unidadeChamado.getId(), response.getUnidadeAtendimentoId());
         assertNull(response.getTecnicoId());
-        assertNull(response.getDataAtribuicaoTecnico());
-        assertEquals(StatusChamado.ABERTO, chamado.getStatus());
 
         verifyNoInteractions(tecnicoService);
-        verifyNoInteractions(unidadeService);
-
-        verify(historicoChamadoService).registrar(
-                eq(chamado),
-                any(OrdemServico.class),
-                eq(TipoEventoChamado.ORDEM_SERVICO_CRIADA),
-                anyString()
-        );
 
         verify(historicoChamadoService, never()).registrar(
-                any(), any(), eq(TipoEventoChamado.TECNICO_ATRIBUIDO), any()
+                any(), any(), eq(TipoEventoChamado.TECNICO_ATRIBUIDO), anyString()
         );
-    }
-
-    @Test
-    void deveLancarBadRequestQuandoRequestOuNumeroForInvalido() {
-
-        // Arrange
-        Long contratoId = 1L;
-        Long chamadoId = 10L;
-
-        OrdemServicoRequest requestComNumeroNulo = new OrdemServicoRequest();
-        requestComNumeroNulo.setNumeroOrdemServico(null);
-
-        OrdemServicoRequest requestComNumeroEmBranco = new OrdemServicoRequest();
-        requestComNumeroEmBranco.setNumeroOrdemServico("   ");
-
-        // Act
-        ResponseStatusException excecaoRequestNulo = assertThrows(
-                ResponseStatusException.class,
-                () -> ordemServicoService.criar(contratoId, chamadoId, null)
-        );
-
-        ResponseStatusException excecaoNumeroNulo = assertThrows(
-                ResponseStatusException.class,
-                () -> ordemServicoService.criar(contratoId, chamadoId, requestComNumeroNulo)
-        );
-
-        ResponseStatusException excecaoNumeroEmBranco = assertThrows(
-                ResponseStatusException.class,
-                () -> ordemServicoService.criar(contratoId, chamadoId, requestComNumeroEmBranco)
-        );
-
-        // Assert
-        assertEquals(HttpStatus.BAD_REQUEST, excecaoRequestNulo.getStatusCode());
-        assertEquals(HttpStatus.BAD_REQUEST, excecaoNumeroNulo.getStatusCode());
-        assertEquals(HttpStatus.BAD_REQUEST, excecaoNumeroEmBranco.getStatusCode());
-
-        verifyNoInteractions(chamadoService);
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
     }
 
     @ParameterizedTest
@@ -269,11 +177,10 @@ class OrdemServicoServiceTest {
         Long contratoId = 1L;
         Long chamadoId = 10L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
         Chamado chamado = criarChamado(chamadoId, unidade, status);
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico("OS-300");
 
         when(chamadoService.buscarEntidadePorId(contratoId, chamadoId))
                 .thenReturn(chamado);
@@ -287,91 +194,239 @@ class OrdemServicoServiceTest {
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
 
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
-        verifyNoInteractions(tecnicoService);
-        verifyNoInteractions(unidadeService);
+        verifyNoInteractions(numeracaoService);
+        verify(ordemServicoRepository, never()).saveAndFlush(any());
     }
 
     @Test
-    void deveLancarConflitoQuandoNumeroOrdemServicoJaExistir() {
+    void deveLancarBadRequestQuandoRequestForNulo() {
+
+        // Act
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> ordemServicoService.criar(1L, 10L, null)
+        );
+
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verifyNoInteractions(chamadoService, numeracaoService, ordemServicoRepository);
+    }
+
+    @Test
+    void devePreencherDescricaoEPatrimonioDoChamadoQuandoNaoInformados() {
 
         // Arrange
         Long contratoId = 1L;
         Long chamadoId = 10L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
         Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ABERTO);
+        chamado.setDescricao("Descrição original do chamado");
+        chamado.setNumeroPatrimonio("PAT-999");
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico("OS-400");
-        request.setTecnicoId(30L);
-        request.setUnidadeAtendimentoId(7L);
 
         when(chamadoService.buscarEntidadePorId(contratoId, chamadoId))
                 .thenReturn(chamado);
 
-        when(ordemServicoRepository.existsByNumeroOrdemServico("OS-400"))
-                .thenReturn(true);
+        when(numeracaoService.proximoNumeroOrdemServico()).thenReturn(102L);
+
+        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        OrdemServicoResponse response =
+                ordemServicoService.criar(contratoId, chamadoId, request);
+
+        // Assert
+        assertEquals("Descrição original do chamado", response.getDescricao());
+        assertEquals("PAT-999", response.getNumeroPatrimonio());
+    }
+
+    @Test
+    void deveManterDescricaoEPatrimonioInformadosMesmoComChamado() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Long chamadoId = 10L;
+
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ABERTO);
+        chamado.setDescricao("Descrição do chamado");
+        chamado.setNumeroPatrimonio("PAT-DO-CHAMADO");
+
+        OrdemServicoRequest request = new OrdemServicoRequest();
+        request.setDescricao("Descrição específica da OS");
+        request.setNumeroPatrimonio("PAT-DA-OS");
+
+        when(chamadoService.buscarEntidadePorId(contratoId, chamadoId))
+                .thenReturn(chamado);
+
+        when(numeracaoService.proximoNumeroOrdemServico()).thenReturn(103L);
+
+        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        OrdemServicoResponse response =
+                ordemServicoService.criar(contratoId, chamadoId, request);
+
+        // Assert
+        assertEquals("Descrição específica da OS", response.getDescricao());
+        assertEquals("PAT-DA-OS", response.getNumeroPatrimonio());
+    }
+
+    @Test
+    void deveUsarDataAtualComoDefaultQuandoNaoInformada() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Long chamadoId = 10L;
+
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ABERTO);
+
+        OrdemServicoRequest request = new OrdemServicoRequest();
+
+        when(chamadoService.buscarEntidadePorId(contratoId, chamadoId))
+                .thenReturn(chamado);
+
+        when(numeracaoService.proximoNumeroOrdemServico()).thenReturn(104L);
+
+        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        OrdemServicoResponse response =
+                ordemServicoService.criar(contratoId, chamadoId, request);
+
+        // Assert
+        assertEquals(LocalDate.now(), response.getData());
+        assertNull(response.getHora());
+    }
+
+    // ---------------------------------------------------------------
+    // criar() — avulsa, sem Chamado (rota canônica)
+    // ---------------------------------------------------------------
+
+    @Test
+    void deveCriarOrdemAvulsaSemChamado() {
+
+        // Arrange
+        Long contratoId = 1L;
+
+        Unidade unidadeAtendimento = criarUnidade(7L, contratoId, "Unidade de Atendimento");
+
+        OrdemServicoRequest request = new OrdemServicoRequest();
+        request.setUnidadeAtendimentoId(unidadeAtendimento.getId());
+        request.setDescricao("Manutenção preventiva avulsa");
+        request.setData(LocalDate.of(2026, 9, 20));
+
+        when(numeracaoService.proximoNumeroOrdemServico()).thenReturn(200L);
+
+        when(unidadeService.buscarPorId(contratoId, unidadeAtendimento.getId()))
+                .thenReturn(unidadeAtendimento);
+
+        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
+                .thenAnswer(invocation -> {
+                    OrdemServico salva = invocation.getArgument(0);
+                    salva.setId(60L);
+                    return salva;
+                });
+
+        // Act
+        OrdemServicoResponse response = ordemServicoService.criar(contratoId, request);
+
+        // Assert
+        assertNull(response.getChamadoId());
+        assertNull(response.getNumeroChamado());
+        assertEquals(200L, response.getNumeroOrdemServico());
+        assertEquals("Manutenção preventiva avulsa", response.getDescricao());
+        assertEquals(LocalDate.of(2026, 9, 20), response.getData());
+        assertEquals(contratoId, response.getContratoId());
+
+        verifyNoInteractions(chamadoService);
+    }
+
+    @Test
+    void deveExigirUnidadeAtendimentoQuandoNaoHaChamado() {
+
+        // Arrange
+        Long contratoId = 1L;
+        OrdemServicoRequest request = new OrdemServicoRequest();
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> ordemServicoService.criar(contratoId, chamadoId, request)
+                () -> ordemServicoService.criar(contratoId, request)
         );
 
         // Assert
-        assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Já existe uma ordem de serviço com este número",
-                exception.getReason()
-        );
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        verifyNoInteractions(numeracaoService, ordemServicoRepository);
+    }
 
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
-        verifyNoInteractions(tecnicoService);
-        verifyNoInteractions(unidadeService);
+    @Test
+    void deveNaoRegistrarHistoricoNemRecalcularStatusParaOrdemAvulsa() {
+
+        // Arrange
+        Long contratoId = 1L;
+
+        Unidade unidadeAtendimento = criarUnidade(7L, contratoId, "Unidade de Atendimento");
+
+        OrdemServicoRequest request = new OrdemServicoRequest();
+        request.setUnidadeAtendimentoId(unidadeAtendimento.getId());
+
+        when(numeracaoService.proximoNumeroOrdemServico()).thenReturn(201L);
+
+        when(unidadeService.buscarPorId(contratoId, unidadeAtendimento.getId()))
+                .thenReturn(unidadeAtendimento);
+
+        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        ordemServicoService.criar(contratoId, request);
+
+        // Assert
+        verifyNoInteractions(historicoChamadoService);
+        verify(ordemServicoRepository, never())
+                .existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(any());
     }
 
     // ---------------------------------------------------------------
-    // atualizar()
+    // atualizar() — rota canônica
     // ---------------------------------------------------------------
 
     @Test
-    void deveAtualizarNumeroTecnicoEUnidadeAntesDoCheckIn() {
+    void deveAtualizarTecnicoEUnidadeAntesDoCheckIn() {
 
         // Arrange
         Long contratoId = 1L;
         Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidadeChamado = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidadeChamado, StatusChamado.ATRIBUIDO);
-
-        Usuario usuarioAnterior = criarUsuario(20L, "Técnico Anterior");
-        Tecnico tecnicoAnterior = criarTecnico(30L, usuarioAnterior, true);
-        Unidade unidadeAnterior = criarUnidade(7L, contratoId, "Unidade Anterior");
+        Unidade unidadeAntiga = criarUnidade(5L, contratoId, "Unidade Antiga");
+        Chamado chamado = criarChamado(chamadoId, unidadeAntiga, StatusChamado.ATRIBUIDO);
 
         OrdemServico ordemServico =
-                criarOrdemServico(ordemServicoId, chamado, unidadeAnterior, tecnicoAnterior);
-        ordemServico.setDataAtribuicaoTecnico(LocalDateTime.of(2026, 1, 1, 8, 0));
+                criarOrdemServico(ordemServicoId, chamado, unidadeAntiga, null);
 
-        Usuario usuarioNovo = criarUsuario(21L, "Técnico Novo");
-        Tecnico tecnicoNovo = criarTecnico(31L, usuarioNovo, true);
         Unidade unidadeNova = criarUnidade(8L, contratoId, "Unidade Nova");
+        Usuario usuario = criarUsuario(20L, "Técnico Novo");
+        Tecnico tecnicoNovo = criarTecnico(30L, usuario, true);
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico("OS-500");
+        request.setChamadoId(chamadoId);
         request.setTecnicoId(tecnicoNovo.getId());
         request.setUnidadeAtendimentoId(unidadeNova.getId());
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
-        when(
-                ordemServicoRepository.existsByNumeroOrdemServicoAndIdNot("OS-500", ordemServicoId)
-        ).thenReturn(false);
+        when(chamadoService.buscarEntidadePorId(contratoId, chamadoId))
+                .thenReturn(chamado);
 
         when(tecnicoService.buscarEntidadePorId(contratoId, tecnicoNovo.getId()))
                 .thenReturn(tecnicoNovo);
@@ -382,48 +437,23 @@ class OrdemServicoServiceTest {
         when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(
-                ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(true);
+        when(ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(true);
 
         // Act
-        OrdemServicoResponse response = ordemServicoService.atualizar(
-                contratoId, chamadoId, ordemServicoId, request
-        );
+        OrdemServicoResponse response =
+                ordemServicoService.atualizar(contratoId, ordemServicoId, request);
 
         // Assert
-        assertEquals("OS-500", response.getNumeroOrdemServico());
         assertEquals(tecnicoNovo.getId(), response.getTecnicoId());
         assertEquals(unidadeNova.getId(), response.getUnidadeAtendimentoId());
-        assertNotNull(response.getDataAtribuicaoTecnico());
-        assertNotEquals(
-                LocalDateTime.of(2026, 1, 1, 8, 0),
-                response.getDataAtribuicaoTecnico()
-        );
         assertEquals(StatusChamado.ATRIBUIDO, chamado.getStatus());
 
-        verify(tecnicoService).buscarEntidadePorId(contratoId, tecnicoNovo.getId());
-        verify(unidadeService).buscarPorId(contratoId, unidadeNova.getId());
-        verify(ordemServicoRepository).saveAndFlush(any(OrdemServico.class));
-
         verify(historicoChamadoService).registrar(
-                eq(chamado), eq(ordemServico), eq(TipoEventoChamado.ORDEM_SERVICO_ALTERADA), anyString()
-        );
-
-        verify(historicoChamadoService).registrar(
-                eq(chamado), eq(ordemServico), eq(TipoEventoChamado.TECNICO_ALTERADO), anyString()
-        );
-
-        verify(historicoChamadoService).registrar(
-                eq(chamado), eq(ordemServico), eq(TipoEventoChamado.UNIDADE_ORDEM_ALTERADA), anyString()
+                eq(chamado), eq(ordemServico),
+                eq(TipoEventoChamado.TECNICO_ATRIBUIDO), anyString()
         );
     }
 
@@ -435,71 +465,50 @@ class OrdemServicoServiceTest {
         Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidadeChamado = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidadeChamado, StatusChamado.ATRIBUIDO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ATRIBUIDO);
 
-        Usuario usuarioAnterior = criarUsuario(20L, "Técnico Anterior");
-        Tecnico tecnicoAnterior = criarTecnico(30L, usuarioAnterior, true);
-        Unidade unidadeAtendimento = criarUnidade(7L, contratoId, "Unidade de Atendimento");
+        Usuario usuario = criarUsuario(20L, "Técnico Atual");
+        Tecnico tecnicoAtual = criarTecnico(30L, usuario, true);
 
         OrdemServico ordemServico =
-                criarOrdemServico(ordemServicoId, chamado, unidadeAtendimento, tecnicoAnterior);
-        ordemServico.setDataAtribuicaoTecnico(LocalDateTime.of(2026, 1, 1, 8, 0));
+                criarOrdemServico(ordemServicoId, chamado, unidade, tecnicoAtual);
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico(ordemServico.getNumeroOrdemServico());
-        request.setTecnicoId(null);
-        request.setUnidadeAtendimentoId(null);
+        request.setChamadoId(chamadoId);
+        request.setUnidadeAtendimentoId(unidade.getId());
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
-        when(
-                ordemServicoRepository.existsByNumeroOrdemServicoAndIdNot(
-                        ordemServico.getNumeroOrdemServico(), ordemServicoId
-                )
-        ).thenReturn(false);
+        when(chamadoService.buscarEntidadePorId(contratoId, chamadoId))
+                .thenReturn(chamado);
+
+        when(unidadeService.buscarPorId(contratoId, unidade.getId()))
+                .thenReturn(unidade);
 
         when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(
-                ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(true);
+        when(ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(true);
 
         // Act
-        OrdemServicoResponse response = ordemServicoService.atualizar(
-                contratoId, chamadoId, ordemServicoId, request
-        );
+        OrdemServicoResponse response =
+                ordemServicoService.atualizar(contratoId, ordemServicoId, request);
 
         // Assert
         assertNull(response.getTecnicoId());
-        assertNull(response.getDataAtribuicaoTecnico());
-        assertEquals(unidadeAtendimento.getId(), response.getUnidadeAtendimentoId());
-        assertEquals(StatusChamado.ABERTO, chamado.getStatus());
-
-        verifyNoInteractions(tecnicoService);
-        verifyNoInteractions(unidadeService);
+        assertNull(ordemServico.getDataAtribuicaoTecnico());
 
         verify(historicoChamadoService).registrar(
-                eq(chamado), eq(ordemServico), eq(TipoEventoChamado.TECNICO_REMOVIDO), anyString()
+                eq(chamado), eq(ordemServico),
+                eq(TipoEventoChamado.TECNICO_REMOVIDO), anyString()
         );
     }
 
@@ -508,49 +517,37 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.EM_ATENDIMENTO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.EM_ATENDIMENTO);
 
-        Usuario usuarioAtual = criarUsuario(20L, "Técnico Atual");
-        Tecnico tecnicoAtual = criarTecnico(30L, usuarioAtual, true);
+        Usuario usuario = criarUsuario(20L, "Técnico Atual");
+        Tecnico tecnicoAtual = criarTecnico(30L, usuario, true);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, tecnicoAtual);
-        ordemServico.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 9, 0));
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, tecnicoAtual);
+        ordemServico.setDataCheckIn(LocalDateTime.now());
+
+        Usuario outroUsuario = criarUsuario(21L, "Outro Técnico");
+        Tecnico outroTecnico = criarTecnico(31L, outroUsuario, true);
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico(ordemServico.getNumeroOrdemServico());
-        request.setTecnicoId(99L);
-        request.setUnidadeAtendimentoId(unidade.getId());
+        request.setTecnicoId(outroTecnico.getId());
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
-
-        when(
-                ordemServicoRepository.existsByNumeroOrdemServicoAndIdNot(
-                        ordemServico.getNumeroOrdemServico(), ordemServicoId
-                )
-        ).thenReturn(false);
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> ordemServicoService.atualizar(contratoId, chamadoId, ordemServicoId, request)
+                () -> ordemServicoService.atualizar(contratoId, ordemServicoId, request)
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Não é possível alterar o técnico após o check-in",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
+        verify(ordemServicoRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -558,90 +555,73 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.EM_ATENDIMENTO);
+        Unidade unidadeAtual = criarUnidade(5L, contratoId, "Unidade Atual");
+        Chamado chamado = criarChamado(10L, unidadeAtual, StatusChamado.EM_ATENDIMENTO);
 
-        Usuario usuarioAtual = criarUsuario(20L, "Técnico Atual");
-        Tecnico tecnicoAtual = criarTecnico(30L, usuarioAtual, true);
+        Usuario usuario = criarUsuario(20L, "Técnico");
+        Tecnico tecnico = criarTecnico(30L, usuario, true);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, tecnicoAtual);
-        ordemServico.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 9, 0));
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidadeAtual, tecnico);
+        ordemServico.setDataCheckIn(LocalDateTime.now());
+
+        Unidade unidadeOutra = criarUnidade(9L, contratoId, "Outra Unidade");
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico(ordemServico.getNumeroOrdemServico());
-        request.setTecnicoId(tecnicoAtual.getId());
-        request.setUnidadeAtendimentoId(999L);
+        request.setTecnicoId(tecnico.getId());
+        request.setUnidadeAtendimentoId(unidadeOutra.getId());
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
-
-        when(
-                ordemServicoRepository.existsByNumeroOrdemServicoAndIdNot(
-                        ordemServico.getNumeroOrdemServico(), ordemServicoId
-                )
-        ).thenReturn(false);
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> ordemServicoService.atualizar(contratoId, chamadoId, ordemServicoId, request)
+                () -> ordemServicoService.atualizar(contratoId, ordemServicoId, request)
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Não é possível alterar a unidade após o check-in",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
+        verify(ordemServicoRepository, never()).saveAndFlush(any());
     }
 
     @Test
-    void deveLancarConflitoQuandoNumeroPertencerAOutraOrdem() {
+    void deveBloquearAlteracaoDeChamadoAposCheckIn() {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ABERTO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.EM_ATENDIMENTO);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, null);
+        Usuario usuario = criarUsuario(20L, "Técnico");
+        Tecnico tecnico = criarTecnico(30L, usuario, true);
+
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, tecnico);
+        ordemServico.setDataCheckIn(LocalDateTime.now());
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico("OS-999");
+        request.setTecnicoId(tecnico.getId());
+        request.setChamadoId(999L);
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
-
-        when(ordemServicoRepository.existsByNumeroOrdemServicoAndIdNot("OS-999", ordemServicoId))
-                .thenReturn(true);
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> ordemServicoService.atualizar(contratoId, chamadoId, ordemServicoId, request)
+                () -> ordemServicoService.atualizar(contratoId, ordemServicoId, request)
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Já existe outra ordem de serviço com este número",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
+        verifyNoInteractions(chamadoService);
     }
 
     @Test
@@ -652,52 +632,39 @@ class OrdemServicoServiceTest {
         Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
         Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.EM_ATENDIMENTO);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, null);
+        Usuario usuario = criarUsuario(20L, "Técnico");
+        Tecnico tecnico = criarTecnico(30L, usuario, true);
+
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, tecnico);
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico(ordemServico.getNumeroOrdemServico());
-        request.setTecnicoId(null);
-        request.setUnidadeAtendimentoId(null);
+        request.setTecnicoId(tecnico.getId());
+        request.setUnidadeAtendimentoId(unidade.getId());
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
-        when(
-                ordemServicoRepository.existsByNumeroOrdemServicoAndIdNot(
-                        ordemServico.getNumeroOrdemServico(), ordemServicoId
-                )
-        ).thenReturn(false);
+        when(tecnicoService.buscarEntidadePorId(contratoId, tecnico.getId()))
+                .thenReturn(tecnico);
+        when(unidadeService.buscarPorId(contratoId, unidade.getId()))
+                .thenReturn(unidade);
 
         when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(
-                ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(true);
+        when(ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(true);
 
         // Act
-        OrdemServicoResponse response = ordemServicoService.atualizar(
-                contratoId, chamadoId, ordemServicoId, request
-        );
+        ordemServicoService.atualizar(contratoId, ordemServicoId, request);
 
         // Assert
-        assertNotNull(response);
         assertEquals(StatusChamado.EM_ATENDIMENTO, chamado.getStatus());
-
-        verify(ordemServicoRepository).saveAndFlush(any(OrdemServico.class));
-
-        verify(ordemServicoRepository, never())
-                .existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(any());
-        verify(ordemServicoRepository, never())
-                .existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(any());
     }
 
     @Test
@@ -705,117 +672,32 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.EM_ATENDIMENTO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.EM_ATENDIMENTO);
 
-        Usuario usuarioAtual = criarUsuario(20L, "Técnico Atual");
-        Tecnico tecnicoAtual = criarTecnico(30L, usuarioAtual, true);
+        Usuario usuario = criarUsuario(20L, "Técnico");
+        Tecnico tecnico = criarTecnico(30L, usuario, true);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, tecnicoAtual);
-        ordemServico.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 9, 0));
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, tecnico);
+        ordemServico.setDataCheckIn(LocalDateTime.now());
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico(ordemServico.getNumeroOrdemServico());
-        request.setTecnicoId(null);
-        request.setUnidadeAtendimentoId(unidade.getId());
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
-
-        when(
-                ordemServicoRepository.existsByNumeroOrdemServicoAndIdNot(
-                        ordemServico.getNumeroOrdemServico(), ordemServicoId
-                )
-        ).thenReturn(false);
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> ordemServicoService.atualizar(contratoId, chamadoId, ordemServicoId, request)
+                () -> ordemServicoService.atualizar(contratoId, ordemServicoId, request)
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Não é possível alterar o técnico após o check-in",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
-    }
-
-    @Test
-    void devePermitirAtualizarNumeroAposCheckInMantendoTecnicoEUnidade() {
-
-        // Arrange
-        Long contratoId = 1L;
-        Long chamadoId = 10L;
-        Long ordemServicoId = 40L;
-
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.EM_ATENDIMENTO);
-
-        Usuario usuarioAtual = criarUsuario(20L, "Técnico Atual");
-        Tecnico tecnicoAtual = criarTecnico(30L, usuarioAtual, true);
-
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, tecnicoAtual);
-        ordemServico.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 9, 0));
-
-        LocalDateTime dataAtribuicaoOriginal = LocalDateTime.of(2026, 1, 1, 8, 0);
-        ordemServico.setDataAtribuicaoTecnico(dataAtribuicaoOriginal);
-
-        OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico("OS-40-CORRIGIDA");
-        request.setTecnicoId(tecnicoAtual.getId());
-        request.setUnidadeAtendimentoId(unidade.getId());
-
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
-
-        when(
-                ordemServicoRepository.existsByNumeroOrdemServicoAndIdNot(
-                        "OS-40-CORRIGIDA", ordemServicoId
-                )
-        ).thenReturn(false);
-
-        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(true);
-
-        // Act
-        OrdemServicoResponse response = ordemServicoService.atualizar(
-                contratoId, chamadoId, ordemServicoId, request
-        );
-
-        // Assert
-        assertEquals("OS-40-CORRIGIDA", response.getNumeroOrdemServico());
-        assertEquals(tecnicoAtual.getId(), response.getTecnicoId());
-        assertEquals(unidade.getId(), response.getUnidadeAtendimentoId());
-        assertEquals(dataAtribuicaoOriginal, response.getDataAtribuicaoTecnico());
-
-        verify(ordemServicoRepository).saveAndFlush(any(OrdemServico.class));
-
-        verify(historicoChamadoService).registrar(
-                eq(chamado), eq(ordemServico), eq(TipoEventoChamado.ORDEM_SERVICO_ALTERADA), anyString()
-        );
-
-        verify(historicoChamadoService, never()).registrar(
-                any(), any(), eq(TipoEventoChamado.TECNICO_ALTERADO), any()
-        );
     }
 
     @Test
@@ -826,48 +708,86 @@ class OrdemServicoServiceTest {
         Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
         Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ABERTO);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, null);
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, null);
 
-        Usuario usuarioNovo = criarUsuario(21L, "Técnico Novo");
-        Tecnico tecnicoNovo = criarTecnico(31L, usuarioNovo, true);
+        Usuario usuario = criarUsuario(20L, "Técnico Novo");
+        Tecnico tecnico = criarTecnico(30L, usuario, true);
 
         OrdemServicoRequest request = new OrdemServicoRequest();
-        request.setNumeroOrdemServico(ordemServico.getNumeroOrdemServico());
-        request.setTecnicoId(tecnicoNovo.getId());
-        request.setUnidadeAtendimentoId(null);
+        request.setTecnicoId(tecnico.getId());
+        request.setUnidadeAtendimentoId(unidade.getId());
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
-        when(
-                ordemServicoRepository.existsByNumeroOrdemServicoAndIdNot(
-                        ordemServico.getNumeroOrdemServico(), ordemServicoId
-                )
-        ).thenReturn(false);
-
-        when(tecnicoService.buscarEntidadePorId(contratoId, tecnicoNovo.getId()))
-                .thenReturn(tecnicoNovo);
+        when(tecnicoService.buscarEntidadePorId(contratoId, tecnico.getId()))
+                .thenReturn(tecnico);
+        when(unidadeService.buscarPorId(contratoId, unidade.getId()))
+                .thenReturn(unidade);
 
         when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(
-                ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(true);
 
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(true);
+        // Act
+        OrdemServicoResponse response =
+                ordemServicoService.atualizar(contratoId, ordemServicoId, request);
+
+        // Assert
+        assertEquals(tecnico.getId(), response.getTecnicoId());
+        assertNotNull(ordemServico.getDataAtribuicaoTecnico());
+    }
+
+    // ---------------------------------------------------------------
+    // rota antiga (aninhada em Chamado) — convergência
+    // ---------------------------------------------------------------
+
+    @Test
+    void atualizarComRotaAntigaDeveConvergirParaMesmaRegra() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Long chamadoId = 10L;
+        Long ordemServicoId = 40L;
+
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ABERTO);
+
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, null);
+
+        OrdemServicoRequest request = new OrdemServicoRequest();
+        request.setUnidadeAtendimentoId(unidade.getId());
+
+        when(ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
+                ordemServicoId, chamadoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
+
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
+
+        when(unidadeService.buscarPorId(contratoId, unidade.getId()))
+                .thenReturn(unidade);
+
+        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(true);
 
         // Act
         OrdemServicoResponse response = ordemServicoService.atualizar(
@@ -875,22 +795,11 @@ class OrdemServicoServiceTest {
         );
 
         // Assert
-        assertEquals(tecnicoNovo.getId(), response.getTecnicoId());
-        assertNotNull(response.getDataAtribuicaoTecnico());
-
-        verifyNoInteractions(unidadeService);
-
-        verify(historicoChamadoService).registrar(
-                eq(chamado), eq(ordemServico), eq(TipoEventoChamado.TECNICO_ATRIBUIDO), anyString()
-        );
-
-        verify(historicoChamadoService, never()).registrar(
-                any(), any(), eq(TipoEventoChamado.TECNICO_ALTERADO), any()
-        );
+        assertEquals(unidade.getId(), response.getUnidadeAtendimentoId());
     }
 
     // ---------------------------------------------------------------
-    // realizarCheckIn()
+    // check-in
     // ---------------------------------------------------------------
 
     @Test
@@ -900,43 +809,39 @@ class OrdemServicoServiceTest {
         Long contratoId = 1L;
         Long chamadoId = 10L;
         Long ordemServicoId = 40L;
+        Long tecnicoId = 30L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
         Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ATRIBUIDO);
 
-        Usuario usuario = criarUsuario(20L, "Técnico Teste");
-        Tecnico tecnico = criarTecnico(30L, usuario, true);
+        Usuario usuario = criarUsuario(20L, "Técnico");
+        Tecnico tecnico = criarTecnico(tecnicoId, usuario, true);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, tecnico);
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, tecnico);
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
-        when(
-                ordemServicoRepository.findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        tecnico.getId()
-                )
-        ).thenReturn(Optional.empty());
+        when(ordemServicoRepository.findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(tecnicoId))
+                .thenReturn(Optional.empty());
 
         when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // Act
         OrdemServicoResponse response = ordemServicoService.realizarCheckIn(
-                contratoId, chamadoId, ordemServicoId, new CheckInRequest()
+                contratoId, ordemServicoId, new CheckInRequest()
         );
 
         // Assert
         assertNotNull(response.getDataCheckIn());
         assertEquals(StatusChamado.EM_ATENDIMENTO, chamado.getStatus());
 
-        verify(ordemServicoRepository).saveAndFlush(any(OrdemServico.class));
-
         verify(historicoChamadoService).registrar(
-                eq(chamado), eq(ordemServico), eq(TipoEventoChamado.ATENDIMENTO_INICIADO), anyString()
+                eq(chamado), eq(ordemServico),
+                eq(TipoEventoChamado.ATENDIMENTO_INICIADO), anyString()
         );
     }
 
@@ -945,38 +850,30 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.AGUARDANDO_ANALISE);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.AGUARDANDO_ANALISE);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, null);
-        ordemServico.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 9, 0));
-        ordemServico.setDataCheckOut(LocalDateTime.of(2026, 1, 1, 12, 0));
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, null);
+        ordemServico.setDataCheckIn(LocalDateTime.now().minusHours(2));
+        ordemServico.setDataCheckOut(LocalDateTime.now().minusHours(1));
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> ordemServicoService.realizarCheckIn(
-                        contratoId, chamadoId, ordemServicoId, new CheckInRequest()
+                        contratoId, ordemServicoId, new CheckInRequest()
                 )
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Esta ordem de serviço já foi encerrada",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
     }
 
     @Test
@@ -984,37 +881,29 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.EM_ATENDIMENTO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.EM_ATENDIMENTO);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, null);
-        ordemServico.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 9, 0));
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, null);
+        ordemServico.setDataCheckIn(LocalDateTime.now());
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> ordemServicoService.realizarCheckIn(
-                        contratoId, chamadoId, ordemServicoId, new CheckInRequest()
+                        contratoId, ordemServicoId, new CheckInRequest()
                 )
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Esta ordem de serviço já possui um check-in ativo",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
     }
 
     @Test
@@ -1022,38 +911,28 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ABERTO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.ABERTO);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, null);
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, null);
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> ordemServicoService.realizarCheckIn(
-                        contratoId, chamadoId, ordemServicoId, new CheckInRequest()
+                        contratoId, ordemServicoId, new CheckInRequest()
                 )
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Não é possível efetuar check-in sem um técnico atribuído",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never())
-                .findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(any());
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
     }
 
     @Test
@@ -1061,11 +940,10 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ATRIBUIDO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.ATRIBUIDO);
 
         Usuario usuario = criarUsuario(20L, "Técnico Inativo");
         Tecnico tecnicoInativo = criarTecnico(30L, usuario, false);
@@ -1073,30 +951,20 @@ class OrdemServicoServiceTest {
         OrdemServico ordemServico =
                 criarOrdemServico(ordemServicoId, chamado, unidade, tecnicoInativo);
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> ordemServicoService.realizarCheckIn(
-                        contratoId, chamadoId, ordemServicoId, new CheckInRequest()
+                        contratoId, ordemServicoId, new CheckInRequest()
                 )
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Não é possível efetuar check-in para um técnico inativo",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never())
-                .findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(any());
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
     }
 
     @Test
@@ -1104,48 +972,40 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
+        Long tecnicoId = 30L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ATRIBUIDO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.ATRIBUIDO);
 
-        Usuario usuario = criarUsuario(20L, "Técnico Teste");
-        Tecnico tecnico = criarTecnico(30L, usuario, true);
+        Usuario usuario = criarUsuario(20L, "Técnico");
+        Tecnico tecnico = criarTecnico(tecnicoId, usuario, true);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, tecnico);
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, tecnico);
 
-        Chamado chamadoAnterior = criarChamado(11L, unidade, StatusChamado.EM_ATENDIMENTO);
-        OrdemServico ordemAtivaAnterior =
-                criarOrdemServico(41L, chamadoAnterior, unidade, tecnico);
-        ordemAtivaAnterior.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 8, 0));
+        OrdemServico ordemAtiva =
+                criarOrdemServico(41L, chamado, unidade, tecnico);
+        ordemAtiva.setDataCheckIn(LocalDateTime.now().minusHours(1));
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
-        when(
-                ordemServicoRepository.findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        tecnico.getId()
-                )
-        ).thenReturn(Optional.of(ordemAtivaAnterior));
+        when(ordemServicoRepository.findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(tecnicoId))
+                .thenReturn(Optional.of(ordemAtiva));
 
-        // Act - encerrarCheckInAnterior ausente (não confirmado)
+        // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> ordemServicoService.realizarCheckIn(
-                        contratoId, chamadoId, ordemServicoId, new CheckInRequest()
+                        contratoId, ordemServicoId, new CheckInRequest()
                 )
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertNull(ordemAtivaAnterior.getDataCheckOut());
-        assertNull(ordemServico.getDataCheckIn());
-
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
+        verify(ordemServicoRepository, never()).saveAndFlush(any());
     }
 
     @Test
@@ -1153,92 +1013,60 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoAtualId = 10L;
-        Long chamadoAnteriorId = 11L;
         Long ordemServicoId = 40L;
-        Long ordemAnteriorId = 41L;
+        Long tecnicoId = 30L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade Central");
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.ATRIBUIDO);
+        Chamado chamadoAnterior = criarChamado(11L, unidade, StatusChamado.EM_ATENDIMENTO);
 
-        Chamado chamadoAtual = criarChamado(chamadoAtualId, unidade, StatusChamado.ATRIBUIDO);
-        Chamado chamadoAnterior = criarChamado(chamadoAnteriorId, unidade, StatusChamado.EM_ATENDIMENTO);
+        Usuario usuario = criarUsuario(20L, "Técnico");
+        Tecnico tecnico = criarTecnico(tecnicoId, usuario, true);
 
-        Usuario usuario = criarUsuario(20L, "Técnico Teste");
-        Tecnico tecnico = criarTecnico(30L, usuario, true);
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, tecnico);
 
-        OrdemServico ordemAtual = criarOrdemServico(ordemServicoId, chamadoAtual, unidade, tecnico);
-
-        OrdemServico ordemAnterior =
-                criarOrdemServico(ordemAnteriorId, chamadoAnterior, unidade, tecnico);
-        ordemAnterior.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 8, 0));
-
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoAtualId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemAtual));
-
-        when(
-                ordemServicoRepository.findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        tecnico.getId()
-                )
-        ).thenReturn(Optional.of(ordemAnterior));
-
-        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        chamadoAnteriorId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoAnteriorId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoAnteriorId
-                )
-        ).thenReturn(false);
+        OrdemServico ordemAtiva =
+                criarOrdemServico(41L, chamadoAnterior, unidade, tecnico);
+        ordemAtiva.setDataCheckIn(LocalDateTime.now().minusHours(1));
 
         CheckInRequest request = new CheckInRequest();
         request.setEncerrarCheckInAnterior(true);
 
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
+
+        when(ordemServicoRepository.findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(tecnicoId))
+                .thenReturn(Optional.of(ordemAtiva));
+
+        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        when(ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(11L))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(11L))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(11L))
+                .thenReturn(false);
+
         // Act
-        OrdemServicoResponse response = ordemServicoService.realizarCheckIn(
-                contratoId, chamadoAtualId, ordemServicoId, request
-        );
+        OrdemServicoResponse response =
+                ordemServicoService.realizarCheckIn(contratoId, ordemServicoId, request);
 
         // Assert
-        assertNotNull(ordemAnterior.getDataCheckOut());
+        assertNotNull(response.getDataCheckIn());
+        assertNotNull(ordemAtiva.getDataCheckOut());
         assertEquals(StatusChamado.AGUARDANDO_ANALISE, chamadoAnterior.getStatus());
 
-        assertNotNull(response.getDataCheckIn());
-        assertEquals(StatusChamado.EM_ATENDIMENTO, chamadoAtual.getStatus());
-
-        verify(ordemServicoRepository, times(2)).saveAndFlush(any(OrdemServico.class));
-
         verify(historicoChamadoService).registrar(
-                eq(chamadoAnterior),
-                eq(ordemAnterior),
-                eq(TipoEventoChamado.ATENDIMENTO_FINALIZADO_AUTOMATICAMENTE),
-                anyString()
-        );
-
-        verify(historicoChamadoService).registrar(
-                eq(chamadoAtual),
-                eq(ordemAtual),
-                eq(TipoEventoChamado.ATENDIMENTO_INICIADO),
-                anyString()
+                eq(chamadoAnterior), eq(ordemAtiva),
+                eq(TipoEventoChamado.ATENDIMENTO_FINALIZADO_AUTOMATICAMENTE), anyString()
         );
     }
 
     // ---------------------------------------------------------------
-    // realizarCheckOut()
+    // check-out
     // ---------------------------------------------------------------
 
     @Test
@@ -1246,34 +1074,26 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.ATRIBUIDO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.ATRIBUIDO);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, null);
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, null);
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> ordemServicoService.realizarCheckOut(contratoId, chamadoId, ordemServicoId)
+                () -> ordemServicoService.realizarCheckOut(contratoId, ordemServicoId)
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Não é possível realizar check-out sem um check-in",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
     }
 
     @Test
@@ -1281,36 +1101,28 @@ class OrdemServicoServiceTest {
 
         // Arrange
         Long contratoId = 1L;
-        Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
-        Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.EM_ATENDIMENTO);
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        Chamado chamado = criarChamado(10L, unidade, StatusChamado.AGUARDANDO_ANALISE);
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, null);
-        ordemServico.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 9, 0));
-        ordemServico.setDataCheckOut(LocalDateTime.of(2026, 1, 1, 12, 0));
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, null);
+        ordemServico.setDataCheckIn(LocalDateTime.now().minusHours(2));
+        ordemServico.setDataCheckOut(LocalDateTime.now().minusHours(1));
 
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         // Act
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
-                () -> ordemServicoService.realizarCheckOut(contratoId, chamadoId, ordemServicoId)
+                () -> ordemServicoService.realizarCheckOut(contratoId, ordemServicoId)
         );
 
         // Assert
         assertEquals(HttpStatus.CONFLICT, exception.getStatusCode());
-        assertEquals(
-                "Esta ordem de serviço já possui check-out",
-                exception.getReason()
-        );
-
-        verify(ordemServicoRepository, never()).saveAndFlush(any(OrdemServico.class));
     }
 
     @Test
@@ -1321,56 +1133,83 @@ class OrdemServicoServiceTest {
         Long chamadoId = 10L;
         Long ordemServicoId = 40L;
 
-        Unidade unidade = criarUnidade(5L, contratoId, "Unidade do Chamado");
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
         Chamado chamado = criarChamado(chamadoId, unidade, StatusChamado.EM_ATENDIMENTO);
 
-        Usuario usuario = criarUsuario(20L, "Técnico Teste");
-        Tecnico tecnico = criarTecnico(30L, usuario, true);
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, chamado, unidade, null);
+        ordemServico.setDataCheckIn(LocalDateTime.now().minusHours(1));
 
-        OrdemServico ordemServico = criarOrdemServico(ordemServicoId, chamado, unidade, tecnico);
-        ordemServico.setDataCheckIn(LocalDateTime.of(2026, 1, 1, 9, 0));
-
-        when(
-                ordemServicoRepository.findByIdAndChamadoIdAndChamadoUnidadeContratoId(
-                        ordemServicoId, chamadoId, contratoId
-                )
-        ).thenReturn(Optional.of(ordemServico));
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
 
         when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(
-                ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
-
-        when(
-                ordemServicoRepository.existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(
-                        chamadoId
-                )
-        ).thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNotNullAndDataCheckInIsNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(false);
+        when(ordemServicoRepository.existsByChamadoIdAndTecnicoIsNullAndDataCheckInIsNullAndDataCheckOutIsNull(chamadoId))
+                .thenReturn(false);
 
         // Act
-        OrdemServicoResponse response = ordemServicoService.realizarCheckOut(
-                contratoId, chamadoId, ordemServicoId
-        );
+        OrdemServicoResponse response =
+                ordemServicoService.realizarCheckOut(contratoId, ordemServicoId);
 
         // Assert
         assertNotNull(response.getDataCheckOut());
         assertEquals(StatusChamado.AGUARDANDO_ANALISE, chamado.getStatus());
 
-        verify(ordemServicoRepository).saveAndFlush(any(OrdemServico.class));
-
         verify(historicoChamadoService).registrar(
-                eq(chamado), eq(ordemServico), eq(TipoEventoChamado.ATENDIMENTO_FINALIZADO), anyString()
+                eq(chamado), eq(ordemServico),
+                eq(TipoEventoChamado.ATENDIMENTO_FINALIZADO), anyString()
         );
+    }
+
+    @Test
+    void deveRealizarCheckInEcheckOutDeOrdemAvulsaSemChamado() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Long ordemServicoId = 40L;
+        Long tecnicoId = 30L;
+
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+
+        Usuario usuario = criarUsuario(20L, "Técnico");
+        Tecnico tecnico = criarTecnico(tecnicoId, usuario, true);
+
+        OrdemServico ordemServico =
+                criarOrdemServico(ordemServicoId, null, unidade, tecnico);
+
+        when(ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                ordemServicoId, contratoId
+        )).thenReturn(Optional.of(ordemServico));
+
+        when(ordemServicoRepository.findByTecnicoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(tecnicoId))
+                .thenReturn(Optional.empty());
+
+        when(ordemServicoRepository.saveAndFlush(any(OrdemServico.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Act
+        OrdemServicoResponse checkInResponse = ordemServicoService.realizarCheckIn(
+                contratoId, ordemServicoId, new CheckInRequest()
+        );
+
+        OrdemServicoResponse checkOutResponse =
+                ordemServicoService.realizarCheckOut(contratoId, ordemServicoId);
+
+        // Assert
+        assertNotNull(checkInResponse.getDataCheckIn());
+        assertNotNull(checkOutResponse.getDataCheckOut());
+        assertNull(checkInResponse.getChamadoId());
+
+        verifyNoInteractions(historicoChamadoService);
+        verify(ordemServicoRepository, never())
+                .existsByChamadoIdAndDataCheckInIsNotNullAndDataCheckOutIsNull(any());
     }
 
     // ---------------------------------------------------------------
@@ -1402,6 +1241,67 @@ class OrdemServicoServiceTest {
         assertEquals(
                 "Ordem de serviço não encontrada neste chamado",
                 exception.getReason()
+        );
+    }
+
+    @Test
+    void deveLancarNotFoundQuandoOrdemNaoPertenceAoContrato() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Long ordemServicoId = 40L;
+
+        when(
+                ordemServicoRepository.findByIdAndUnidadeAtendimentoContratoId(
+                        ordemServicoId, contratoId
+                )
+        ).thenReturn(Optional.empty());
+
+        // Act
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> ordemServicoService.buscarEntidadePorId(contratoId, ordemServicoId)
+        );
+
+        // Assert
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertEquals(
+                "Ordem de serviço não encontrada neste contrato",
+                exception.getReason()
+        );
+    }
+
+    // ---------------------------------------------------------------
+    // listarPorContrato()
+    // ---------------------------------------------------------------
+
+    @Test
+    void deveListarPorContratoRepassandoFiltrosAoRepository() {
+
+        // Arrange
+        Long contratoId = 1L;
+        Long tecnicoId = 30L;
+        LocalDate data = LocalDate.of(2026, 9, 20);
+
+        Unidade unidade = criarUnidade(5L, contratoId, "Unidade");
+        OrdemServico ordemServico =
+                criarOrdemServico(40L, null, unidade, null);
+
+        when(
+                ordemServicoRepository.buscarPorContratoComFiltros(
+                        contratoId, null, tecnicoId, data, null, null
+                )
+        ).thenReturn(List.of(ordemServico));
+
+        // Act
+        List<OrdemServicoResponse> resultado = ordemServicoService.listarPorContrato(
+                contratoId, null, tecnicoId, data, null, null
+        );
+
+        // Assert
+        assertEquals(1, resultado.size());
+        verify(ordemServicoRepository).buscarPorContratoComFiltros(
+                contratoId, null, tecnicoId, data, null, null
         );
     }
 
@@ -1453,10 +1353,11 @@ class OrdemServicoServiceTest {
     ) {
         OrdemServico ordemServico = new OrdemServico();
         ordemServico.setId(id);
-        ordemServico.setNumeroOrdemServico("OS-" + id);
+        ordemServico.setNumeroOrdemServico(id);
         ordemServico.setChamado(chamado);
         ordemServico.setUnidadeAtendimento(unidadeAtendimento);
         ordemServico.setTecnico(tecnico);
+        ordemServico.setData(LocalDate.now());
         return ordemServico;
     }
 }

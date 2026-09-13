@@ -104,6 +104,31 @@ public class AutorizacaoService {
                 );
     }
 
+    public boolean tecnicoAtribuidoAOrdemServico(
+            Authentication authentication,
+            Long contratoId,
+            Long ordemServicoId
+    ) {
+        if (!(authentication instanceof JwtAuthenticationToken jwtAuthentication)) {
+            return false;
+        }
+
+        Number usuarioId = jwtAuthentication
+                .getToken()
+                .getClaim("usuarioId");
+
+        if (usuarioId == null) {
+            return false;
+        }
+
+        return ordemServicoRepository
+                .existsByIdAndTecnicoUsuarioIdAndUnidadeAtendimentoContratoId(
+                        ordemServicoId,
+                        usuarioId.longValue(),
+                        contratoId
+                );
+    }
+
     public Long obterContratoIdTecnico(Authentication authentication) {
         if (!(authentication instanceof JwtAuthenticationToken jwtAuthentication)) {
             return null;

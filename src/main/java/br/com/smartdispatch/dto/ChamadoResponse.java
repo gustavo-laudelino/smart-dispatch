@@ -12,6 +12,7 @@ public class ChamadoResponse {
 
     private Long id;
     private String numeroChamado;
+    private Long numeroChamadoInterno;
     private String linkChamadoOsti;
 
     private Long unidadeId;
@@ -39,6 +40,7 @@ public class ChamadoResponse {
     public ChamadoResponse(
             Long id,
             String numeroChamado,
+            Long numeroChamadoInterno,
             String linkChamadoOsti,
             Long unidadeId,
             String unidadeNome,
@@ -56,6 +58,7 @@ public class ChamadoResponse {
     ) {
         this.id = id;
         this.numeroChamado = numeroChamado;
+        this.numeroChamadoInterno = numeroChamadoInterno;
         this.linkChamadoOsti = linkChamadoOsti;
         this.unidadeId = unidadeId;
         this.unidadeNome = unidadeNome;
@@ -78,6 +81,10 @@ public class ChamadoResponse {
 
     public String getNumeroChamado() {
         return numeroChamado;
+    }
+
+    public Long getNumeroChamadoInterno() {
+        return numeroChamadoInterno;
     }
 
     public String getLinkChamadoOsti() {

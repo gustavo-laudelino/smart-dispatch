@@ -10,7 +10,7 @@ public class HistoricoChamadoResponse {
     private Long chamadoId;
 
     private Long ordemServicoId;
-    private String numeroOrdemServico;
+    private Long numeroOrdemServico;
 
     private TipoEventoChamado tipoEvento;
     private String descricao;
@@ -23,7 +23,7 @@ public class HistoricoChamadoResponse {
             Long id,
             Long chamadoId,
             Long ordemServicoId,
-            String numeroOrdemServico,
+            Long numeroOrdemServico,
             TipoEventoChamado tipoEvento,
             String descricao,
             LocalDateTime dataEvento
@@ -50,7 +50,7 @@ public class HistoricoChamadoResponse {
         return ordemServicoId;
     }
 
-    public String getNumeroOrdemServico() {
+    public Long getNumeroOrdemServico() {
         return numeroOrdemServico;
     }
 
