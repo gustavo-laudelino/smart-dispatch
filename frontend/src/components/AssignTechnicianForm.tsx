@@ -9,14 +9,13 @@ import {
 } from "../api";
 
 import type {
-    Chamado,
     OrdemServico,
     OrdemServicoRequest,
     SugestaoTecnico,
 } from "../types";
 
 type AssignTechnicianFormProps = {
-    chamado: Chamado;
+    contratoId: number;
     ordemServico: OrdemServico;
 
     aoCancelar: () => void;
@@ -68,7 +67,7 @@ function formatarDistancia(
 }
 
 function AssignTechnicianForm({
-                                  chamado,
+                                  contratoId,
                                   ordemServico,
                                   aoCancelar,
                                   aoTecnicoAtribuido,
@@ -129,8 +128,7 @@ function AssignTechnicianForm({
         setErro(null);
 
         buscarSugestoesTecnicos(
-            chamado.contratoId,
-            chamado.id,
+            contratoId,
             ordemServico.id
         )
             .then((dados) => {
@@ -147,8 +145,7 @@ function AssignTechnicianForm({
                 setCarregando(false);
             });
     }, [
-        chamado.contratoId,
-        chamado.id,
+        contratoId,
         ordemServico.id,
         ordemServico.tecnicoId,
     ]);
@@ -156,18 +153,23 @@ function AssignTechnicianForm({
     async function atualizarTecnico(
         tecnicoId: number | null
     ) {
+        // A atualização substitui os campos editáveis por completo — é
+        // preciso reenviar o estado atual da OS, não apenas o técnico,
+        // para não apagar chamado/unidade/descrição/patrimônio/hora.
         const request: OrdemServicoRequest = {
-            numeroOrdemServico:
-            ordemServico.numeroOrdemServico,
-
+            chamadoId: ordemServico.chamadoId,
             tecnicoId,
-
-            unidadeAtendimentoId: null,
+            unidadeAtendimentoId:
+            ordemServico.unidadeAtendimentoId,
+            descricao: ordemServico.descricao,
+            numeroPatrimonio:
+            ordemServico.numeroPatrimonio,
+            data: ordemServico.data,
+            hora: ordemServico.hora,
         };
 
         return atualizarOrdemServico(
-            chamado.contratoId,
-            chamado.id,
+            contratoId,
             ordemServico.id,
             request
         );

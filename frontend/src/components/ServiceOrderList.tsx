@@ -1,7 +1,9 @@
 import { useState } from "react";
 
 import TechnicianDrawer from "./TechnicianDrawer";
-import CreateServiceOrderForm from "./CreateServiceOrderForm";
+import OrderForm from "./OrderForm";
+
+import { definirStatusOrdemServico } from "../utils/ordemServicoStatus";
 
 import type {
     Chamado,
@@ -25,11 +27,6 @@ type ServiceOrderListProps = {
     ) => void;
 };
 
-type StatusVisualOrdem = {
-    rotulo: string;
-    classe: string;
-};
-
 function formatarData(
     data: string | null
 ) {
@@ -44,42 +41,6 @@ function formatarData(
             timeStyle: "short",
         }
     );
-}
-
-function definirStatusOrdemServico(
-    ordemServico: OrdemServico
-): StatusVisualOrdem {
-    if (
-        ordemServico.dataCheckIn &&
-        ordemServico.dataCheckOut
-    ) {
-        return {
-            rotulo: "Encerrada",
-            classe: "encerrada",
-        };
-    }
-
-    if (
-        ordemServico.dataCheckIn &&
-        !ordemServico.dataCheckOut
-    ) {
-        return {
-            rotulo: "Em atendimento",
-            classe: "em-atendimento",
-        };
-    }
-
-    if (ordemServico.tecnicoId === null) {
-        return {
-            rotulo: "Aguardando atribuição",
-            classe: "sem-tecnico",
-        };
-    }
-
-    return {
-        rotulo: "Aguardando início",
-        classe: "aguardando-inicio",
-    };
 }
 
 function obterIniciais(
@@ -202,14 +163,15 @@ function ServiceOrderList({
             </div>
 
             {criandoOrdemServico && (
-                <CreateServiceOrderForm
-                    chamado={chamado}
+                <OrderForm
+                    contratoId={chamado.contratoId}
+                    chamadoOrigem={chamado}
                     aoCancelar={() =>
                         setCriandoOrdemServico(
                             false
                         )
                     }
-                    aoOrdemCriada={
+                    aoSalvo={
                         ordemCriada
                     }
                 />
@@ -512,7 +474,7 @@ function ServiceOrderList({
 
                                             {formularioAberto && (
                                                 <TechnicianDrawer
-                                                    chamado={chamado}
+                                                    contratoId={chamado.contratoId}
                                                     ordemServico={
                                                         ordemServico
                                                     }

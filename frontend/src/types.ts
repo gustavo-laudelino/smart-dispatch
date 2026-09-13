@@ -32,6 +32,7 @@ export type Solicitante = {
 export type Chamado = {
     id: number;
     numeroChamado: string;
+    numeroChamadoInterno: number;
     linkChamadoOsti: string;
     unidadeId: number;
     unidadeNome: string;
@@ -50,14 +51,27 @@ export type Chamado = {
 
 export type OrdemServico = {
     id: number;
-    numeroOrdemServico: string;
-    chamadoId: number;
-    numeroChamado: string;
+    numeroOrdemServico: number;
+
+    contratoId: number;
+    contratoCidade: string;
+
+    chamadoId: number | null;
+    numeroChamado: string | null;
+
+    descricao: string | null;
+    numeroPatrimonio: string | null;
+
     tecnicoId: number | null;
     tecnicoNome: string | null;
     dataAtribuicaoTecnico: string | null;
+
+    data: string;
+    hora: string | null;
+
     unidadeAtendimentoId: number;
     unidadeAtendimentoNome: string;
+
     dataCheckIn: string | null;
     dataCheckOut: string | null;
 };
@@ -68,7 +82,7 @@ export type ComentarioChamado = {
     autorId: number;
     autorNome: string;
     ordemServicoId: number | null;
-    numeroOrdemServico: string | null;
+    numeroOrdemServico: number | null;
     texto: string;
     dataCriacao: string;
 };
@@ -117,9 +131,22 @@ export type Tecnico = {
 };
 
 export type OrdemServicoRequest = {
-    numeroOrdemServico: string;
+    chamadoId: number | null;
     tecnicoId: number | null;
     unidadeAtendimentoId: number | null;
+    descricao: string | null;
+    numeroPatrimonio: string | null;
+    data: string | null;
+    hora: string | null;
+};
+
+export type FiltrosOrdemServico = {
+    chamadoId?: number;
+    tecnicoId?: number;
+    meus?: boolean;
+    data?: string;
+    dataInicio?: string;
+    dataFim?: string;
 };
 
 export type NivelIndicacao =
@@ -161,7 +188,7 @@ export type HistoricoChamado = {
     chamadoId: number;
 
     ordemServicoId: number | null;
-    numeroOrdemServico: string | null;
+    numeroOrdemServico: number | null;
 
     tipoEvento: TipoEventoChamado;
     descricao: string;

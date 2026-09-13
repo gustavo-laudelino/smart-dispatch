@@ -14,8 +14,9 @@ import {
     buscarOrdensServico,
     buscarTecnicosPorContrato,
     finalizarAtendimento as finalizarAtendimentoApi,
-    iniciarAtendimento as iniciarAtendimentoApi,
 } from "./api";
+
+import { iniciarAtendimentoComConfirmacao } from "./utils/checkIn";
 
 import CommentTimeline from "./components/CommentTimeline";
 import CreateTicketForm from "./components/CreateTicketForm";
@@ -23,6 +24,7 @@ import {
     DetailSkeleton,
 } from "./components/LoadingSkeletons";
 import ServiceOrderList from "./components/ServiceOrderList";
+import ServiceOrdersScreen from "./components/ServiceOrdersScreen";
 import TicketDetails from "./components/TicketDetails";
 import TicketFeed from "./components/TicketFeed";
 import { useAuth } from "./auth/AuthContext";
@@ -66,6 +68,11 @@ function App() {
     const perfilTecnico =
         sessao?.perfil === "TECNICO" ||
         sessao?.perfil === "TECNICO_INTERNO";
+
+    const [paginaAtiva, setPaginaAtiva] =
+        useState<"chamados" | "ordens-servico">(
+            "chamados"
+        );
 
     const [contratos, setContratos] =
         useState<Contrato[]>([]);
@@ -417,7 +424,7 @@ function App() {
 
             buscarOrdensServico(
                 chamado.contratoId,
-                chamado.id
+                { chamadoId: chamado.id }
             ),
 
             buscarComentarios(
@@ -504,11 +511,15 @@ function App() {
         setErro(null);
 
         try {
-            await iniciarAtendimentoApi(
-                chamadoSelecionado.contratoId,
-                chamadoSelecionado.id,
-                ordemServico.id
-            );
+            const resultado =
+                await iniciarAtendimentoComConfirmacao(
+                    chamadoSelecionado.contratoId,
+                    ordemServico.id
+                );
+
+            if (resultado === null) {
+                return;
+            }
 
             carregarChamados(false);
 
@@ -554,7 +565,6 @@ function App() {
         try {
             await finalizarAtendimentoApi(
                 chamadoSelecionado.contratoId,
-                chamadoSelecionado.id,
                 ordemServico.id
             );
 
@@ -649,23 +659,43 @@ function App() {
                         Operação
                     </span>
 
-                    <div className="sidebar-nav-item active">
+                    <button
+                        type="button"
+                        className={
+                            paginaAtiva === "chamados"
+                                ? "sidebar-nav-item active"
+                                : "sidebar-nav-item"
+                        }
+                        onClick={() =>
+                            setPaginaAtiva("chamados")
+                        }
+                    >
                         <span className="sidebar-nav-icon">
                             ◆
                         </span>
 
                         <span>Chamados</span>
-                    </div>
+                    </button>
 
-                    <div className="sidebar-nav-item disabled">
+                    <button
+                        type="button"
+                        className={
+                            paginaAtiva === "ordens-servico"
+                                ? "sidebar-nav-item active"
+                                : "sidebar-nav-item"
+                        }
+                        onClick={() =>
+                            setPaginaAtiva(
+                                "ordens-servico"
+                            )
+                        }
+                    >
                         <span className="sidebar-nav-icon">
                             ◉
                         </span>
 
-                        <span>Técnicos</span>
-
-                        <small>Em breve</small>
-                    </div>
+                        <span>Ordens de serviço</span>
+                    </button>
 
                     <div className="sidebar-nav-item disabled">
                         <span className="sidebar-nav-icon">
@@ -715,47 +745,57 @@ function App() {
             </aside>
 
             <div className="app-content">
-                <header className="app-header compact-app-header">
-                    <div className="compact-header-main">
-                        <div className="app-header-title">
-                            <span className="label">
-                                Central de operações
-                            </span>
-
-                            <div className="app-header-title-row">
-                                <h1>
-                                    Chamados
-                                </h1>
-
-                                <span
-                                    className="header-ticket-count"
-                                    title={`${totalChamados} chamados no total`}
-                                >
-                                    {totalChamados}
+                {paginaAtiva === "chamados" && (
+                    <header className="app-header compact-app-header">
+                        <div className="compact-header-main">
+                            <div className="app-header-title">
+                                <span className="label">
+                                    Central de operações
                                 </span>
+
+                                <div className="app-header-title-row">
+                                    <h1>
+                                        Chamados
+                                    </h1>
+
+                                    <span
+                                        className="header-ticket-count"
+                                        title={`${totalChamados} chamados no total`}
+                                    >
+                                        {totalChamados}
+                                    </span>
+                                </div>
                             </div>
+
+                            {!criandoChamado && (
+                                <div className="compact-header-actions">
+                                    <button
+                                        type="button"
+                                        className="primary-button"
+                                        onClick={() => {
+                                            setErro(null);
+
+                                            setCriandoChamado(
+                                                true
+                                            );
+                                        }}
+                                    >
+                                        + Novo chamado
+                                    </button>
+                                </div>
+                            )}
                         </div>
+                    </header>
+                )}
 
-                        {!criandoChamado && (
-                            <div className="compact-header-actions">
-                                <button
-                                    type="button"
-                                    className="primary-button"
-                                    onClick={() => {
-                                        setErro(null);
+                {paginaAtiva === "ordens-servico" && (
+                    <ServiceOrdersScreen
+                        sessao={sessao}
+                        contratos={contratos}
+                    />
+                )}
 
-                                        setCriandoChamado(
-                                            true
-                                        );
-                                    }}
-                                >
-                                    + Novo chamado
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                </header>
-
+                {paginaAtiva === "chamados" && (
                 <main className="page">
                     {erro && (
                         <div className="error">
@@ -937,6 +977,7 @@ function App() {
                         </div>
                     )}
                 </main>
+                )}
             </div>
         </div>
     );

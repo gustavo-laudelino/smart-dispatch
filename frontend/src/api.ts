@@ -7,6 +7,7 @@ import type {
     ComentarioChamado,
     Contrato,
     ErroResponse,
+    FiltrosOrdemServico,
     HistoricoChamado,
     LoginRequest,
     LoginResponse,
@@ -170,10 +171,40 @@ export async function atualizarChamado(
 
 export async function buscarOrdensServico(
     contratoId: number,
-    chamadoId: number
+    filtros: FiltrosOrdemServico = {}
 ): Promise<OrdemServico[]> {
+    const parametros = new URLSearchParams();
+
+    if (filtros.chamadoId !== undefined) {
+        parametros.set("chamadoId", String(filtros.chamadoId));
+    }
+
+    if (filtros.tecnicoId !== undefined) {
+        parametros.set("tecnicoId", String(filtros.tecnicoId));
+    }
+
+    if (filtros.meus) {
+        parametros.set("meus", "true");
+    }
+
+    if (filtros.data) {
+        parametros.set("data", filtros.data);
+    }
+
+    if (filtros.dataInicio) {
+        parametros.set("dataInicio", filtros.dataInicio);
+    }
+
+    if (filtros.dataFim) {
+        parametros.set("dataFim", filtros.dataFim);
+    }
+
+    const query = parametros.toString();
+
     const response = await apiFetch(
-        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico`
+        `${API_BASE_URL}/contratos/${contratoId}/ordens-servico${
+            query ? `?${query}` : ""
+        }`
     );
 
     if (!response.ok) {
@@ -183,13 +214,30 @@ export async function buscarOrdensServico(
     return response.json();
 }
 
+export async function buscarOrdemServicoPorId(
+    contratoId: number,
+    ordemServicoId: number
+): Promise<OrdemServico> {
+    const response = await apiFetch(
+        `${API_BASE_URL}/contratos/${contratoId}/ordens-servico/${ordemServicoId}`
+    );
+
+    if (!response.ok) {
+        const mensagemErro =
+            await extrairMensagemErro(response);
+
+        throw new Error(mensagemErro);
+    }
+
+    return response.json();
+}
+
 export async function buscarSugestoesTecnicos(
     contratoId: number,
-    chamadoId: number,
     ordemServicoId: number
 ): Promise<SugestaoTecnico[]> {
     const response = await apiFetch(
-        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}/sugestoes-tecnicos`
+        `${API_BASE_URL}/contratos/${contratoId}/ordens-servico/${ordemServicoId}/sugestoes-tecnicos`
     );
 
     if (!response.ok) {
@@ -237,18 +285,18 @@ export async function buscarHistoricoChamado(
 
 export async function iniciarAtendimento(
     contratoId: number,
-    chamadoId: number,
-    ordemServicoId: number
-): Promise<void> {
+    ordemServicoId: number,
+    encerrarCheckInAnterior = false
+): Promise<OrdemServico> {
     const response = await apiFetch(
-        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}/check-in`,
+        `${API_BASE_URL}/contratos/${contratoId}/ordens-servico/${ordemServicoId}/check-in`,
         {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                encerrarCheckInAnterior: false,
+                encerrarCheckInAnterior,
             }),
         }
     );
@@ -258,15 +306,16 @@ export async function iniciarAtendimento(
 
         throw new Error(mensagemErro);
     }
+
+    return response.json();
 }
 
 export async function finalizarAtendimento(
     contratoId: number,
-    chamadoId: number,
     ordemServicoId: number
-): Promise<void> {
+): Promise<OrdemServico> {
     const response = await apiFetch(
-        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}/check-out`,
+        `${API_BASE_URL}/contratos/${contratoId}/ordens-servico/${ordemServicoId}/check-out`,
         {
             method: "POST",
         }
@@ -277,6 +326,8 @@ export async function finalizarAtendimento(
 
         throw new Error(mensagemErro);
     }
+
+    return response.json();
 }
 
 export async function adicionarComentario(
@@ -377,11 +428,10 @@ export async function buscarTecnicos(
 
 export async function criarOrdemServico(
     contratoId: number,
-    chamadoId: number,
     ordemServicoRequest: OrdemServicoRequest
 ): Promise<OrdemServico> {
     const response = await apiFetch(
-        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico`,
+        `${API_BASE_URL}/contratos/${contratoId}/ordens-servico`,
         {
             method: "POST",
             headers: {
@@ -403,12 +453,11 @@ export async function criarOrdemServico(
 
 export async function atualizarOrdemServico(
     contratoId: number,
-    chamadoId: number,
     ordemServicoId: number,
     ordemServicoRequest: OrdemServicoRequest
 ): Promise<OrdemServico> {
     const response = await apiFetch(
-        `${API_BASE_URL}/contratos/${contratoId}/chamados/${chamadoId}/ordens-servico/${ordemServicoId}`,
+        `${API_BASE_URL}/contratos/${contratoId}/ordens-servico/${ordemServicoId}`,
         {
             method: "PUT",
             headers: {
@@ -426,6 +475,20 @@ export async function atualizarOrdemServico(
     }
 
     return response.json();
+}
+
+const MARCADOR_CONFLITO_CHECKIN_ANTERIOR =
+    "Deseja encerrar esse atendimento e iniciar a OS";
+
+export function ehConflitoDeCheckInAnterior(
+    erro: unknown
+): erro is Error {
+    return (
+        erro instanceof Error &&
+        erro.message.includes(
+            MARCADOR_CONFLITO_CHECKIN_ANTERIOR
+        )
+    );
 }
 
 export async function atualizarStatusChamado(

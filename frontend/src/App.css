@@ -742,10 +742,25 @@
   align-items: center;
   gap: 12px;
   padding: 0 13px;
+  border: none;
   border-radius: 10px;
+  background: none;
   color: #cbd5e1;
+  font: inherit;
   font-size: 13px;
   font-weight: 700;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-nav-item:hover:not(.active):not(.disabled) {
+  background: rgba(148, 163, 184, 0.12);
+  color: #e2e8f0;
+}
+
+.sidebar-nav-item.disabled {
+  cursor: default;
 }
 
 .sidebar-nav-item.active {
@@ -6482,6 +6497,143 @@ button {
   cursor: pointer;
   font-size: 15px;
   line-height: 1;
+}
+
+/* Tela de Ordens de Serviço (visão dia/semana). */
+
+.orders-screen .app-header {
+  margin-bottom: 20px;
+}
+
+.orders-toolbar {
+  max-width: 1280px;
+  margin: 0 auto 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+}
+
+.orders-view-toggle {
+  display: inline-flex;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.orders-view-toggle button {
+  border: none;
+  background: #ffffff;
+  color: #475569;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.orders-view-toggle button + button {
+  border-left: 1px solid #d1d5db;
+}
+
+.orders-view-toggle button.active {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.orders-date-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.orders-date-nav button {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.orders-date-nav button:hover {
+  background: #f3f4f6;
+}
+
+.orders-date-today {
+  width: auto !important;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.orders-date-label {
+  min-width: 160px;
+  color: #111827;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.orders-week-grid {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.orders-day-group {
+  background: #ffffff;
+  border: 1px solid #e6eaf0;
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.055);
+}
+
+.orders-day-group-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e6eaf0;
+  color: #111827;
+}
+
+.orders-day-group-header span {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.orders-day-group-empty {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.order-description {
+  margin: 0 0 16px;
+  color: #475569;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 720px) {
+  .orders-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .orders-date-nav {
+    margin-left: 0;
+    justify-content: center;
+  }
 }
 
 .logout-button:hover {

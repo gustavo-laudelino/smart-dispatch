@@ -4,12 +4,11 @@ import { createPortal } from "react-dom";
 import AssignTechnicianForm from "./AssignTechnicianForm";
 
 import type {
-    Chamado,
     OrdemServico,
 } from "../types";
 
 type TechnicianDrawerProps = {
-    chamado: Chamado;
+    contratoId: number;
     ordemServico: OrdemServico;
 
     aoCancelar: () => void;
@@ -20,7 +19,7 @@ type TechnicianDrawerProps = {
 };
 
 function TechnicianDrawer({
-                              chamado,
+                              contratoId,
                               ordemServico,
                               aoCancelar,
                               aoTecnicoAtribuido,
@@ -75,7 +74,7 @@ function TechnicianDrawer({
                 aria-label={`Selecionar técnico para a ordem ${ordemServico.numeroOrdemServico}`}
             >
                 <AssignTechnicianForm
-                    chamado={chamado}
+                    contratoId={contratoId}
                     ordemServico={
                         ordemServico
                     }
