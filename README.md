@@ -120,7 +120,7 @@ O backend segue uma suíte em camadas, cada uma provando algo que a anterior nã
 
 Nenhuma camada usa `@WithMockUser`: a autenticação/autorização testada é sempre o fluxo real (Bearer JWT → `JwtDecoder` → `SecurityFilterChain` → perfil atual no banco → `@PreAuthorize`).
 
-Baseline atual: **385 testes, 0 falhas** (`mvn test`).
+Baseline atual: **411 testes, 0 falhas** (`mvn test`).
 
 ---
 
@@ -180,6 +180,7 @@ Linha do tempo unificada com comentários humanos e eventos automáticos do sist
 ### Chamados
 
 - criação e edição;
+- numeração automática interna por contrato, além do número OSTI/externo;
 - associação com contrato e unidade;
 - dados do solicitante;
 - classificação por tipo, categoria e prioridade;
@@ -189,11 +190,14 @@ Linha do tempo unificada com comentários humanos e eventos automáticos do sist
 
 ### Ordens de serviço
 
+- recurso operacional independente do chamado — pode nascer vinculada a um chamado ou ser criada diretamente (OS avulsa);
+- numeração automática (sequência própria do sistema, não mais informada pelo cliente);
+- tela própria de Ordens de Serviço, com visão diária e semanal (sem grade de horário — hora é só informação do card);
 - múltiplas ordens para o mesmo chamado;
-- definição da unidade de atendimento;
-- atribuição, troca e remoção de técnico, com sugestão automática;
+- definição da unidade de atendimento, descrição, patrimônio, data e hora;
+- atribuição, troca e remoção de técnico, com sugestão automática (por distância, carga ativa e distribuição recente);
 - registro da data de atribuição;
-- bloqueio de alterações críticas após o check-in.
+- bloqueio de alterações críticas (técnico, unidade, chamado vinculado) após o check-in.
 
 ### Atendimento
 
@@ -297,12 +301,12 @@ Algumas decisões importantes tomadas durante o desenvolvimento:
 - autenticação e autorização (JWT + perfil resolvido do banco);
 - gestão de chamados, com busca e filtros (incluindo por técnico);
 - edição de chamado;
-- ordens de serviço, com ranking e atribuição de técnico;
-- check-in e check-out, com atualização automática de status;
-- comentários e histórico automático;
+- ordens de serviço como recurso independente (com ou sem chamado vinculado), numeração automática, tela própria com visão diária/semanal, ranking e atribuição de técnico;
+- check-in e check-out, com atualização automática de status e confirmação de troca quando o técnico já tem um atendimento ativo em outra OS;
+- comentários e histórico automático (para OS vinculadas a um chamado — ver limitações);
 - timeline operacional;
 - schema de banco versionado (Flyway);
-- suíte de testes em camadas (385 testes) e CI;
+- suíte de testes em camadas (411 testes) e CI;
 - configuração segura por variáveis de ambiente.
 
 ### Limitações conhecidas da V1
@@ -310,22 +314,21 @@ Algumas decisões importantes tomadas durante o desenvolvimento:
 Decisões e lacunas conscientes, não bugs não percebidos:
 
 - não há tela própria para cadastrar Contrato, Unidade, Base Operacional ou Técnico — hoje isso é feito via API/Swagger (ver seção de execução local para um atalho com dados de demonstração já semeados);
-- `numeroOrdemServico` tem unicidade **global**, não por contrato — decisão de MVP;
+- uma ordem de serviço avulsa (sem chamado vinculado) não gera eventos na timeline/histórico — o histórico automático hoje só existe para OS vinculadas a um chamado;
 - senha inicial/reset de usuário é fixa (`"cto"`) — decisão de MVP, não pensada para produção real;
 - inativar um usuário não revoga imediatamente um JWT já emitido (o acesso persiste até a expiração natural, até 12h);
 - o filtro de status e a busca textual do feed de chamados operam sobre a página já carregada (client-side), diferente dos filtros por contrato/técnico, que são aplicados no backend antes da paginação;
-- a Ordem de Serviço, hoje, sempre depende de um Chamado — não existe como recurso independente (ver roadmap abaixo).
+- a tela de Ordens de Serviço sempre exige um contrato selecionado — diferente do feed de Chamados, não existe uma visão "todos os contratos" para OS.
 
 ### Roadmap V2
 
 Direção já mapeada, ainda não implementada nesta versão:
 
-- Ordem de Serviço como recurso operacional independente do Chamado (pode nascer vinculada ou avulsa);
-- tela própria de Ordens de Serviço, com visão diária e semanal;
-- numeração automática de OS e de Chamado (interna), substituindo os números manuais/globais atuais;
+- histórico/timeline dedicado para ordens de serviço avulsas;
 - recorrência de Ordem de Serviço (atividades periódicas);
 - evidências de atendimento (laudo, fotos, assinatura);
 - registro de presença do técnico na base, independente de atendimento a chamado;
+- criação de Ordem de Serviço pelo próprio técnico (hoje restrita a `ADMIN`/`CTO`);
 - evolução da arquitetura para suportar múltiplos tenants (hoje o isolamento é por contrato dentro de um único banco).
 
 ---
